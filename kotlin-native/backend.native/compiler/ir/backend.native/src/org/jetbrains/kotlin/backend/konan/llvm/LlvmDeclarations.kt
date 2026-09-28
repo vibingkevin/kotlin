@@ -91,7 +91,7 @@ internal data class ClassBodyAndAlignmentInfo(
 private fun ContextUtils.createClassBody(name: String, fields: List<ClassLayoutBuilder.FieldInfo>): ClassBodyAndAlignmentInfo {
     val classType = LLVMStructCreateNamed(LLVMGetModuleContext(llvm.module), name)!!
     val packed = context.config.packFields ||
-        fields.any { LLVMABIAlignmentOfType(runtime.targetData, it.type.toLLVMType(llvm)) != it.alignment }
+        fields.any { LayoutQueryProfile.measure(25) { LLVMABIAlignmentOfType(runtime.targetData, it.type.toLLVMType(llvm)) } != it.alignment }
     val alignment = maxOf(runtime.objectAlignment, fields.maxOfOrNull { it.alignment } ?: 0)
     val indices = mutableMapOf<IrFieldSymbol, Int>()
 
@@ -99,7 +99,7 @@ private fun ContextUtils.createClassBody(name: String, fields: List<ClassLayoutB
         var currentOffset = 0L
         fun addAndCount(type: LLVMTypeRef) {
             add(type)
-            currentOffset += LLVMStoreSizeOfType(runtime.targetData, type)
+            currentOffset += LayoutQueryProfile.measure(26) { LLVMStoreSizeOfType(runtime.targetData, type) }
         }
         addAndCount(runtime.objHeaderType)
         for (field in fields) {
@@ -120,11 +120,11 @@ private fun ContextUtils.createClassBody(name: String, fields: List<ClassLayoutB
     context.logMultiple {
         +"$name has following fields:"
         for (i in fieldTypes.indices) {
-            +"  $i: ${fieldTypes[i].toTypeString()} at offset ${LLVMOffsetOfElement(runtime.targetData, classType, i)}"
+            +"  $i: ${fieldTypes[i].toTypeString()} at offset ${LayoutQueryProfile.measure(27) { LLVMOffsetOfElement(runtime.targetData, classType, i) }}"
         }
-        +"  Overall llvm alignment is ${LLVMABIAlignmentOfType(runtime.targetData, classType)}"
+        +"  Overall llvm alignment is ${LayoutQueryProfile.measure(28) { LLVMABIAlignmentOfType(runtime.targetData, classType) }}"
         +"  Overall required alignment is ${alignment}"
-        +"  Overall size is ${LLVMABISizeOfType(runtime.targetData, classType)}"
+        +"  Overall size is ${LayoutQueryProfile.measure(29) { LLVMABISizeOfType(runtime.targetData, classType) }}"
         +"  Resulting type is ${classType.toTypeString()}"
     }
 
@@ -237,7 +237,7 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
 
         val packedFields = mutableListOf<IndexedField>()
         for (field in fields) {
-            val size = LLVMStoreSizeOfType(llvm.runtime.targetData, field.type.toLLVMType(llvm))
+            val size = LayoutQueryProfile.measure(30) { LLVMStoreSizeOfType(llvm.runtime.targetData, field.type.toLLVMType(llvm)) }
             check(size == 1L || size == 2L || size == 4L || size % 8 == 0L)
             check(min(size, 8L) % field.alignment == 0L)
             val offset = nextOffset(size)
@@ -307,7 +307,7 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
             // This works only if there is no gap between the beginning of the global and the TypeInfo part,
             // which should always be the case, since it is the zeroth element.
             // Still, better be safe than sorry, checking this explicitly:
-            val typeInfoOffsetInGlobal = LLVMOffsetOfElement(llvmTargetData, typeInfoWithVtableType, 0)
+            val typeInfoOffsetInGlobal = LayoutQueryProfile.measure(31) { LLVMOffsetOfElement(llvmTargetData, typeInfoWithVtableType, 0) }
             check(typeInfoOffsetInGlobal == 0L) { "Offset for $typeInfoSymbolName TypeInfo is $typeInfoOffsetInGlobal" }
 
             typeInfoPtr = typeInfoGlobal.pointer.getElementPtr(llvm, typeInfoWithVtableType, 0)
@@ -402,7 +402,7 @@ private class DeclarationsGeneratorVisitor(override val generationState: NativeG
                     FieldLlvmDeclarations(
                             index,
                             bodyType,
-                            gcd(LLVMOffsetOfElement(llvm.runtime.targetData, bodyType, index), llvm.runtime.objectAlignment.toLong()).toInt()
+                            gcd(LayoutQueryProfile.measure(32) { LLVMOffsetOfElement(llvm.runtime.targetData, bodyType, index) }, llvm.runtime.objectAlignment.toLong()).toInt()
                     )
             )
         } else {

@@ -135,7 +135,7 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
         object Protocol : DeclarationID()
     }
 
-    private open inner class LocatableDeclarationRegistry<D : LocatableDeclaration> {
+    private open inner class LocatableDeclarationRegistry<D : LocatableDeclaration>(private val profileId: Int) {
         private val all = mutableMapOf<DeclarationID, D>()
 
         val included = mutableListOf<D>()
@@ -147,7 +147,8 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
 
         inline fun getOrPut(cursor: CValue<CXCursor>, create: () -> D, configure: (D) -> Unit): D {
             val key = getDeclarationId(cursor)
-            return all.getOrElse(key) {
+            return LayoutQueryProfile.cached(profileId) { miss -> all.getOrElse(key) {
+                miss()
 
                 val value = create()
                 all[key] = value
@@ -160,12 +161,12 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
 
                 configure(value)
                 value
-            }
+            } }
         }
 
     }
 
-    private inner class ObjCClassOrProtocolRegistry<D : ObjCClassOrProtocol> : LocatableDeclarationRegistry<D>() {
+    private inner class ObjCClassOrProtocolRegistry<D : ObjCClassOrProtocol>(profileId: Int) : LocatableDeclarationRegistry<D>(profileId) {
         override fun shouldBeIncluded(declaration: D, headerId: HeaderId): Boolean {
             if (!declaration.isForwardDeclaration) {
                 return super.shouldBeIncluded(declaration, headerId)
@@ -230,22 +231,22 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
     }
 
     override val structs: List<StructDecl> get() = structRegistry.included
-    private val structRegistry = LocatableDeclarationRegistry<StructDeclImpl>()
+    private val structRegistry = LocatableDeclarationRegistry<StructDeclImpl>(11)
 
     override val enums: List<EnumDef> get() = enumRegistry.included
-    private val enumRegistry = LocatableDeclarationRegistry<EnumDefImpl>()
+    private val enumRegistry = LocatableDeclarationRegistry<EnumDefImpl>(12)
 
     override val objCClasses: List<ObjCClass> get() = objCClassRegistry.included
-    private val objCClassRegistry = ObjCClassOrProtocolRegistry<ObjCClassImpl>()
+    private val objCClassRegistry = ObjCClassOrProtocolRegistry<ObjCClassImpl>(13)
 
     override val objCProtocols: List<ObjCProtocol> get() = objCProtocolRegistry.included
-    private val objCProtocolRegistry = ObjCClassOrProtocolRegistry<ObjCProtocolImpl>()
+    private val objCProtocolRegistry = ObjCClassOrProtocolRegistry<ObjCProtocolImpl>(14)
 
     override val objCCategories: Collection<ObjCCategory> get() = objCCategoryById.included
-    private val objCCategoryById = LocatableDeclarationRegistry<ObjCCategoryImpl>()
+    private val objCCategoryById = LocatableDeclarationRegistry<ObjCCategoryImpl>(15)
 
     override val typedefs get() = typedefRegistry.included
-    private val typedefRegistry = LocatableDeclarationRegistry<TypedefDef>()
+    private val typedefRegistry = LocatableDeclarationRegistry<TypedefDef>(16)
 
 
     private val functionById = mutableMapOf<DeclarationID, FunctionDecl?>()
@@ -328,8 +329,8 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
     private fun createStructDef(cursor: CValue<CXCursor>, structType: CValue<CXType>): StructDefImpl {
         assert(!isStructDeclForward(cursor))
         val type = clang_getCursorType(cursor)
-        val size = clang_Type_getSizeOf(type)
-        val align = clang_Type_getAlignOf(type).toInt()
+        val size = LayoutQueryProfile.measure(0) { clang_Type_getSizeOf(type) }
+        val align = LayoutQueryProfile.measure(1) { clang_Type_getAlignOf(type) }.toInt()
         val members = getMembers(cursor, structType)
         return StructDefImpl(
                 size, align,
@@ -379,7 +380,7 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
                     else -> {
                         val name = getCursorSpelling(fieldCursor)
                         val fieldType = convertCursorType(fieldCursor)
-                        val offset = clang_Type_getOffsetOf(structType, name)
+                        val offset = LayoutQueryProfile.measure(2) { clang_Type_getOffsetOf(structType, name) }
                         if (offset < 0) {
                             IncompleteField(name)
                         } else if (clang_Cursor_isBitField(fieldCursor) == 0) {
@@ -388,11 +389,11 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
                                     name,
                                     fieldType,
                                     offset,
-                                    clang_Type_getSizeOf(canonicalFieldType),
-                                    clang_Type_getAlignOf(canonicalFieldType)
+                                    LayoutQueryProfile.measure(3) { clang_Type_getSizeOf(canonicalFieldType) },
+                                    LayoutQueryProfile.measure(4) { clang_Type_getAlignOf(canonicalFieldType) }
                             )
                         } else {
-                            val size = clang_getFieldDeclBitWidth(fieldCursor)
+                            val size = LayoutQueryProfile.measure(5) { clang_getFieldDeclBitWidth(fieldCursor) }
                             BitField(name, fieldType, offset, size)
                         }
                     }
@@ -647,7 +648,7 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
 
         if (library.language == Language.OBJECTIVE_C) {
             if (name == "BOOL" || name == "Boolean") {
-                assert(clang_Type_getSizeOf(type) == 1L)
+                assert(LayoutQueryProfile.measure(6) { clang_Type_getSizeOf(type) } == 1L)
                 return ObjCBoolType
             }
 
@@ -720,9 +721,9 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
         CXType_Vector, CXType_ExtVector -> {
             val elementCXType = clang_getElementType(type)
             val elementType = convertType(elementCXType)
-            val size = clang_Type_getSizeOf(type)
-            val elemSize = clang_Type_getSizeOf(elementCXType)
-            val elementCount = clang_getNumElements(type)
+            val size = LayoutQueryProfile.measure(7) { clang_Type_getSizeOf(type) }
+            val elemSize = LayoutQueryProfile.measure(8) { clang_Type_getSizeOf(elementCXType) }
+            val elementCount = LayoutQueryProfile.measure(17) { clang_getNumElements(type) }
             assert(size >= elemSize * elementCount && size % elemSize == 0L)
 
             // Spelling example: `__attribute__((__vector_size__(4 * sizeof(float)))) const float`
@@ -802,7 +803,7 @@ public open class NativeIndexImpl(val library: NativeLibrary, val verbose: Boole
 
             CXType_ConstantArray -> {
                 val elementType = convertType(clang_getArrayElementType(type))
-                val length = clang_getArraySize(type)
+                val length = LayoutQueryProfile.measure(9) { clang_getArraySize(type) }
                 ConstArrayType(elementType, length)
             }
 

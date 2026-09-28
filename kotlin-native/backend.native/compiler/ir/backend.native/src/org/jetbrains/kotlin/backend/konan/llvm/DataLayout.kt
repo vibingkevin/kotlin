@@ -27,7 +27,7 @@ private fun PrimitiveBinaryType?.toLlvmType(llvm: CodegenLlvmHelpers) = when (th
 }
 
 internal fun IrType.toLLVMType(llvm: CodegenLlvmHelpers): LLVMTypeRef =
-        llvm.runtime.calculatedLLVMTypes.getOrPut(this) { computePrimitiveBinaryTypeOrNull().toLlvmType(llvm) }
+        LayoutQueryProfile.getOrPut(48, llvm.runtime.calculatedLLVMTypes, this) { computePrimitiveBinaryTypeOrNull().toLlvmType(llvm) }
 
 internal fun IrType.isVoidAsReturnType() = isUnit() || isNothing()
 

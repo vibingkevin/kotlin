@@ -5,6 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan.llvm.objc
 
+import org.jetbrains.kotlin.backend.konan.llvm.LayoutQueryProfile
+
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.llvm.*
 
@@ -106,7 +108,7 @@ internal class ObjCDataGenerator(val codegen: CodeGenerator) {
             }
 
             val methodList = llvm.struct(
-                    llvm.constInt32(LLVMABISizeOfType(codegen.llvmTargetData, methodType).toInt()),
+                    llvm.constInt32(LayoutQueryProfile.measure(43) { LLVMABISizeOfType(codegen.llvmTargetData, methodType) }.toInt()),
                     llvm.constInt32(instanceMethods.size),
                     ConstArray(methodType, methodStructs)
             )
@@ -189,7 +191,7 @@ internal class ObjCDataGenerator(val codegen: CodeGenerator) {
 
             LLVMSetInitializer(classGlobal.llvm, classObjectValue.llvm)
             LLVMSetSection(classGlobal.llvm, "__DATA, __objc_data")
-            LLVMSetAlignment(classGlobal.llvm, LLVMABIAlignmentOfType(runtime.targetData, classObjectType))
+            LLVMSetAlignment(classGlobal.llvm, LayoutQueryProfile.measure(44) { LLVMABIAlignmentOfType(runtime.targetData, classObjectType) })
 
             llvm.usedGlobals.add(classGlobal.llvm)
 
@@ -225,10 +227,10 @@ internal class ObjCDataGenerator(val codegen: CodeGenerator) {
         )
 
         global.setAlignment(
-                LLVMABIAlignmentOfType(
+                LayoutQueryProfile.measure(45) { LLVMABIAlignmentOfType(
                         llvm.runtime.targetData,
                         LLVMGetInitializer(global.llvmGlobal)!!.type
-                )
+                ) }
         )
 
         global.setSection(section)

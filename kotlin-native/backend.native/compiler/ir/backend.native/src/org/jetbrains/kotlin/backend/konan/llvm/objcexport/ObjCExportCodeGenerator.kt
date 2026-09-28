@@ -5,6 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan.llvm.objcexport
 
+import org.jetbrains.kotlin.backend.konan.llvm.LayoutQueryProfile
+
 import llvm.*
 import org.jetbrains.kotlin.K1Deprecation
 import org.jetbrains.kotlin.backend.common.lower.coroutines.getOrCreateFunctionWithContinuationStub
@@ -1868,7 +1870,7 @@ internal fun ObjCExportCodeGenerator.getEncoding(methodBridge: MethodBridge): St
         methodBridge.paramBridges.forEach {
             append(it.objCEncoding)
             append(paramOffset)
-            paramOffset += LLVMStoreSizeOfType(runtime.targetData, it.toLlvmParamType(llvm).llvmType).toInt()
+            paramOffset += LayoutQueryProfile.measure(47) { LLVMStoreSizeOfType(runtime.targetData, it.toLlvmParamType(llvm).llvmType) }.toInt()
         }
     }
 

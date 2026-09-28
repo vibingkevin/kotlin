@@ -1,0 +1,240 @@
+[
+  {
+    "id": 0,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 69,
+    "label": "LLVMByteOrder",
+    "origin": 1
+  },
+  {
+    "id": 1,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 73,
+    "label": "LLVMPointerSize",
+    "origin": 1
+  },
+  {
+    "id": 2,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 77,
+    "label": "LLVMPointerSizeForAS",
+    "origin": 1
+  },
+  {
+    "id": 3,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 81,
+    "label": "LLVMIntPtrType",
+    "origin": 1
+  },
+  {
+    "id": 4,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 85,
+    "label": "LLVMIntPtrTypeForAS",
+    "origin": 1
+  },
+  {
+    "id": 5,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 89,
+    "label": "LLVMIntPtrTypeInContext",
+    "origin": 1
+  },
+  {
+    "id": 6,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 93,
+    "label": "LLVMIntPtrTypeForASInContext",
+    "origin": 1
+  },
+  {
+    "id": 7,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 97,
+    "label": "LLVMSizeOfTypeInBits",
+    "origin": 1
+  },
+  {
+    "id": 8,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 101,
+    "label": "LLVMStoreSizeOfType",
+    "origin": 1
+  },
+  {
+    "id": 9,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 105,
+    "label": "LLVMABISizeOfType",
+    "origin": 1
+  },
+  {
+    "id": 10,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 109,
+    "label": "LLVMABIAlignmentOfType",
+    "origin": 1
+  },
+  {
+    "id": 11,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 113,
+    "label": "LLVMCallFrameAlignmentOfType",
+    "origin": 1
+  },
+  {
+    "id": 12,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 117,
+    "label": "LLVMPreferredAlignmentOfType",
+    "origin": 1
+  },
+  {
+    "id": 13,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 121,
+    "label": "LLVMPreferredAlignmentOfGlobal",
+    "origin": 1
+  },
+  {
+    "id": 14,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 128,
+    "label": "LLVMElementAtOffset",
+    "origin": 1
+  },
+  {
+    "id": 15,
+    "file": "llvm/lib/Target/Target.cpp",
+    "line": 134,
+    "label": "LLVMOffsetOfElement",
+    "origin": 1
+  },
+  {
+    "id": 16,
+    "file": "llvm/lib/IR/Core.cpp",
+    "line": 705,
+    "label": "LLVMGetIntTypeWidth",
+    "origin": 1
+  },
+  {
+    "id": 17,
+    "file": "llvm/lib/IR/Core.cpp",
+    "line": 903,
+    "label": "LLVMGetArrayLength",
+    "origin": 1
+  },
+  {
+    "id": 18,
+    "file": "llvm/lib/IR/Core.cpp",
+    "line": 907,
+    "label": "LLVMGetArrayLength2",
+    "origin": 1
+  },
+  {
+    "id": 19,
+    "file": "llvm/lib/IR/Core.cpp",
+    "line": 915,
+    "label": "LLVMGetVectorSize",
+    "origin": 1
+  },
+  {
+    "id": 20,
+    "file": "llvm/lib/IR/Core.cpp",
+    "line": 1759,
+    "label": "LLVMAlignOf",
+    "origin": 1
+  },
+  {
+    "id": 21,
+    "file": "llvm/lib/IR/Core.cpp",
+    "line": 1763,
+    "label": "LLVMSizeOf",
+    "origin": 1
+  },
+  {
+    "id": 22,
+    "file": "clang/tools/libclang/CXType.cpp",
+    "line": 408,
+    "label": "clang_getFieldDeclBitWidth",
+    "origin": 2
+  },
+  {
+    "id": 23,
+    "file": "clang/tools/libclang/CXType.cpp",
+    "line": 942,
+    "label": "clang_getArraySize",
+    "origin": 2
+  },
+  {
+    "id": 24,
+    "file": "clang/tools/libclang/CXType.cpp",
+    "line": 963,
+    "label": "clang_Type_getAlignOf",
+    "origin": 2
+  },
+  {
+    "id": 25,
+    "file": "clang/tools/libclang/CXType.cpp",
+    "line": 999,
+    "label": "clang_Type_getSizeOf",
+    "origin": 2
+  },
+  {
+    "id": 26,
+    "file": "clang/tools/libclang/CXType.cpp",
+    "line": 1080,
+    "label": "clang_Type_getOffsetOf",
+    "origin": 2
+  },
+  {
+    "id": 27,
+    "file": "clang/tools/libclang/CXType.cpp",
+    "line": 1125,
+    "label": "clang_Cursor_getOffsetOfField",
+    "origin": 2
+  },
+  {
+    "id": 28,
+    "file": "llvm/lib/IR/DataLayout.cpp",
+    "label": "LLVM.StructLayoutMap",
+    "kind": "cache"
+  },
+  {
+    "id": 29,
+    "file": "clang/lib/AST/ASTContext.cpp",
+    "label": "Clang.MemoizedTypeInfo",
+    "kind": "cache"
+  },
+  {
+    "id": 30,
+    "file": "clang/lib/AST/RecordLayoutBuilder.cpp",
+    "label": "Clang.ASTRecordLayouts",
+    "kind": "cache"
+  },
+  {
+    "id": 31,
+    "file": "clang/lib/AST/RecordLayoutBuilder.cpp",
+    "label": "Clang.ObjCLayouts",
+    "kind": "cache"
+  },
+  {
+    "id": 32,
+    "file": "llvm/lib/IR/Core.cpp",
+    "label": "LLVMCountStructElementTypes",
+    "origin": 1
+  },
+  {
+    "id": 33,
+    "file": "llvm/lib/IR/Core.cpp",
+    "label": "LLVMIsPackedStruct",
+    "origin": 1
+  },
+  {
+    "id": 34,
+    "file": "clang/tools/libclang/CXType.cpp",
+    "label": "clang_getNumElements",
+    "origin": 2
+  }
+]

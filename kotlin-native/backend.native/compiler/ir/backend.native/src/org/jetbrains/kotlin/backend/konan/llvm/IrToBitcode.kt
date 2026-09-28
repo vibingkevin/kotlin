@@ -686,7 +686,7 @@ internal class CodeGeneratorVisitor(
     private fun getThreadLocalInitStateFor(container: IrDeclarationContainer): AddressAccess =
             llvm.initializersGenerationState.fileThreadLocalInitStates.getOrPut(container) {
                 codegen.addKotlinThreadLocal("state_thread_local$${container.initVariableSuffix}", llvm.intptrType,
-                        LLVMPreferredAlignmentOfType(llvm.runtime.targetData, llvm.intptrType), false).also {
+                        LayoutQueryProfile.measure(22) { LLVMPreferredAlignmentOfType(llvm.runtime.targetData, llvm.intptrType) }, false).also {
                     LLVMSetInitializer((it as GlobalAddressAccess).getAddress(null), llvm.intptr(FILE_NOT_INITIALIZED))
                 }
             }
@@ -1358,8 +1358,8 @@ internal class CodeGeneratorVisitor(
         assert(value.argument.type.isInt())
         val llvmSrcType = value.argument.type.toLLVMType(llvm)
         val llvmDstType = type.toLLVMType(llvm)
-        val srcWidth    = LLVMGetIntTypeWidth(llvmSrcType)
-        val dstWidth    = LLVMGetIntTypeWidth(llvmDstType)
+        val srcWidth    = LayoutQueryProfile.measure(23) { LLVMGetIntTypeWidth(llvmSrcType) }
+        val dstWidth    = LayoutQueryProfile.measure(24) { LLVMGetIntTypeWidth(llvmDstType) }
         return when {
             srcWidth == dstWidth           -> result
             srcWidth > dstWidth            -> LLVMBuildTrunc(functionGenerationContext.builder, result, llvmDstType, "")!!

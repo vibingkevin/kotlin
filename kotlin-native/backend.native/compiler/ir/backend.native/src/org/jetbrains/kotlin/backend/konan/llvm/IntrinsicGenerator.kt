@@ -67,7 +67,7 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
         get() = codegen.getLlvmFunctionReturnType(symbol.owner).llvmType
 
 
-    private fun LLVMTypeRef.sizeInBits() = LLVMSizeOfTypeInBits(codegen.llvmTargetData, this).toInt()
+    private fun LLVMTypeRef.sizeInBits() = LayoutQueryProfile.measure(18) { LLVMSizeOfTypeInBits(codegen.llvmTargetData, this) }.toInt()
 
     /**
      * Some intrinsics have to be processed before evaluation of their arguments.
@@ -374,7 +374,7 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
             }
 
     private fun FunctionGenerationContext.emitGetPointerSize(): LLVMValueRef =
-            llvm.int32(LLVMPointerSize(codegen.llvmTargetData))
+            llvm.int32(LayoutQueryProfile.measure(19) { LLVMPointerSize(codegen.llvmTargetData) })
 
     private fun FunctionGenerationContext.emitReadPrimitive(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef =
             load(callSite.llvmReturnType, args.last())
@@ -538,8 +538,8 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
 
     private fun FunctionGenerationContext.emitExtractElement(callSite: IrCall, args: List<LLVMValueRef>): LLVMValueRef {
         val [vector, index] = args
-        val elementSize = LLVMSizeOfTypeInBits(codegen.llvmTargetData, callSite.llvmReturnType).toInt()
-        val vectorSize = LLVMSizeOfTypeInBits(codegen.llvmTargetData, vector.type).toInt()
+        val elementSize = LayoutQueryProfile.measure(20) { LLVMSizeOfTypeInBits(codegen.llvmTargetData, callSite.llvmReturnType) }.toInt()
+        val vectorSize = LayoutQueryProfile.measure(21) { LLVMSizeOfTypeInBits(codegen.llvmTargetData, vector.type) }.toInt()
 
         assert(callSite.llvmReturnType.isVectorElementType()
                 && vectorSize % elementSize == 0

@@ -191,8 +191,8 @@ internal class RTTIGenerator(
     private fun getInstanceSize(classType: LLVMTypeRef?, irClass: IrClass) : Int {
         val elementType = getElementType(irClass)
         // Check if it is an array.
-        if (elementType != null) return -LLVMABISizeOfType(llvmTargetData, elementType).toInt()
-        return LLVMStoreSizeOfType(llvmTargetData, classType).toInt()
+        if (elementType != null) return -LayoutQueryProfile.measure(33) { LLVMABISizeOfType(llvmTargetData, elementType) }.toInt()
+        return LayoutQueryProfile.measure(34) { LLVMStoreSizeOfType(llvmTargetData, classType) }.toInt()
     }
 
     fun generate(irClass: IrClass) {
@@ -277,7 +277,7 @@ internal class RTTIGenerator(
 
     private fun getObjOffsets(bodyType: ObjectBodyType): List<ConstInt32> =
             bodyType.sortedIndicesOfObjectFields.map { index ->
-                llvm.constInt32(LLVMOffsetOfElement(llvmTargetData, bodyType.llvmBodyType, index).toInt())
+                llvm.constInt32(LayoutQueryProfile.measure(35) { LLVMOffsetOfElement(llvmTargetData, bodyType.llvmBodyType, index) }.toInt())
             }
 
     fun vtable(irClass: IrClass): ConstArray {
@@ -409,7 +409,7 @@ internal class RTTIGenerator(
     val debugOperationsSize: ConstValue by lazy {
         if (debugRuntimeOrNull != null) {
             val external = LLVMGetNamedGlobal(debugRuntimeOrNull, "Konan_debugOperationsList")!!
-            llvm.constInt32(LLVMGetArrayLength(LLVMGlobalGetValueType(external)))
+            llvm.constInt32(LayoutQueryProfile.measure(36) { LLVMGetArrayLength(LLVMGlobalGetValueType(external)) })
         } else
             llvm.constInt32(0)
     }
@@ -441,7 +441,7 @@ internal class RTTIGenerator(
                 val index = llvmDeclarations.fieldIndices[it.irFieldSymbol]!!
                 val isObjectType = index in objectFieldIndices
                 FieldRecord(
-                        LLVMOffsetOfElement(llvmTargetData, bodyType, index).toInt(),
+                        LayoutQueryProfile.measure(37) { LLVMOffsetOfElement(llvmTargetData, bodyType, index) }.toInt(),
                         mapRuntimeType(LLVMStructGetTypeAtIndex(bodyType, index)!!, isObjectType),
                         it.name)
             }
@@ -503,7 +503,7 @@ internal class RTTIGenerator(
     ): ConstPointer {
         assert(irClass.isInterface)
 
-        val size = LLVMStoreSizeOfType(llvmTargetData, bodyType.llvmBodyType).toInt()
+        val size = LayoutQueryProfile.measure(38) { LLVMStoreSizeOfType(llvmTargetData, bodyType.llvmBodyType) }.toInt()
 
         val superClass = context.irBuiltIns.anyClass.owner
 

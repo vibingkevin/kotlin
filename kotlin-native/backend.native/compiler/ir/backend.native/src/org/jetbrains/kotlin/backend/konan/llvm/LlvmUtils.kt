@@ -72,8 +72,8 @@ internal open class Struct(val type: LLVMTypeRef?, val elements: List<ConstValue
     }.toCValues(), elements.size)!!
 
     init {
-        assert(elements.size == LLVMCountStructElementTypes(type)) {
-            "Should have ${LLVMCountStructElementTypes(type)} elements, have ${elements.size} " +
+        assert(elements.size == LayoutQueryProfile.measure(61) { LLVMCountStructElementTypes(type) }) {
+            "Should have ${LayoutQueryProfile.measure(62) { LLVMCountStructElementTypes(type) }} elements, have ${elements.size} " +
                     "for type ${type.toTypeString()}"
         }
     }
@@ -271,7 +271,7 @@ val LLVMValueRef.isLLVMBuiltin: Boolean
     }
 
 fun getStructElements(type: LLVMTypeRef): List<LLVMTypeRef> {
-    val count = LLVMCountStructElementTypes(type)
+    val count = LayoutQueryProfile.measure(63) { LLVMCountStructElementTypes(type) }
     return (0 until count).map {
         LLVMStructGetTypeAtIndex(type, it)!!
     }

@@ -47,7 +47,7 @@ internal class CodeGenerator(override val generationState: NativeGenerationState
             function.llvmFunctionOrNull
 
     val llvmDeclarations = generationState.llvmDeclarations
-    val intPtrType = LLVMIntPtrTypeInContext(llvm.llvmContext, llvmTargetData)!!
+    val intPtrType = LayoutQueryProfile.measure(3) { LLVMIntPtrTypeInContext(llvm.llvmContext, llvmTargetData) }!!
 
     internal val immOneIntPtrType = LLVMConstInt(intPtrType, 1, 1)!!
     internal val immThreeIntPtrType = LLVMConstInt(intPtrType, 3, 1)!!
@@ -422,7 +422,7 @@ internal class StackLocalsManagerImpl(
             val stackSlot = LLVMBuildAlloca(builder, type, "")!!
             LLVMSetAlignment(stackSlot, classInfo.alignment)
 
-            memset(stackSlot, 0, LLVMSizeOfTypeInBits(codegen.llvmTargetData, type).toInt() / 8)
+            memset(stackSlot, 0, LayoutQueryProfile.measure(4) { LLVMSizeOfTypeInBits(codegen.llvmTargetData, type) }.toInt() / 8)
 
             val objectHeader = structGep(type, stackSlot, 0, "objHeader")
             val typeInfo = codegen.typeInfoForAllocation(irClass)
@@ -486,7 +486,7 @@ internal class StackLocalsManagerImpl(
 
             memset(structGep(arrayType, arraySlot, 1, "arrayBody"),
                     0,
-                    constCount * LLVMSizeOfTypeInBits(codegen.llvmTargetData, arrayToElementType[irClass.symbol]).toInt() / 8
+                    constCount * LayoutQueryProfile.measure(5) { LLVMSizeOfTypeInBits(codegen.llvmTargetData, arrayToElementType[irClass.symbol]) }.toInt() / 8
             )
             val gcRootSetSlot = createRootSetSlot()
             StackLocal(constCount, irClass, arraySlot, arrayHeaderSlot, gcRootSetSlot)
@@ -513,7 +513,7 @@ internal class StackLocalsManagerImpl(
                 val arrayType = localArrayType(stackLocal.irClass, stackLocal.arraySize!!)
                 memset(structGep(arrayType, stackLocal.stackAllocationPtr, 1, "arrayBody"),
                         0,
-                        stackLocal.arraySize * LLVMSizeOfTypeInBits(codegen.llvmTargetData, arrayToElementType[stackLocal.irClass.symbol]).toInt() / 8
+                        stackLocal.arraySize * LayoutQueryProfile.measure(6) { LLVMSizeOfTypeInBits(codegen.llvmTargetData, arrayToElementType[stackLocal.irClass.symbol]) }.toInt() / 8
                 )
             }
         } else {
@@ -532,7 +532,7 @@ internal class StackLocalsManagerImpl(
 
             if (!refsOnly) {
                 val bodyPtr = ptrToInt(stackLocal.stackAllocationPtr, codegen.intPtrType)
-                val bodySize = LLVMSizeOfTypeInBits(codegen.llvmTargetData, type).toInt() / 8
+                val bodySize = LayoutQueryProfile.measure(7) { LLVMSizeOfTypeInBits(codegen.llvmTargetData, type) }.toInt() / 8
                 val serviceInfoSize = runtime.pointerSize
                 val serviceInfoSizeLlvm = LLVMConstInt(codegen.intPtrType, serviceInfoSize.toLong(), 1)!!
                 val bodyWithSkippedServiceInfoPtr = intToPtr(add(bodyPtr, serviceInfoSizeLlvm), llvm.pointerType)
@@ -610,7 +610,7 @@ internal abstract class FunctionGenerationContext(
         private set
     private var slotsPhi: LLVMValueRef? = null
     private val frameOverlaySlotCount =
-            (LLVMStoreSizeOfType(llvmTargetData, runtime.frameOverlayType) / runtime.pointerSize).toInt()
+            (LayoutQueryProfile.measure(8) { LLVMStoreSizeOfType(llvmTargetData, runtime.frameOverlayType) } / runtime.pointerSize).toInt()
     private var slotCount = frameOverlaySlotCount
     private var localAllocs = 0
     // TODO: remove if exactly unused.
