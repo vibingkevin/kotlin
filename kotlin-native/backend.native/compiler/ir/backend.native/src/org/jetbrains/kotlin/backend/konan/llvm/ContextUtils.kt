@@ -515,7 +515,7 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     val int16Type = LLVMInt16TypeInContext(llvmContext)!!
     val int32Type = LLVMInt32TypeInContext(llvmContext)!!
     val int64Type = LLVMInt64TypeInContext(llvmContext)!!
-    val intptrType = LLVMIntPtrTypeInContext(llvmContext, runtime.targetData)!!
+    val intptrType = LayoutQueryProfile.measure(9) { LLVMIntPtrTypeInContext(llvmContext, runtime.targetData) }!!
     val floatType = LLVMFloatTypeInContext(llvmContext)!!
     val doubleType = LLVMDoubleTypeInContext(llvmContext)!!
     val vector128Type = LLVMVectorType(floatType, 4)!!
@@ -532,11 +532,11 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
 
     fun structTypeWithFlexibleArray(original: LLVMTypeRef, newSize: Int): LLVMTypeRef {
         assert(LLVMGetTypeKind(original) == LLVMTypeKind.LLVMStructTypeKind) { "not a struct" }
-        val types = (0 until LLVMCountStructElementTypes(original)).mapTo(mutableListOf()) { LLVMStructGetTypeAtIndex(original, it) }
+        val types = (0 until LayoutQueryProfile.measure(59) { LLVMCountStructElementTypes(original) }).mapTo(mutableListOf()) { LLVMStructGetTypeAtIndex(original, it) }
         val array = types.last()
-        assert(LLVMGetTypeKind(array) == LLVMTypeKind.LLVMArrayTypeKind && LLVMGetArrayLength(array) == 0) { "not a flexible array" }
+        assert(LLVMGetTypeKind(array) == LLVMTypeKind.LLVMArrayTypeKind && LayoutQueryProfile.measure(10) { LLVMGetArrayLength(array) } == 0) { "not a flexible array" }
         types[types.lastIndex] = LLVMArrayType(LLVMGetElementType(array), newSize)
-        return LLVMStructTypeInContext(llvmContext, types.toCValues(), types.size, LLVMIsPackedStruct(original))!!
+        return LLVMStructTypeInContext(llvmContext, types.toCValues(), types.size, LayoutQueryProfile.measure(60) { LLVMIsPackedStruct(original) })!!
     }
 
     fun constInt1(value: Boolean) = ConstInt1(this, value)
@@ -626,7 +626,7 @@ internal class CodegenLlvmHelpers(private val generationState: NativeGenerationS
     )
 
     private fun getSizeOfTypeInBits(type: LLVMTypeRef): Long {
-        return LLVMSizeOfTypeInBits(runtime.targetData, type)
+        return LayoutQueryProfile.measure(11) { LLVMSizeOfTypeInBits(runtime.targetData, type) }
     }
 
     /**

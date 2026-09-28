@@ -79,7 +79,7 @@ internal fun getCursorSpelling(cursor: CValue<CXCursor>) =
         clang_getCursorSpelling(cursor).convertAndDispose()
 
 internal fun CValue<CXType>.getSize(): Long {
-    val size = clang_Type_getSizeOf(this)
+    val size = LayoutQueryProfile.measure(10) { clang_Type_getSizeOf(this) }
     if (size < 0) {
         throw Error(size.toString())
     }

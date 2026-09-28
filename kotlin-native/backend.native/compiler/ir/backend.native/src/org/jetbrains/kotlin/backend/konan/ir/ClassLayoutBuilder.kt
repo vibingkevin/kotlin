@@ -5,6 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan.ir
 
+import org.jetbrains.kotlin.backend.konan.llvm.LayoutQueryProfile
+
 import llvm.LLVMABIAlignmentOfType
 import llvm.LLVMABISizeOfType
 import llvm.LLVMStoreSizeOfType
@@ -272,10 +274,10 @@ internal fun IrField.requiredAlignment(llvm: CodegenLlvmHelpers): Int {
     val abiAlignment = if (llvmType == llvm.vector128Type) {
         8 // over-aligned objects are not supported now, and this worked somehow, so let's keep it as it for now
     } else {
-        LLVMABIAlignmentOfType(llvm.runtime.targetData, llvmType)
+        LayoutQueryProfile.measure(0) { LLVMABIAlignmentOfType(llvm.runtime.targetData, llvmType) }
     }
     return if (hasAnnotation(KonanFqNames.volatile)) {
-        val size = LLVMABISizeOfType(llvm.runtime.targetData, llvmType).toInt()
+        val size = LayoutQueryProfile.measure(1) { LLVMABISizeOfType(llvm.runtime.targetData, llvmType) }.toInt()
         val alignment = maxOf(size, abiAlignment)
         require(alignment % size == 0) { "Bad alignment of field ${render()}: abiAlignment = ${abiAlignment}, size = ${size}"}
         require(alignment % abiAlignment == 0) { "Bad alignment of field ${render()}: abiAlignment = ${abiAlignment}, size = ${size}"}
@@ -457,7 +459,8 @@ internal class ClassLayoutBuilder(val irClass: IrClass, val context: NativeBacke
     // Synchronization is needed due to potential deserialization invocation while building fields for the super classes.
     @Synchronized
     private fun getFieldsInternal(llvm: CodegenLlvmHelpers): List<FieldInfo> {
-        fields?.let { return it }
+        fields?.let { LayoutQueryProfile.cache(49, true); return it }
+        LayoutQueryProfile.cache(49, false)
 
         val superClass = irClass.getSuperClassNotAny()
         val superFields = if (superClass != null) context.getLayoutBuilder(superClass).getFieldsInternal(llvm) else emptyList()
@@ -467,7 +470,7 @@ internal class ClassLayoutBuilder(val irClass: IrClass, val context: NativeBacke
             declaredFields
         else
             declaredFields.sortedByDescending {
-                with(llvm) { LLVMStoreSizeOfType(runtime.targetData, it.type.toLLVMType(this)) }
+                with(llvm) { LayoutQueryProfile.measure(2) { LLVMStoreSizeOfType(runtime.targetData, it.type.toLLVMType(this)) } }
             }
 
         return (superFields + sortedDeclaredFields).also { fields = it }

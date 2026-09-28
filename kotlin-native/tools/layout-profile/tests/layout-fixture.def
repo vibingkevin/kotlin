@@ -1,0 +1,3 @@
+headers = layout-fixture.h
+language = Objective-C
+package = layout.profile.fixture

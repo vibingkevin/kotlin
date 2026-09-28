@@ -152,22 +152,22 @@ internal class DebugInfo(override val generationState: NativeGenerationState) : 
             context.irBuiltIns.longType to llvm.int64Type,
             context.irBuiltIns.floatType to llvm.floatType,
             context.irBuiltIns.doubleType to llvm.doubleType)
-    private val llvmTypeSizes = llvmTypes.map { it.key to LLVMSizeOfTypeInBits(llvmTargetData, it.value) }.toMap()
-    private val llvmTypeAlignments = llvmTypes.map { it.key to LLVMPreferredAlignmentOfType(llvmTargetData, it.value) }.toMap()
+    private val llvmTypeSizes = llvmTypes.map { it.key to LayoutQueryProfile.measure(12) { LLVMSizeOfTypeInBits(llvmTargetData, it.value) } }.toMap()
+    private val llvmTypeAlignments = llvmTypes.map { it.key to LayoutQueryProfile.measure(13) { LLVMPreferredAlignmentOfType(llvmTargetData, it.value) } }.toMap()
     private val otherLlvmType = LLVMPointerType(llvm.int64Type, 0)!!
-    private val otherTypeSize = LLVMSizeOfTypeInBits(llvmTargetData, otherLlvmType)
-    private val otherTypeAlignment = LLVMPreferredAlignmentOfType(llvmTargetData, otherLlvmType)
+    private val otherTypeSize = LayoutQueryProfile.measure(14) { LLVMSizeOfTypeInBits(llvmTargetData, otherLlvmType) }
+    private val otherTypeAlignment = LayoutQueryProfile.measure(15) { LLVMPreferredAlignmentOfType(llvmTargetData, otherLlvmType) }
 
     val compilerGeneratedFile by lazy { DICreateFile(builder, "<compiler-generated>", "")!! }
 
     val IrType.size: Long
-        get() = llvmTypeSizes.getOrDefault(this, otherTypeSize)
+        get() = LayoutQueryProfile.getOrDefault(54, llvmTypeSizes, this, otherTypeSize)
 
     val IrType.alignment: Long
-        get() = llvmTypeAlignments.getOrDefault(this, otherTypeAlignment).toLong()
+        get() = LayoutQueryProfile.getOrDefault(55, llvmTypeAlignments, this, otherTypeAlignment).toLong()
 
     fun IrType.diType(llvmTargetData: LLVMTargetDataRef): DITypeOpaqueRef =
-            types.getOrPut(this) { dwarfType(llvmTargetData) }
+            LayoutQueryProfile.getOrPut(56, types, this) { dwarfType(llvmTargetData) }
 
     fun IrFunction.subroutineType(llvmTargetData: LLVMTargetDataRef): DISubroutineTypeRef =
             subroutineType(llvmTargetData, this@subroutineType.types)
@@ -238,8 +238,8 @@ internal class DebugInfo(override val generationState: NativeGenerationState) : 
     private fun debugInfoBaseType(targetData: LLVMTargetDataRef, typeName: String, type: LLVMTypeRef, encoding: Int): DITypeOpaqueRef =
             DICreateBasicType(
                     builder, typeName,
-                    LLVMSizeOfTypeInBits(targetData, type),
-                    LLVMPreferredAlignmentOfType(targetData, type).toLong(), encoding
+                    LayoutQueryProfile.measure(16) { LLVMSizeOfTypeInBits(targetData, type) },
+                    LayoutQueryProfile.measure(17) { LLVMPreferredAlignmentOfType(targetData, type) }.toLong(), encoding
             )!!.reinterpret()
 
     private fun IrType.llvmType(): LLVMTypeRef = llvmTypes.getOrElse(this@llvmType) {

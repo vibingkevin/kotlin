@@ -1,0 +1,826 @@
+[
+  {
+    "id": 0,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/ir/ClassLayoutBuilder.kt",
+    "line": 275,
+    "api": "LLVMABIAlignmentOfType",
+    "expression": "LLVMABIAlignmentOfType(llvm.runtime.targetData, llvmType)",
+    "category": "layout",
+    "instrumented_line": 277
+  },
+  {
+    "id": 1,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/ir/ClassLayoutBuilder.kt",
+    "line": 278,
+    "api": "LLVMABISizeOfType",
+    "expression": "LLVMABISizeOfType(llvm.runtime.targetData, llvmType)",
+    "category": "layout",
+    "instrumented_line": 280
+  },
+  {
+    "id": 2,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/ir/ClassLayoutBuilder.kt",
+    "line": 470,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(runtime.targetData, it.type.toLLVMType(this))",
+    "category": "layout",
+    "instrumented_line": 473
+  },
+  {
+    "id": 3,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/CodeGenerator.kt",
+    "line": 50,
+    "api": "LLVMIntPtrTypeInContext",
+    "expression": "LLVMIntPtrTypeInContext(llvm.llvmContext, llvmTargetData)",
+    "category": "type-construction",
+    "instrumented_line": 50
+  },
+  {
+    "id": 4,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/CodeGenerator.kt",
+    "line": 425,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(codegen.llvmTargetData, type)",
+    "category": "layout",
+    "instrumented_line": 425
+  },
+  {
+    "id": 5,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/CodeGenerator.kt",
+    "line": 489,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(codegen.llvmTargetData, arrayToElementType[irClass.symbol])",
+    "category": "layout",
+    "instrumented_line": 489
+  },
+  {
+    "id": 6,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/CodeGenerator.kt",
+    "line": 516,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(codegen.llvmTargetData, arrayToElementType[stackLocal.irClass.symbol])",
+    "category": "layout",
+    "instrumented_line": 516
+  },
+  {
+    "id": 7,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/CodeGenerator.kt",
+    "line": 535,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(codegen.llvmTargetData, type)",
+    "category": "layout",
+    "instrumented_line": 535
+  },
+  {
+    "id": 8,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/CodeGenerator.kt",
+    "line": 613,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(llvmTargetData, runtime.frameOverlayType)",
+    "category": "layout",
+    "instrumented_line": 613
+  },
+  {
+    "id": 9,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/ContextUtils.kt",
+    "line": 518,
+    "api": "LLVMIntPtrTypeInContext",
+    "expression": "LLVMIntPtrTypeInContext(llvmContext, runtime.targetData)",
+    "category": "type-construction",
+    "instrumented_line": 518
+  },
+  {
+    "id": 10,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/ContextUtils.kt",
+    "line": 537,
+    "api": "LLVMGetArrayLength",
+    "expression": "LLVMGetArrayLength(array)",
+    "category": "type-shape",
+    "instrumented_line": 537
+  },
+  {
+    "id": 11,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/ContextUtils.kt",
+    "line": 629,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(runtime.targetData, type)",
+    "category": "layout",
+    "instrumented_line": 629
+  },
+  {
+    "id": 12,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 155,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(llvmTargetData, it.value)",
+    "category": "layout",
+    "instrumented_line": 155
+  },
+  {
+    "id": 13,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 156,
+    "api": "LLVMPreferredAlignmentOfType",
+    "expression": "LLVMPreferredAlignmentOfType(llvmTargetData, it.value)",
+    "category": "layout",
+    "instrumented_line": 156
+  },
+  {
+    "id": 14,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 158,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(llvmTargetData, otherLlvmType)",
+    "category": "layout",
+    "instrumented_line": 158
+  },
+  {
+    "id": 15,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 159,
+    "api": "LLVMPreferredAlignmentOfType",
+    "expression": "LLVMPreferredAlignmentOfType(llvmTargetData, otherLlvmType)",
+    "category": "layout",
+    "instrumented_line": 159
+  },
+  {
+    "id": 16,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 241,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(targetData, type)",
+    "category": "layout",
+    "instrumented_line": 241
+  },
+  {
+    "id": 17,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 242,
+    "api": "LLVMPreferredAlignmentOfType",
+    "expression": "LLVMPreferredAlignmentOfType(targetData, type)",
+    "category": "layout",
+    "instrumented_line": 242
+  },
+  {
+    "id": 18,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/IntrinsicGenerator.kt",
+    "line": 70,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(codegen.llvmTargetData, this)",
+    "category": "layout",
+    "instrumented_line": 70
+  },
+  {
+    "id": 19,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/IntrinsicGenerator.kt",
+    "line": 377,
+    "api": "LLVMPointerSize",
+    "expression": "LLVMPointerSize(codegen.llvmTargetData)",
+    "category": "layout",
+    "instrumented_line": 377
+  },
+  {
+    "id": 20,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/IntrinsicGenerator.kt",
+    "line": 541,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(codegen.llvmTargetData, callSite.llvmReturnType)",
+    "category": "layout",
+    "instrumented_line": 541
+  },
+  {
+    "id": 21,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/IntrinsicGenerator.kt",
+    "line": 542,
+    "api": "LLVMSizeOfTypeInBits",
+    "expression": "LLVMSizeOfTypeInBits(codegen.llvmTargetData, vector.type)",
+    "category": "layout",
+    "instrumented_line": 542
+  },
+  {
+    "id": 22,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/IrToBitcode.kt",
+    "line": 689,
+    "api": "LLVMPreferredAlignmentOfType",
+    "expression": "LLVMPreferredAlignmentOfType(llvm.runtime.targetData, llvm.intptrType)",
+    "category": "layout",
+    "instrumented_line": 689
+  },
+  {
+    "id": 23,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/IrToBitcode.kt",
+    "line": 1361,
+    "api": "LLVMGetIntTypeWidth",
+    "expression": "LLVMGetIntTypeWidth(llvmSrcType)",
+    "category": "type-shape",
+    "instrumented_line": 1361
+  },
+  {
+    "id": 24,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/IrToBitcode.kt",
+    "line": 1362,
+    "api": "LLVMGetIntTypeWidth",
+    "expression": "LLVMGetIntTypeWidth(llvmDstType)",
+    "category": "type-shape",
+    "instrumented_line": 1362
+  },
+  {
+    "id": 25,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 94,
+    "api": "LLVMABIAlignmentOfType",
+    "expression": "LLVMABIAlignmentOfType(runtime.targetData, it.type.toLLVMType(llvm))",
+    "category": "layout",
+    "instrumented_line": 94
+  },
+  {
+    "id": 26,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 102,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(runtime.targetData, type)",
+    "category": "layout",
+    "instrumented_line": 102
+  },
+  {
+    "id": 27,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 123,
+    "api": "LLVMOffsetOfElement",
+    "expression": "LLVMOffsetOfElement(runtime.targetData, classType, i)",
+    "category": "layout",
+    "instrumented_line": 123
+  },
+  {
+    "id": 28,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 125,
+    "api": "LLVMABIAlignmentOfType",
+    "expression": "LLVMABIAlignmentOfType(runtime.targetData, classType)",
+    "category": "layout",
+    "instrumented_line": 125
+  },
+  {
+    "id": 29,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 127,
+    "api": "LLVMABISizeOfType",
+    "expression": "LLVMABISizeOfType(runtime.targetData, classType)",
+    "category": "layout",
+    "instrumented_line": 127
+  },
+  {
+    "id": 30,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 240,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(llvm.runtime.targetData, field.type.toLLVMType(llvm))",
+    "category": "layout",
+    "instrumented_line": 240
+  },
+  {
+    "id": 31,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 310,
+    "api": "LLVMOffsetOfElement",
+    "expression": "LLVMOffsetOfElement(llvmTargetData, typeInfoWithVtableType, 0)",
+    "category": "layout",
+    "instrumented_line": 310
+  },
+  {
+    "id": 32,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmDeclarations.kt",
+    "line": 405,
+    "api": "LLVMOffsetOfElement",
+    "expression": "LLVMOffsetOfElement(llvm.runtime.targetData, bodyType, index)",
+    "category": "layout",
+    "instrumented_line": 405
+  },
+  {
+    "id": 33,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/RTTIGenerator.kt",
+    "line": 194,
+    "api": "LLVMABISizeOfType",
+    "expression": "LLVMABISizeOfType(llvmTargetData, elementType)",
+    "category": "layout",
+    "instrumented_line": 194
+  },
+  {
+    "id": 34,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/RTTIGenerator.kt",
+    "line": 195,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(llvmTargetData, classType)",
+    "category": "layout",
+    "instrumented_line": 195
+  },
+  {
+    "id": 35,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/RTTIGenerator.kt",
+    "line": 280,
+    "api": "LLVMOffsetOfElement",
+    "expression": "LLVMOffsetOfElement(llvmTargetData, bodyType.llvmBodyType, index)",
+    "category": "layout",
+    "instrumented_line": 280
+  },
+  {
+    "id": 36,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/RTTIGenerator.kt",
+    "line": 412,
+    "api": "LLVMGetArrayLength",
+    "expression": "LLVMGetArrayLength(LLVMGlobalGetValueType(external))",
+    "category": "type-shape",
+    "instrumented_line": 412
+  },
+  {
+    "id": 37,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/RTTIGenerator.kt",
+    "line": 444,
+    "api": "LLVMOffsetOfElement",
+    "expression": "LLVMOffsetOfElement(llvmTargetData, bodyType, index)",
+    "category": "layout",
+    "instrumented_line": 444
+  },
+  {
+    "id": 38,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/RTTIGenerator.kt",
+    "line": 506,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(llvmTargetData, bodyType.llvmBodyType)",
+    "category": "layout",
+    "instrumented_line": 506
+  },
+  {
+    "id": 39,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 107,
+    "api": "LLVMABISizeOfType",
+    "expression": "LLVMABISizeOfType(targetData, type)",
+    "category": "layout",
+    "instrumented_line": 107
+  },
+  {
+    "id": 40,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 108,
+    "api": "LLVMABIAlignmentOfType",
+    "expression": "LLVMABIAlignmentOfType(targetData, type)",
+    "category": "layout",
+    "instrumented_line": 108
+  },
+  {
+    "id": 41,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 109,
+    "api": "LLVMOffsetOfElement",
+    "expression": "LLVMOffsetOfElement(targetData, type, index)",
+    "category": "layout",
+    "instrumented_line": 109
+  },
+  {
+    "id": 42,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 121,
+    "api": "LLVMByteOrder",
+    "expression": "LLVMByteOrder(targetData)",
+    "category": "layout",
+    "instrumented_line": 125
+  },
+  {
+    "id": 43,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/objc/ObjCDataGenerator.kt",
+    "line": 109,
+    "api": "LLVMABISizeOfType",
+    "expression": "LLVMABISizeOfType(codegen.llvmTargetData, methodType)",
+    "category": "layout",
+    "instrumented_line": 111
+  },
+  {
+    "id": 44,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/objc/ObjCDataGenerator.kt",
+    "line": 192,
+    "api": "LLVMABIAlignmentOfType",
+    "expression": "LLVMABIAlignmentOfType(runtime.targetData, classObjectType)",
+    "category": "layout",
+    "instrumented_line": 194
+  },
+  {
+    "id": 45,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/objc/ObjCDataGenerator.kt",
+    "line": 228,
+    "api": "LLVMABIAlignmentOfType",
+    "expression": "LLVMABIAlignmentOfType(\n                        llvm.runtime.targetData,\n                        LLVMGetInitializer(global.llvmGlobal)!!.type\n                )",
+    "category": "layout",
+    "instrumented_line": 230
+  },
+  {
+    "id": 46,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/objcexport/BlockPointerSupport.kt",
+    "line": 250,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(codegen.runtime.targetData, blockLiteralType)",
+    "category": "layout",
+    "instrumented_line": 252
+  },
+  {
+    "id": 47,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/objcexport/ObjCExportCodeGenerator.kt",
+    "line": 1871,
+    "api": "LLVMStoreSizeOfType",
+    "expression": "LLVMStoreSizeOfType(runtime.targetData, it.toLlvmParamType(llvm).llvmType)",
+    "category": "layout",
+    "instrumented_line": 1873
+  },
+  {
+    "id": 48,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DataLayout.kt",
+    "line": 0,
+    "expression": "IrType.toLLVMType",
+    "category": "cache",
+    "instrumented_line": 30
+  },
+  {
+    "id": 49,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/ir/ClassLayoutBuilder.kt",
+    "line": 0,
+    "expression": "ClassLayoutBuilder.fields",
+    "category": "cache",
+    "instrumented_line": 462
+  },
+  {
+    "id": 50,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 0,
+    "expression": "Runtime.pointerSize",
+    "category": "cache",
+    "instrumented_line": 111
+  },
+  {
+    "id": 51,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 0,
+    "expression": "Runtime.pointerAlignment",
+    "category": "cache",
+    "instrumented_line": 113
+  },
+  {
+    "id": 52,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 0,
+    "expression": "Runtime.stringHeaderExtraSize",
+    "category": "cache",
+    "instrumented_line": 116
+  },
+  {
+    "id": 53,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 0,
+    "expression": "Runtime.isBigEndian",
+    "category": "cache",
+    "instrumented_line": 124
+  },
+  {
+    "id": 54,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 0,
+    "expression": "DebugInfo.llvmTypeSize",
+    "category": "cache",
+    "instrumented_line": 164
+  },
+  {
+    "id": 55,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 0,
+    "expression": "DebugInfo.llvmTypeAlignment",
+    "category": "cache",
+    "instrumented_line": 167
+  },
+  {
+    "id": 56,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/DebugUtils.kt",
+    "line": 0,
+    "expression": "DebugInfo.types",
+    "category": "cache",
+    "instrumented_line": 170
+  },
+  {
+    "id": 57,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/NativeBackendContext.kt",
+    "line": 0,
+    "expression": "NativeBackendContext.layoutBuilder.metadata",
+    "category": "cache",
+    "instrumented_line": 120
+  },
+  {
+    "id": 58,
+    "layer": "backend",
+    "api": "cache",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/NativeBackendContext.kt",
+    "line": 0,
+    "expression": "NativeBackendContext.layoutBuilder.attribute",
+    "category": "cache",
+    "instrumented_line": 125
+  },
+  {
+    "id": 0,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 331,
+    "api": "clang_Type_getSizeOf",
+    "expression": "clang_Type_getSizeOf(type)",
+    "category": "layout",
+    "instrumented_line": 332
+  },
+  {
+    "id": 1,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 332,
+    "api": "clang_Type_getAlignOf",
+    "expression": "clang_Type_getAlignOf(type)",
+    "category": "layout",
+    "instrumented_line": 333
+  },
+  {
+    "id": 2,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 382,
+    "api": "clang_Type_getOffsetOf",
+    "expression": "clang_Type_getOffsetOf(structType, name)",
+    "category": "layout",
+    "instrumented_line": 383
+  },
+  {
+    "id": 3,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 391,
+    "api": "clang_Type_getSizeOf",
+    "expression": "clang_Type_getSizeOf(canonicalFieldType)",
+    "category": "layout",
+    "instrumented_line": 392
+  },
+  {
+    "id": 4,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 392,
+    "api": "clang_Type_getAlignOf",
+    "expression": "clang_Type_getAlignOf(canonicalFieldType)",
+    "category": "layout",
+    "instrumented_line": 393
+  },
+  {
+    "id": 5,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 395,
+    "api": "clang_getFieldDeclBitWidth",
+    "expression": "clang_getFieldDeclBitWidth(fieldCursor)",
+    "category": "type-shape",
+    "instrumented_line": 396
+  },
+  {
+    "id": 6,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 650,
+    "api": "clang_Type_getSizeOf",
+    "expression": "clang_Type_getSizeOf(type)",
+    "category": "layout",
+    "instrumented_line": 651
+  },
+  {
+    "id": 7,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 723,
+    "api": "clang_Type_getSizeOf",
+    "expression": "clang_Type_getSizeOf(type)",
+    "category": "layout",
+    "instrumented_line": 724
+  },
+  {
+    "id": 8,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 724,
+    "api": "clang_Type_getSizeOf",
+    "expression": "clang_Type_getSizeOf(elementCXType)",
+    "category": "layout",
+    "instrumented_line": 725
+  },
+  {
+    "id": 9,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 805,
+    "api": "clang_getArraySize",
+    "expression": "clang_getArraySize(type)",
+    "category": "type-shape",
+    "instrumented_line": 806
+  },
+  {
+    "id": 10,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Utils.kt",
+    "line": 82,
+    "api": "clang_Type_getSizeOf",
+    "expression": "clang_Type_getSizeOf(this)",
+    "category": "layout",
+    "instrumented_line": 82
+  },
+  {
+    "id": 11,
+    "layer": "cinterop",
+    "api": "cache",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 148,
+    "expression": "Indexer.structRegistry",
+    "category": "cache"
+  },
+  {
+    "id": 12,
+    "layer": "cinterop",
+    "api": "cache",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 148,
+    "expression": "Indexer.enumRegistry",
+    "category": "cache"
+  },
+  {
+    "id": 13,
+    "layer": "cinterop",
+    "api": "cache",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 148,
+    "expression": "Indexer.objCClassRegistry",
+    "category": "cache"
+  },
+  {
+    "id": 14,
+    "layer": "cinterop",
+    "api": "cache",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 148,
+    "expression": "Indexer.objCProtocolRegistry",
+    "category": "cache"
+  },
+  {
+    "id": 15,
+    "layer": "cinterop",
+    "api": "cache",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 148,
+    "expression": "Indexer.objCCategoryById",
+    "category": "cache"
+  },
+  {
+    "id": 16,
+    "layer": "cinterop",
+    "api": "cache",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 148,
+    "expression": "Indexer.typedefRegistry",
+    "category": "cache"
+  },
+  {
+    "id": 59,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/ContextUtils.kt",
+    "line": 535,
+    "api": "LLVMCountStructElementTypes",
+    "expression": "LLVMCountStructElementTypes(original)",
+    "category": "type-shape",
+    "instrumented_line": 535
+  },
+  {
+    "id": 60,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/ContextUtils.kt",
+    "line": 539,
+    "api": "LLVMIsPackedStruct",
+    "expression": "LLVMIsPackedStruct(original)",
+    "category": "type-shape",
+    "instrumented_line": 539
+  },
+  {
+    "id": 61,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmUtils.kt",
+    "line": 75,
+    "api": "LLVMCountStructElementTypes",
+    "expression": "LLVMCountStructElementTypes(type)",
+    "category": "type-shape",
+    "instrumented_line": 75
+  },
+  {
+    "id": 62,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmUtils.kt",
+    "line": 76,
+    "api": "LLVMCountStructElementTypes",
+    "expression": "LLVMCountStructElementTypes(type)",
+    "category": "type-shape",
+    "instrumented_line": 76
+  },
+  {
+    "id": 63,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/LlvmUtils.kt",
+    "line": 274,
+    "api": "LLVMCountStructElementTypes",
+    "expression": "LLVMCountStructElementTypes(type)",
+    "category": "type-shape",
+    "instrumented_line": 274
+  },
+  {
+    "id": 64,
+    "layer": "backend",
+    "file": "kotlin-native/backend.native/compiler/ir/backend.native/src/org/jetbrains/kotlin/backend/konan/llvm/Runtime.kt",
+    "line": 115,
+    "api": "LLVMCountStructElementTypes",
+    "expression": "LLVMCountStructElementTypes(stringHeaderType)",
+    "category": "type-shape",
+    "instrumented_line": 118
+  },
+  {
+    "id": 17,
+    "layer": "cinterop",
+    "file": "kotlin-native/Interop/Indexer/src/main/kotlin/org/jetbrains/kotlin/native/interop/indexer/Indexer.kt",
+    "line": 725,
+    "api": "clang_getNumElements",
+    "expression": "clang_getNumElements(type)",
+    "category": "type-shape",
+    "instrumented_line": 726
+  }
+]

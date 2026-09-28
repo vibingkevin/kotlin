@@ -104,19 +104,23 @@ internal class Runtime(
     val blockLiteralType by lazy { getStructType("Block_literal_1") }
     val blockDescriptorType by lazy { getStructType("Block_descriptor_1") }
 
-    fun sizeOf(type: LLVMTypeRef) = LLVMABISizeOfType(targetData, type).toInt()
-    fun alignOf(type: LLVMTypeRef) = LLVMABIAlignmentOfType(targetData, type)
-    fun offsetOf(type: LLVMTypeRef, index: Int) = LLVMOffsetOfElement(targetData, type, index).toInt()
+    fun sizeOf(type: LLVMTypeRef) = LayoutQueryProfile.measure(39) { LLVMABISizeOfType(targetData, type) }.toInt()
+    fun alignOf(type: LLVMTypeRef) = LayoutQueryProfile.measure(40) { LLVMABIAlignmentOfType(targetData, type) }
+    fun offsetOf(type: LLVMTypeRef, index: Int) = LayoutQueryProfile.measure(41) { LLVMOffsetOfElement(targetData, type, index) }.toInt()
 
-    val pointerSize: Int by lazy { sizeOf(pointerType) }
-    val pointerAlignment: Int by lazy { alignOf(pointerType) }
+    val pointerSize: Int get() = LayoutQueryProfile.lazyValue(50, pointerSizeCache)
+    private val pointerSizeCache = lazy { sizeOf(pointerType) }
+    val pointerAlignment: Int get() = LayoutQueryProfile.lazyValue(51, pointerAlignmentCache)
+    private val pointerAlignmentCache = lazy { alignOf(pointerType) }
 
-    val stringHeaderExtraSize: Int by lazy {
-        offsetOf(stringHeaderType, LLVMCountStructElementTypes(stringHeaderType) - 1) - sizeOf(arrayHeaderType)
+    val stringHeaderExtraSize: Int get() = LayoutQueryProfile.lazyValue(52, stringHeaderExtraSizeCache)
+    private val stringHeaderExtraSizeCache = lazy {
+        offsetOf(stringHeaderType, LayoutQueryProfile.measure(64) { LLVMCountStructElementTypes(stringHeaderType) } - 1) - sizeOf(arrayHeaderType)
     }
 
     // Must match kObjectAlignment in runtime
     val objectAlignment = 8
 
-    val isBigEndian: Boolean by lazy { LLVMByteOrder(targetData) == LLVMByteOrdering.LLVMBigEndian }
+    val isBigEndian: Boolean get() = LayoutQueryProfile.lazyValue(53, isBigEndianCache)
+    private val isBigEndianCache = lazy { LayoutQueryProfile.measure(42) { LLVMByteOrder(targetData) } == LLVMByteOrdering.LLVMBigEndian }
 }

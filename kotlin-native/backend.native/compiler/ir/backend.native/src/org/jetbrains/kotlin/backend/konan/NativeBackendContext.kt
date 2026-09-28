@@ -5,6 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan
 
+import org.jetbrains.kotlin.backend.konan.llvm.LayoutQueryProfile
+
 import llvm.LLVMTypeRef
 import org.jetbrains.kotlin.K1Deprecation
 import org.jetbrains.kotlin.backend.common.InlineClassesUtils
@@ -115,10 +117,14 @@ internal class NativeBackendContext(
 
     fun getLayoutBuilder(irClass: IrClass): ClassLayoutBuilder {
         (irClass.metadata as? KonanMetadata.Class)?.layoutBuilder?.let {
+            LayoutQueryProfile.cache(57, true)
             return it
         }
+        LayoutQueryProfile.cache(57, false)
         synchronized(irClass) {
-            return irClass::layoutBuilder.getOrSetIfNull { ClassLayoutBuilder(irClass, this) }
+            return LayoutQueryProfile.cached(58) { miss ->
+                irClass::layoutBuilder.getOrSetIfNull { miss(); ClassLayoutBuilder(irClass, this) }
+            }
         }
     }
 

@@ -5,6 +5,8 @@
 
 package org.jetbrains.kotlin.backend.konan.llvm.objcexport
 
+import org.jetbrains.kotlin.backend.konan.llvm.LayoutQueryProfile
+
 import llvm.LLVMLinkage
 import llvm.LLVMStoreSizeOfType
 import llvm.LLVMValueRef
@@ -247,7 +249,7 @@ internal class BlockGenerator(private val codegen: CodeGenerator) {
 
         return Struct(codegen.runtime.blockDescriptorType,
                 codegen.LongInt(0L),
-                codegen.LongInt(LLVMStoreSizeOfType(codegen.runtime.targetData, blockLiteralType)),
+                codegen.LongInt(LayoutQueryProfile.measure(46) { LLVMStoreSizeOfType(codegen.runtime.targetData, blockLiteralType) }),
                 copyHelper.toConstPointer(),
                 disposeHelper.toConstPointer(),
                 codegen.staticData.cStringLiteral(signature),

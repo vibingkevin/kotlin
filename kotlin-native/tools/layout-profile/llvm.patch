@@ -1,0 +1,479 @@
+diff --git a/clang/lib/AST/ASTContext.cpp b/clang/lib/AST/ASTContext.cpp
+index 6ff1b8f3fac9..1b1ed97a6084 100644
+--- a/clang/lib/AST/ASTContext.cpp
++++ b/clang/lib/AST/ASTContext.cpp
+@@ -1,3 +1,4 @@
++#include "llvm/Support/LayoutQueryProfile.h"
+ //===- ASTContext.cpp - Context to hold long-lived AST nodes --------------===//
+ //
+ // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+@@ -2165,7 +2166,9 @@ unsigned ASTContext::getTypeAlignIfKnown(QualType T,
+ }
+ 
+ TypeInfo ASTContext::getTypeInfo(const Type *T) const {
++  llvm::layout_profile::Scope LayoutProfile(29);
+   TypeInfoMap::iterator I = MemoizedTypeInfo.find(T);
++  LayoutProfile.cache(I != MemoizedTypeInfo.end());
+   if (I != MemoizedTypeInfo.end())
+     return I->second;
+ 
+diff --git a/clang/lib/AST/RecordLayoutBuilder.cpp b/clang/lib/AST/RecordLayoutBuilder.cpp
+index 67677de5963f..96ee6ec66d51 100644
+--- a/clang/lib/AST/RecordLayoutBuilder.cpp
++++ b/clang/lib/AST/RecordLayoutBuilder.cpp
+@@ -1,3 +1,4 @@
++#include "llvm/Support/LayoutQueryProfile.h"
+ //=== RecordLayoutBuilder.cpp - Helper class for building record layouts ---==//
+ //
+ // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+@@ -3370,6 +3371,7 @@ void MicrosoftRecordLayoutBuilder::computeVtorDispSet(
+ /// position information.
+ const ASTRecordLayout &
+ ASTContext::getASTRecordLayout(const RecordDecl *D) const {
++  llvm::layout_profile::Scope LayoutProfile(30);
+   // These asserts test different things.  A record has a definition
+   // as soon as we begin to parse the definition.  That definition is
+   // not a complete definition (which is what isDefinition() tests)
+@@ -3389,6 +3391,7 @@ ASTContext::getASTRecordLayout(const RecordDecl *D) const {
+   // Note that we can't save a reference to the entry because this function
+   // is recursive.
+   const ASTRecordLayout *Entry = ASTRecordLayouts[D];
++  LayoutProfile.cache(Entry != nullptr);
+   if (Entry) return *Entry;
+ 
+   const ASTRecordLayout *NewEntry = nullptr;
+@@ -3571,6 +3574,7 @@ uint64_t ASTContext::lookupFieldBitOffset(const ObjCInterfaceDecl *OID,
+ /// implementation. This may differ by including synthesized ivars.
+ const ASTRecordLayout &
+ ASTContext::getObjCLayout(const ObjCInterfaceDecl *D) const {
++  llvm::layout_profile::Scope LayoutProfile(31);
+   // Retrieve the definition
+   if (D->hasExternalLexicalStorage() && !D->getDefinition())
+     getExternalSource()->CompleteType(const_cast<ObjCInterfaceDecl*>(D));
+@@ -3579,7 +3583,9 @@ ASTContext::getObjCLayout(const ObjCInterfaceDecl *D) const {
+          "Invalid interface decl!");
+ 
+   // Look up this layout, if already laid out, return what we have.
+-  if (const ASTRecordLayout *Entry = ObjCLayouts[D])
++  const ASTRecordLayout *Entry = ObjCLayouts[D];
++  LayoutProfile.cache(Entry != nullptr);
++  if (Entry)
+     return *Entry;
+ 
+   ItaniumRecordLayoutBuilder Builder(*this, /*EmptySubobjects=*/nullptr);
+diff --git a/clang/tools/libclang/CXType.cpp b/clang/tools/libclang/CXType.cpp
+index e7864e6d62e4..c6c6d1b7aa54 100644
+--- a/clang/tools/libclang/CXType.cpp
++++ b/clang/tools/libclang/CXType.cpp
+@@ -1,3 +1,4 @@
++#include "llvm/Support/LayoutQueryProfile.h"
+ //===- CXType.cpp - Implements 'CXTypes' aspect of libclang ---------------===//
+ //
+ // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+@@ -406,6 +407,7 @@ unsigned long long clang_getEnumConstantDeclUnsignedValue(CXCursor C) {
+ }
+ 
+ int clang_getFieldDeclBitWidth(CXCursor C) {
++  llvm::layout_profile::Scope LayoutProfile(22, 2);
+   using namespace cxcursor;
+ 
+   if (clang_isDeclaration(C.kind)) {
+@@ -891,6 +893,7 @@ CXType clang_getElementType(CXType CT) {
+ }
+ 
+ long long clang_getNumElements(CXType CT) {
++  llvm::layout_profile::Scope LayoutProfile(34, 2);
+   long long result = -1;
+   QualType T = GetQualType(CT);
+   const Type *TP = T.getTypePtrOrNull();
+@@ -940,6 +943,7 @@ CXType clang_getArrayElementType(CXType CT) {
+ }
+ 
+ long long clang_getArraySize(CXType CT) {
++  llvm::layout_profile::Scope LayoutProfile(23, 2);
+   long long result = -1;
+   QualType T = GetQualType(CT);
+   const Type *TP = T.getTypePtrOrNull();
+@@ -961,6 +965,7 @@ static bool isIncompleteTypeWithAlignment(QualType QT) {
+ }
+ 
+ long long clang_Type_getAlignOf(CXType T) {
++  llvm::layout_profile::Scope LayoutProfile(24, 2);
+   if (T.kind == CXType_Invalid)
+     return CXTypeLayoutError_Invalid;
+   ASTContext &Ctx = cxtu::getASTUnit(GetTU(T))->getASTContext();
+@@ -997,6 +1002,7 @@ CXType clang_Type_getClassType(CXType CT) {
+ }
+ 
+ long long clang_Type_getSizeOf(CXType T) {
++  llvm::layout_profile::Scope LayoutProfile(25, 2);
+   if (T.kind == CXType_Invalid)
+     return CXTypeLayoutError_Invalid;
+   ASTContext &Ctx = cxtu::getASTUnit(GetTU(T))->getASTContext();
+@@ -1078,6 +1084,7 @@ static long long validateFieldParentType(CXCursor PC, CXType PT){
+ }
+ 
+ long long clang_Type_getOffsetOf(CXType PT, const char *S) {
++  llvm::layout_profile::Scope LayoutProfile(26, 2);
+   // check that PT is not incomplete/dependent
+   CXCursor PC = clang_getTypeDeclaration(PT);
+   long long Error = validateFieldParentType(PC,PT);
+@@ -1123,6 +1130,7 @@ CXType clang_Type_getModifiedType(CXType CT) {
+ }
+ 
+ long long clang_Cursor_getOffsetOfField(CXCursor C) {
++  llvm::layout_profile::Scope LayoutProfile(27, 2);
+   if (clang_isDeclaration(C.kind)) {
+     // we need to validate the parent type
+     CXCursor PC = clang_getCursorSemanticParent(C);
+diff --git a/llvm/include/llvm/Support/LayoutQueryProfile.h b/llvm/include/llvm/Support/LayoutQueryProfile.h
+new file mode 100644
+index 000000000000..d131a7215b6f
+--- /dev/null
++++ b/llvm/include/llvm/Support/LayoutQueryProfile.h
+@@ -0,0 +1,157 @@
++//===- LayoutQueryProfile.h - 实验用布局查询统计 ----------------*- C++ -*-===//
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++#ifndef LLVM_SUPPORT_LAYOUTQUERYPROFILE_H
++#define LLVM_SUPPORT_LAYOUTQUERYPROFILE_H
++#include <atomic>
++#include <chrono>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <mutex>
++#include <vector>
++#ifdef _WIN32
++#include <process.h>
++#else
++#include <unistd.h>
++#endif
++
++namespace llvm { namespace layout_profile {
++constexpr unsigned SiteCount = 35;
++inline const char *const Labels[] = {"LLVMByteOrder",
++"LLVMPointerSize",
++"LLVMPointerSizeForAS",
++"LLVMIntPtrType",
++"LLVMIntPtrTypeForAS",
++"LLVMIntPtrTypeInContext",
++"LLVMIntPtrTypeForASInContext",
++"LLVMSizeOfTypeInBits",
++"LLVMStoreSizeOfType",
++"LLVMABISizeOfType",
++"LLVMABIAlignmentOfType",
++"LLVMCallFrameAlignmentOfType",
++"LLVMPreferredAlignmentOfType",
++"LLVMPreferredAlignmentOfGlobal",
++"LLVMElementAtOffset",
++"LLVMOffsetOfElement",
++"LLVMGetIntTypeWidth",
++"LLVMGetArrayLength",
++"LLVMGetArrayLength2",
++"LLVMGetVectorSize",
++"LLVMAlignOf",
++"LLVMSizeOf",
++"clang_getFieldDeclBitWidth",
++"clang_getArraySize",
++"clang_Type_getAlignOf",
++"clang_Type_getSizeOf",
++"clang_Type_getOffsetOf",
++"clang_Cursor_getOffsetOfField",
++"LLVM.StructLayoutMap",
++"Clang.MemoizedTypeInfo",
++"Clang.ASTRecordLayouts",
++"Clang.ObjCLayouts",
++"LLVMCountStructElementTypes",
++"LLVMIsPackedStruct",
++"clang_getNumElements"};
++struct Config {
++  const char *Directory = std::getenv("KN_LAYOUT_PROFILE_DIR");
++  const char *Mode = std::getenv("KN_LAYOUT_NATIVE_PROFILE");
++  bool Enabled = Directory && Mode &&
++      (!std::strcmp(Mode, "counts") || !std::strcmp(Mode, "time"));
++  bool Timed = Enabled && !std::strcmp(Mode, "time");
++};
++inline const Config &config() { static const Config C; return C; }
++struct Counters {
++  std::atomic<unsigned long long> Calls{0}, Inclusive{0}, Exclusive{0}, Hits{0}, Misses{0};
++};
++struct ThreadState {
++  // 0：LLVM/Clang 内部，1：LLVM C API，2：Clang C API。
++  Counters Rows[3][SiteCount];
++  unsigned Origin = 0;
++  unsigned long long Children = 0;
++};
++struct Registry {
++  std::mutex Mutex;
++  std::vector<ThreadState *> Threads;
++};
++inline void dump();
++inline Registry &registry() {
++  // 有意存活至进程退出，避免 TLS/静态析构顺序导致统计丢失。
++  static Registry *R = [] { auto *V = new Registry; std::atexit(dump); return V; }();
++  return *R;
++}
++inline ThreadState &threadState() {
++  static thread_local ThreadState *S = [] {
++    auto *V = new ThreadState;
++    auto &R = registry();
++    std::lock_guard<std::mutex> Lock(R.Mutex);
++    R.Threads.push_back(V);
++    return V;
++  }();
++  return *S;
++}
++inline unsigned long long now() {
++  return std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now().time_since_epoch()).count();
++}
++class Scope {
++  ThreadState *S = nullptr;
++  Counters *Row = nullptr;
++  unsigned PreviousOrigin = 0;
++  unsigned long long Start = 0, BeforeChildren = 0;
++public:
++  explicit Scope(unsigned Id, unsigned Origin = 0) {
++    if (!config().Enabled) return;
++    S = &threadState();
++    PreviousOrigin = S->Origin;
++    if (Origin) S->Origin = Origin;
++    Row = &S->Rows[S->Origin][Id];
++    Row->Calls.fetch_add(1, std::memory_order_relaxed);
++    if (config().Timed) { BeforeChildren = S->Children; Start = now(); }
++  }
++  Scope(const Scope &) = delete;
++  Scope &operator=(const Scope &) = delete;
++  void cache(bool Hit) {
++    if (Row) (Hit ? Row->Hits : Row->Misses).fetch_add(1, std::memory_order_relaxed);
++  }
++  ~Scope() {
++    if (!S) return;
++    if (config().Timed) {
++      auto Elapsed = now() - Start;
++      auto Child = S->Children - BeforeChildren;
++      Row->Inclusive.fetch_add(Elapsed, std::memory_order_relaxed);
++      Row->Exclusive.fetch_add(Elapsed - Child, std::memory_order_relaxed);
++      S->Children = BeforeChildren + Elapsed;
++    }
++    S->Origin = PreviousOrigin;
++  }
++};
++inline void dump() {
++  auto &R = registry();
++  std::lock_guard<std::mutex> Lock(R.Mutex);
++  char Path[4096];
++#ifdef _WIN32
++  int Pid = _getpid();
++#else
++  int Pid = getpid();
++#endif
++  int N = std::snprintf(Path, sizeof(Path), "%s/native-%d-%p.tsv", config().Directory, Pid, static_cast<void *>(&R));
++  if (N < 0 || static_cast<size_t>(N) >= sizeof(Path)) { std::fputs("layout profile path too long\n", stderr); return; }
++  FILE *F = std::fopen(Path, "w");
++  if (!F) { std::perror("layout profile output"); return; }
++  std::fputs("origin\tid\tlabel\tcalls\tinclusive_ns\texclusive_ns\thits\tmisses\n", F);
++  const char *Origins[] = {"internal", "llvm-c-api", "clang-c-api"};
++  for (unsigned O = 0; O < 3; ++O) for (unsigned I = 0; I < SiteCount; ++I) {
++    unsigned long long Calls = 0, Inc = 0, Exc = 0, Hits = 0, Misses = 0;
++    for (auto *T : R.Threads) {
++      auto &C = T->Rows[O][I];
++      Calls += C.Calls.load(std::memory_order_relaxed); Inc += C.Inclusive.load(std::memory_order_relaxed);
++      Exc += C.Exclusive.load(std::memory_order_relaxed); Hits += C.Hits.load(std::memory_order_relaxed);
++      Misses += C.Misses.load(std::memory_order_relaxed);
++    }
++    std::fprintf(F, "%s\t%u\t%s\t%llu\t%llu\t%llu\t%llu\t%llu\n", Origins[O], I, Labels[I], Calls, Inc, Exc, Hits, Misses);
++  }
++  std::fprintf(F, "#mode\t%s\n#threads\t%zu\n", config().Mode, R.Threads.size());
++  std::fclose(F);
++}
++} }
++#endif
+diff --git a/llvm/lib/IR/Core.cpp b/llvm/lib/IR/Core.cpp
+index f7ef4aa473ef..1d265c3dcd0a 100644
+--- a/llvm/lib/IR/Core.cpp
++++ b/llvm/lib/IR/Core.cpp
+@@ -1,3 +1,4 @@
++#include "llvm/Support/LayoutQueryProfile.h"
+ //===-- Core.cpp ----------------------------------------------------------===//
+ //
+ // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+@@ -703,6 +704,7 @@ LLVMTypeRef LLVMIntType(unsigned NumBits) {
+ }
+ 
+ unsigned LLVMGetIntTypeWidth(LLVMTypeRef IntegerTy) {
++  llvm::layout_profile::Scope LayoutProfile(16, 1);
+   return unwrap<IntegerType>(IntegerTy)->getBitWidth();
+ }
+ 
+@@ -819,6 +821,7 @@ void LLVMStructSetBody(LLVMTypeRef StructTy, LLVMTypeRef *ElementTypes,
+ }
+ 
+ unsigned LLVMCountStructElementTypes(LLVMTypeRef StructTy) {
++  llvm::layout_profile::Scope LayoutProfile(32, 1);
+   return unwrap<StructType>(StructTy)->getNumElements();
+ }
+ 
+@@ -834,6 +837,7 @@ LLVMTypeRef LLVMStructGetTypeAtIndex(LLVMTypeRef StructTy, unsigned i) {
+ }
+ 
+ LLVMBool LLVMIsPackedStruct(LLVMTypeRef StructTy) {
++  llvm::layout_profile::Scope LayoutProfile(33, 1);
+   return unwrap<StructType>(StructTy)->isPacked();
+ }
+ 
+@@ -901,10 +905,12 @@ unsigned LLVMGetNumContainedTypes(LLVMTypeRef Tp) {
+ }
+ 
+ unsigned LLVMGetArrayLength(LLVMTypeRef ArrayTy) {
++  llvm::layout_profile::Scope LayoutProfile(17, 1);
+   return unwrap<ArrayType>(ArrayTy)->getNumElements();
+ }
+ 
+ uint64_t LLVMGetArrayLength2(LLVMTypeRef ArrayTy) {
++  llvm::layout_profile::Scope LayoutProfile(18, 1);
+   return unwrap<ArrayType>(ArrayTy)->getNumElements();
+ }
+ 
+@@ -913,6 +919,7 @@ unsigned LLVMGetPointerAddressSpace(LLVMTypeRef PointerTy) {
+ }
+ 
+ unsigned LLVMGetVectorSize(LLVMTypeRef VectorTy) {
++  llvm::layout_profile::Scope LayoutProfile(19, 1);
+   return unwrap<VectorType>(VectorTy)->getElementCount().getKnownMinValue();
+ }
+ 
+@@ -1757,10 +1764,12 @@ LLVMOpcode LLVMGetConstOpcode(LLVMValueRef ConstantVal) {
+ }
+ 
+ LLVMValueRef LLVMAlignOf(LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(20, 1);
+   return wrap(ConstantExpr::getAlignOf(unwrap(Ty)));
+ }
+ 
+ LLVMValueRef LLVMSizeOf(LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(21, 1);
+   return wrap(ConstantExpr::getSizeOf(unwrap(Ty)));
+ }
+ 
+diff --git a/llvm/lib/IR/DataLayout.cpp b/llvm/lib/IR/DataLayout.cpp
+index dbd6d81ad2e2..b9f42665c64f 100644
+--- a/llvm/lib/IR/DataLayout.cpp
++++ b/llvm/lib/IR/DataLayout.cpp
+@@ -1,3 +1,4 @@
++#include "llvm/Support/LayoutQueryProfile.h"
+ //===- DataLayout.cpp - Data size & alignment routines ---------------------==//
+ //
+ // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+@@ -706,11 +707,13 @@ Align DataLayout::getIntegerAlignment(uint32_t BitWidth,
+ DataLayout::~DataLayout() { delete static_cast<StructLayoutMap *>(LayoutMap); }
+ 
+ const StructLayout *DataLayout::getStructLayout(StructType *Ty) const {
++  llvm::layout_profile::Scope LayoutProfile(28);
+   if (!LayoutMap)
+     LayoutMap = new StructLayoutMap();
+ 
+   StructLayoutMap *STM = static_cast<StructLayoutMap*>(LayoutMap);
+   StructLayout *&SL = (*STM)[Ty];
++  LayoutProfile.cache(SL != nullptr);
+   if (SL) return SL;
+ 
+   // Otherwise, create the struct layout.  Because it is variable length, we
+diff --git a/llvm/lib/Target/Target.cpp b/llvm/lib/Target/Target.cpp
+index ec673ef4cda5..fd06bd7f4a5e 100644
+--- a/llvm/lib/Target/Target.cpp
++++ b/llvm/lib/Target/Target.cpp
+@@ -1,3 +1,4 @@
++#include "llvm/Support/LayoutQueryProfile.h"
+ //===-- Target.cpp --------------------------------------------------------===//
+ //
+ // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+@@ -67,59 +68,73 @@ char *LLVMCopyStringRepOfTargetData(LLVMTargetDataRef TD) {
+ }
+ 
+ LLVMByteOrdering LLVMByteOrder(LLVMTargetDataRef TD) {
++  llvm::layout_profile::Scope LayoutProfile(0, 1);
+   return unwrap(TD)->isLittleEndian() ? LLVMLittleEndian : LLVMBigEndian;
+ }
+ 
+ unsigned LLVMPointerSize(LLVMTargetDataRef TD) {
++  llvm::layout_profile::Scope LayoutProfile(1, 1);
+   return unwrap(TD)->getPointerSize(0);
+ }
+ 
+ unsigned LLVMPointerSizeForAS(LLVMTargetDataRef TD, unsigned AS) {
++  llvm::layout_profile::Scope LayoutProfile(2, 1);
+   return unwrap(TD)->getPointerSize(AS);
+ }
+ 
+ LLVMTypeRef LLVMIntPtrType(LLVMTargetDataRef TD) {
++  llvm::layout_profile::Scope LayoutProfile(3, 1);
+   return wrap(unwrap(TD)->getIntPtrType(*unwrap(LLVMGetGlobalContext())));
+ }
+ 
+ LLVMTypeRef LLVMIntPtrTypeForAS(LLVMTargetDataRef TD, unsigned AS) {
++  llvm::layout_profile::Scope LayoutProfile(4, 1);
+   return wrap(unwrap(TD)->getIntPtrType(*unwrap(LLVMGetGlobalContext()), AS));
+ }
+ 
+ LLVMTypeRef LLVMIntPtrTypeInContext(LLVMContextRef C, LLVMTargetDataRef TD) {
++  llvm::layout_profile::Scope LayoutProfile(5, 1);
+   return wrap(unwrap(TD)->getIntPtrType(*unwrap(C)));
+ }
+ 
+ LLVMTypeRef LLVMIntPtrTypeForASInContext(LLVMContextRef C, LLVMTargetDataRef TD, unsigned AS) {
++  llvm::layout_profile::Scope LayoutProfile(6, 1);
+   return wrap(unwrap(TD)->getIntPtrType(*unwrap(C), AS));
+ }
+ 
+ unsigned long long LLVMSizeOfTypeInBits(LLVMTargetDataRef TD, LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(7, 1);
+   return unwrap(TD)->getTypeSizeInBits(unwrap(Ty));
+ }
+ 
+ unsigned long long LLVMStoreSizeOfType(LLVMTargetDataRef TD, LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(8, 1);
+   return unwrap(TD)->getTypeStoreSize(unwrap(Ty));
+ }
+ 
+ unsigned long long LLVMABISizeOfType(LLVMTargetDataRef TD, LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(9, 1);
+   return unwrap(TD)->getTypeAllocSize(unwrap(Ty));
+ }
+ 
+ unsigned LLVMABIAlignmentOfType(LLVMTargetDataRef TD, LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(10, 1);
+   return unwrap(TD)->getABITypeAlign(unwrap(Ty)).value();
+ }
+ 
+ unsigned LLVMCallFrameAlignmentOfType(LLVMTargetDataRef TD, LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(11, 1);
+   return unwrap(TD)->getABITypeAlign(unwrap(Ty)).value();
+ }
+ 
+ unsigned LLVMPreferredAlignmentOfType(LLVMTargetDataRef TD, LLVMTypeRef Ty) {
++  llvm::layout_profile::Scope LayoutProfile(12, 1);
+   return unwrap(TD)->getPrefTypeAlign(unwrap(Ty)).value();
+ }
+ 
+ unsigned LLVMPreferredAlignmentOfGlobal(LLVMTargetDataRef TD,
+                                         LLVMValueRef GlobalVar) {
++  llvm::layout_profile::Scope LayoutProfile(13, 1);
+   return unwrap(TD)
+       ->getPreferredAlign(unwrap<GlobalVariable>(GlobalVar))
+       .value();
+@@ -127,12 +142,14 @@ unsigned LLVMPreferredAlignmentOfGlobal(LLVMTargetDataRef TD,
+ 
+ unsigned LLVMElementAtOffset(LLVMTargetDataRef TD, LLVMTypeRef StructTy,
+                              unsigned long long Offset) {
++  llvm::layout_profile::Scope LayoutProfile(14, 1);
+   StructType *STy = unwrap<StructType>(StructTy);
+   return unwrap(TD)->getStructLayout(STy)->getElementContainingOffset(Offset);
+ }
+ 
+ unsigned long long LLVMOffsetOfElement(LLVMTargetDataRef TD, LLVMTypeRef StructTy,
+                                        unsigned Element) {
++  llvm::layout_profile::Scope LayoutProfile(15, 1);
+   StructType *STy = unwrap<StructType>(StructTy);
+   return unwrap(TD)->getStructLayout(STy)->getElementOffset(Element);
+ }
