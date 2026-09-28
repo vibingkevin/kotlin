@@ -1,0 +1,77 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.jvm.lower
+
+import org.jetbrains.kotlin.backend.common.FileLoweringPass
+import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
+import org.jetbrains.kotlin.backend.common.ir.inline
+import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
+import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
+import org.jetbrains.kotlin.ir.builders.createTmpVariable
+import org.jetbrains.kotlin.ir.builders.irBlock
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.declarations.IrVariable
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.util.isFunctionalTypeInvoke
+import org.jetbrains.kotlin.ir.visitors.IrTransformer
+
+/**
+ * Inlines directly invoked lambdas and replaces invoked function references with calls.
+ */
+internal class DirectInvokeLowering(private val context: JvmBackendContext) : FileLoweringPass, IrElementTransformerVoidWithContext() {
+    override fun lower(irFile: IrFile) = irFile.transformChildrenVoid()
+
+    override fun visitCall(expression: IrCall): IrExpression {
+        val function = expression.symbol.owner
+        val receiver = expression.dispatchReceiver as? IrRichFunctionReference ?: return super.visitCall(expression)
+        if (!function.symbol.isFunctionalTypeInvoke) return super.visitCall(expression)
+
+        val result = context.createIrBuilder(currentScope!!.scope.scopeOwnerSymbol).run {
+            val lambdaParams = mutableSetOf<IrVariable>()
+            irBlock {
+                assert(expression.arguments.isNotEmpty()) { "`invoke` call must have an invokable argument" }
+                val arguments = if (receiver.origin == IrStatementOrigin.LAMBDA) {
+                    // When inlining directly invoked lambdas, preserve parameter names and forbid their elimination,
+                    // so we keep them in LVT and do not lose any debug info.
+                    require(receiver.boundValues.isEmpty()) { "Lambda-originated function reference can't have bound values" }
+                    receiver.invokeFunction.parameters.zip(expression.arguments.drop(1)).map { [parameter, argument] ->
+                        require(argument != null) { "Unexpected null argument of direct lambda invocation" }
+                        scope.createTemporaryVariable(
+                            argument,
+                            nameHint = parameter.name.identifierOrNullIfSpecial,
+                            inventUniqueName = false
+                        ).also { lambdaParam ->
+                            lambdaParam.origin = parameter.origin
+                            lambdaParams.add(lambdaParam)
+                            +lambdaParam
+                        }
+                    }
+                } else {
+                    (receiver.boundValues + expression.arguments.drop(1).requireNoNulls()).map(::createTmpVariable)
+                }
+                +receiver.invokeFunction.inline(currentDeclarationParent!!, arguments)
+            }   // We had to create temporary variables to use IrFunction.inline().
+                // If the arguments were constant, futher optimizations (e.g. FlattenStringConcatenationLowering) might fail to trigger.
+                // (see codegen/box/directInvokeOptimization/unboundMemberRef.kt for example)
+                // Here we optimize such newly created useless variables out.
+                .transform(object : IrTransformer<IrDeclaration?>() {
+                    override fun visitGetValue(expression: IrGetValue, data: IrDeclaration?) =
+                        optimizeGetValue(expression) { it in lambdaParams }
+
+                    override fun visitBlock(expression: IrBlock, data: IrDeclaration?): IrExpression {
+                        expression.transformChildren(this, data)
+                        removeUnnecessaryTemporaryVariables(expression.statements) { it in lambdaParams }
+                        return expression
+                    }
+                }, null)
+        }
+
+        result.transformChildrenVoid()
+        return result
+    }
+}

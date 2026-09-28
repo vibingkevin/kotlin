@@ -1,0 +1,119 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi
+
+import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
+import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub
+import org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets
+
+/**
+ * Represents the body of a class or object declaration enclosed in curly braces.
+ *
+ * ### Example:
+ *
+ * ```kotlin
+ *    class Foo {
+ *        val x = 1
+ *        fun bar() = 2
+ *    }
+ * // ^_________^
+ * // The block from '{' to '}'
+ * ```
+ */
+@OptIn(KtImplementationDetail::class)
+class KtClassBody : KtElementImplStub<KotlinPlaceHolderStub<KtClassBody>>, KtDeclarationContainer {
+    private val lBraceTokenSet = TokenSet.create(KtTokens.LBRACE)
+    private val rBraceTokenSet = TokenSet.create(KtTokens.RBRACE)
+
+    @KtImplementationDetail
+    constructor(node: ASTNode) : super(node)
+
+    @KtImplementationDetail
+    constructor(stub: KotlinPlaceHolderStub<KtClassBody>) : super(stub, KtNodeTypes.CLASS_BODY)
+
+    override fun getDeclarations() = stub?.getChildrenByType(KtFile.FILE_DECLARATION_TYPES, KtDeclaration.ARRAY_FACTORY)?.toList()
+        ?: PsiTreeUtil.getChildrenOfTypeAsList(this, KtDeclaration::class.java)
+
+    /**
+     * The list of all declarations and companion blocks.
+     */
+    @KtExperimentalApi
+    val declarationsAndCompanionBlocks: List<PsiElement>
+        get() = stub?.getChildrenByType(KtTokenSets.DECLARATION_AND_COMPANION_BLOCK_TYPES, PsiElement.ARRAY_FACTORY)?.toList()
+            ?: PsiTreeUtil.getChildrenOfAnyType(this, KtDeclaration::class.java, KtCompanionBlock::class.java)
+
+    override fun <R, D> accept(visitor: KtVisitor<R, D>, data: D) = visitor.visitClassBody(this, data)
+
+    /**
+     * The `init` blocks declared directly in this body, in source order; empty if there are none.
+     */
+    val anonymousInitializers: List<KtAnonymousInitializer>
+        get() = getStubOrPsiChildren(KtNodeTypes.CLASS_INITIALIZER, KtClassInitializer.EMPTY_ARRAY).asList()
+
+    internal val secondaryConstructors: List<KtSecondaryConstructor>
+        get() = getStubOrPsiChildren(KtNodeTypes.SECONDARY_CONSTRUCTOR, KtSecondaryConstructor.EMPTY_ARRAY).asList()
+
+    /**
+     * The properties declared directly in this body, in source order; empty if there are none.
+     */
+    val properties: List<KtProperty>
+        get() = getStubOrPsiChildren(KtNodeTypes.PROPERTY, KtProperty.EMPTY_ARRAY).asList()
+
+    /**
+     * The named functions declared directly in this body, in source order; empty if there are none.
+     */
+    val functions: List<KtNamedFunction>
+        get() = getStubOrPsiChildren(KtNodeTypes.FUN, KtNamedFunction.EMPTY_ARRAY).asList()
+
+    /**
+     * The enum entries declared in this body, in source order; empty if the owner is not an enum class.
+     */
+    val enumEntries: List<KtEnumEntry>
+        get() = getStubOrPsiChildren(KtNodeTypes.ENUM_ENTRY, KtEnumEntry.EMPTY_ARRAY).asList()
+
+    /**
+     * The companion objects declared in this body, in source order; empty if there are none. Valid Kotlin allows at most one, but several
+     * may appear in erroneous code.
+     */
+    val allCompanionObjects: List<KtObjectDeclaration>
+        get() = getStubOrPsiChildren(KtNodeTypes.OBJECT_DECLARATION, KtObjectDeclaration.EMPTY_ARRAY).filter { it.isCompanion() }
+
+    /**
+     * The list of all companion blocks.
+     */
+    @KtExperimentalApi
+    val companionBlocks: List<KtCompanionBlock>
+        get() = getStubOrPsiChildren(KtNodeTypes.COMPANION_BLOCK, KtCompanionBlock.EMPTY_ARRAY).asList()
+
+    /**
+     * The closing brace `}` of the body, or `null` if it is absent in incomplete code.
+     */
+    val rBrace: PsiElement?
+        get() = node.getChildren(rBraceTokenSet).singleOrNull()?.psi
+
+    /**
+     * The opening brace `{` of the body, or `null` if it is absent in incomplete code.
+     */
+    val lBrace: PsiElement?
+        get() = node.getChildren(lBraceTokenSet).singleOrNull()?.psi
+
+    /**
+     * @return annotations that do not belong to any declaration due to incomplete code or syntax errors
+     */
+    val danglingAnnotations: List<KtAnnotationEntry>
+        get() = danglingModifierLists.flatMap { it.annotationEntries }
+
+    /**
+     * @return modifier lists that do not belong to any declaration due to incomplete code or syntax errors
+     */
+    val danglingModifierLists: List<KtModifierList>
+        get() = getStubOrPsiChildren(KtNodeTypes.MODIFIER_LIST, KtDeclarationModifierList.EMPTY_ARRAY).asList()
+}

@@ -1,0 +1,446 @@
+/*
+ * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.ir.util
+
+import org.jetbrains.kotlin.DeprecatedCompilerApi
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.annotations.KotlinTarget
+import org.jetbrains.kotlin.ir.*
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.IrAnnotation
+import org.jetbrains.kotlin.ir.expressions.IrBlock
+import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrConst
+import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
+import org.jetbrains.kotlin.ir.expressions.IrLazilyBoundAnnotationImpl
+import org.jetbrains.kotlin.ir.expressions.IrReturn
+import org.jetbrains.kotlin.ir.expressions.IrReturnableBlock
+import org.jetbrains.kotlin.ir.expressions.IrRichPropertyReference
+import org.jetbrains.kotlin.ir.expressions.IrTypeOperator
+import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
+import org.jetbrains.kotlin.ir.expressions.IrVararg
+import org.jetbrains.kotlin.ir.symbols.*
+import org.jetbrains.kotlin.ir.types.defaultType
+import org.jetbrains.kotlin.ir.types.isArray
+import org.jetbrains.kotlin.name.*
+import org.jetbrains.kotlin.util.OperatorNameConventions
+import org.jetbrains.kotlin.utils.filterIsInstanceAnd
+
+val IrConstructor.constructedClass get() = this.parent as IrClass
+
+fun IrClassifierSymbol?.isArrayOrPrimitiveArray(builtins: IrBuiltIns): Boolean =
+    this == builtins.arrayClass || this in builtins.primitiveArraysToPrimitiveTypes
+
+// Constructors can't be marked as inline in metadata, hence this check.
+fun IrFunction.isInlineArrayConstructor(): Boolean =
+    this is IrConstructor && hasShape(regularParameters = 2) && constructedClass.defaultType.let { it.isArray() || it.isPrimitiveArray() }
+
+val IrDeclarationParent.fqNameForIrSerialization: FqName
+    get() = when (this) {
+        is IrPackageFragment -> this.packageFqName
+        is IrDeclarationWithName -> this.parent.fqNameForIrSerialization.child(this.name)
+        else -> error(this)
+    }
+
+/**
+ * Skips synthetic FILE_CLASS to make top-level functions look as in kotlin source
+ */
+val IrDeclarationParent.kotlinFqName: FqName
+    get() = when (this) {
+        is IrPackageFragment -> this.packageFqName
+        is IrClass -> {
+            if (isFileClass) {
+                parent.kotlinFqName
+            } else {
+                parent.kotlinFqName.child(name)
+            }
+        }
+        is IrDeclarationWithName -> this.parent.kotlinFqName.child(name)
+        else -> error(this)
+    }
+
+val IrClass.classId: ClassId?
+    get() = classIdImpl
+
+val IrTypeAlias.classId: ClassId?
+    get() = classIdImpl
+
+private val IrDeclarationWithName.classIdImpl: ClassId?
+    get() = when (val parent = this.parent) {
+        is IrClass -> parent.classId?.createNestedClassId(this.name)
+        is IrPackageFragment -> ClassId.topLevel(parent.packageFqName.child(this.name))
+        is IrScript -> {
+            // if the script is already lowered, use the target class as parent, otherwise use the package as parent, assuming that
+            // the script to class lowering will rewrite it correctly
+            parent.targetClass?.owner?.classId?.createNestedClassId(this.name)
+                ?: (parent.parent as? IrFile)?.packageFqName?.child(this.name)?.let { ClassId.topLevel(it) }
+        }
+        else -> null
+    }
+
+val IrClass.classIdOrFail: ClassId
+    get() = classIdOrFailImpl
+
+val IrTypeAlias.classIdOrFail: ClassId
+    get() = classIdOrFailImpl
+
+private val IrDeclarationWithName.classIdOrFailImpl: ClassId
+    get() = classIdImpl ?: error("No classId for $this")
+
+val IrFunction.callableId: CallableId
+    get() = callableIdImpl
+
+val IrProperty.callableId: CallableId
+    get() = callableIdImpl
+
+val IrField.callableId: CallableId
+    get() = callableIdImpl
+
+val IrEnumEntry.callableId: CallableId
+    get() = callableIdImpl
+
+private val IrDeclarationWithName.callableIdImpl: CallableId
+    get() {
+        if (this.symbol is IrClassifierSymbol) error("Classifiers can not have callableId. Got $this")
+        return when (val parent = this.parent) {
+            is IrClass -> parent.classId?.let { CallableId(it, name) }
+            is IrPackageFragment -> CallableId(parent.packageFqName, name)
+            else -> null
+        } ?: error("$this has no callableId")
+    }
+
+fun IrDeclaration.getNameWithAssert(): Name =
+    if (this is IrDeclarationWithName) name else error(this)
+
+val IrValueParameter.isVararg get() = this.varargElementType != null
+
+val IrFunction.isSuspend get() = this is IrSimpleFunction && this.isSuspend
+
+val IrFunction.isReal get() = !(this is IrSimpleFunction && isFakeOverride)
+
+fun <S : IrSymbol> IrOverridableDeclaration<S>.overrides(other: IrOverridableDeclaration<S>): Boolean {
+    if (this == other) return true
+
+    this.overriddenSymbols.forEach {
+        @Suppress("UNCHECKED_CAST")
+        if ((it.owner as IrOverridableDeclaration<S>).overrides(other)) {
+            return true
+        }
+    }
+
+    return false
+}
+
+@OptIn(DeprecatedCompilerApi::class)
+fun IrAnnotation.isAnnotationWithEqualFqName(fqName: FqName): Boolean = when {
+    this is IrLazilyBoundAnnotationImpl -> classSymbol.hasEqualFqName(fqName)
+    symbol.isBound -> classSymbol.owner.hasEqualFqName(fqName)
+    else -> symbol.hasEqualFqName(fqName.child(SpecialNames.INIT))
+}
+
+val IrAnnotation.classId: ClassId get() = classSymbol.classIdWhenAvailable!!
+
+val IrClass.packageFqName: FqName?
+    get() = symbol.signature?.packageFqName() ?: parent.getPackageFragment()?.packageFqName
+
+fun IrDeclarationWithName.hasEqualFqName(fqName: FqName): Boolean =
+    name == fqName.shortName() && when (val parent = parent) {
+        is IrPackageFragment -> parent.packageFqName == fqName.parent()
+        is IrDeclarationWithName -> parent.hasEqualFqName(fqName.parent())
+        else -> false
+    }
+
+fun IrDeclarationWithName.hasTopLevelEqualFqName(packageName: String, declarationName: String): Boolean =
+    symbol.hasTopLevelEqualFqName(packageName, declarationName) || name.asString() == declarationName && when (val parent = parent) {
+        is IrPackageFragment -> parent.packageFqName.asString() == packageName
+        else -> false
+    }
+
+fun IrSymbol.hasEqualFqName(fqName: FqName): Boolean {
+    return with(signature as? IdSignature.CommonSignature ?: return false) {
+        // optimized version of FqName("$packageFqName.$declarationFqName") == fqName
+        val fqNameAsString = fqName.asString()
+        fqNameAsString.length == packageFqName.length + 1 + declarationFqName.length &&
+                fqNameAsString[packageFqName.length] == '.' &&
+                fqNameAsString.startsWith(packageFqName) &&
+                fqNameAsString.endsWith(declarationFqName)
+    }
+}
+
+fun IrSymbol.hasTopLevelEqualFqName(packageName: String, declarationName: String): Boolean {
+    return with(signature as? IdSignature.CommonSignature ?: return false) {
+        // optimized version of FqName("$packageFqName.$declarationFqName") == fqName
+        packageFqName == packageName && declarationFqName == declarationName
+    }
+}
+
+fun IrClassSymbol.hasEqualClassId(classId: ClassId): Boolean {
+    return with(signature as? IdSignature.CommonSignature ?: return false) {
+        classId.packageFqName.asString() == packageFqName && classId.relativeClassName.asString() == declarationFqName
+    }
+}
+
+fun List<IrAnnotation>.hasAnnotation(classId: ClassId): Boolean =
+    // Note: check can be simplified to just classId comparison after IrAnnotation node migration is complete KT-74200.
+    hasAnnotation(
+        // Getting classId from an unbound annotation will throw an exception, go along the path where this is worked around.
+        classId.asSingleFqName()
+    )
+
+fun List<IrAnnotation>.hasAnnotation(fqName: FqName): Boolean =
+    any { it.isAnnotationWithEqualFqName(fqName) }
+
+fun List<IrAnnotation>.findAnnotation(fqName: FqName): IrAnnotation? =
+    firstOrNull { it.isAnnotationWithEqualFqName(fqName) }
+
+val IrDeclaration.fileEntry: IrFileEntry
+    get() = parent.let {
+        when (it) {
+            is IrFile -> it.fileEntry
+            is IrPackageFragment -> TODO("Unknown file")
+            is IrDeclaration -> it.fileEntry
+            else -> TODO("Unexpected declaration parent")
+        }
+    }
+
+// This declaration accesses IrDeclarationContainer.declarations, which is marked with this opt-in
+@UnsafeDuringIrConstructionAPI
+fun IrClass.companionObject(): IrClass? =
+    this.declarations.singleOrNull { it is IrClass && it.isCompanion } as IrClass?
+
+val IrDeclaration.isGetter get() = this is IrSimpleFunction && this == this.correspondingPropertySymbol?.owner?.getter
+
+val IrDeclaration.isSetter get() = this is IrSimpleFunction && this == this.correspondingPropertySymbol?.owner?.setter
+
+val IrDeclaration.isAccessor get() = this.isGetter || this.isSetter
+
+val IrDeclaration.isPropertyAccessor get() =
+    this is IrSimpleFunction && this.correspondingPropertySymbol != null
+
+val IrDeclaration.isPropertyField get() =
+    this is IrField && this.correspondingPropertySymbol != null
+
+val IrDeclaration.isJvmInlineClassConstructor get() =
+    this is IrSimpleFunction && name.asString() == "constructor-impl"
+
+val IrDeclaration.isAnonymousObject get() = this is IrClass && name == SpecialNames.NO_NAME_PROVIDED
+
+val IrDeclaration.isAnonymousFunction get() = this is IrSimpleFunction && name == SpecialNames.NO_NAME_PROVIDED
+
+/**
+ * Used to mark local declarations that have been lifted out of their local scope and changed their visibility to a non-local one.
+ *
+ * Sometimes it is useful to be able to distinguish such declarations even after they were lifted.
+ */
+var IrDeclaration.isOriginallyLocalDeclaration: Boolean by irFlag(copyByDefault = true)
+
+private inline fun IrDeclaration.isLocalImpl(isLocal: (IrDeclarationWithVisibility) -> Boolean): Boolean {
+    var current: IrElement = this
+    while (current !is IrPackageFragment) {
+        require(current is IrDeclaration)
+
+        if (current is IrDeclarationWithVisibility) {
+            if (isLocal(current)) return true
+        }
+
+        if (current.isAnonymousObject) return true
+        if (current is IrScript || (current is IrClass && current.origin == IrDeclarationOrigin.SCRIPT_CLASS)) return true
+
+        current = current.parent
+    }
+
+    return false
+}
+
+val IrDeclaration.isLocal: Boolean
+    get() = isLocalImpl { it.visibility == DescriptorVisibilities.LOCAL }
+
+val IrDeclaration.isOriginallyLocal: Boolean
+    get() = isLocalImpl { it.visibility == DescriptorVisibilities.LOCAL || it.isOriginallyLocalDeclaration }
+
+val IrDeclaration.moduleFragment: IrModuleFragment get() = this.getPackageFragment().module
+
+const val SYNTHETIC_OFFSET = -2
+
+class NaiveSourceBasedFileEntryImpl(
+    override val name: String,
+    override val lineStartOffsets: IntArray = intArrayOf(),
+    override val maxOffset: Int = UNDEFINED_OFFSET,
+    override val firstRelevantLineIndex: Int = 0,
+) : AbstractIrFileEntry() {
+    val lineStartOffsetsAreEmpty: Boolean
+        get() = lineStartOffsets.isEmpty()
+
+    override fun getLineNumber(offset: Int): Int {
+        if (offset == SYNTHETIC_OFFSET) return 0
+        return super.getLineNumber(offset)
+    }
+
+    override fun getColumnNumber(offset: Int): Int {
+        if (offset == SYNTHETIC_OFFSET) return 0
+        return super.getColumnNumber(offset)
+    }
+
+    override fun getLineAndColumnNumbers(offset: Int): LineAndColumn {
+        if (offset == SYNTHETIC_OFFSET) return LineAndColumn(0, 0)
+        return super.getLineAndColumnNumbers(offset)
+    }
+}
+
+// This declaration accesses IrDeclarationContainer.declarations, which is marked with this opt-in
+@UnsafeDuringIrConstructionAPI
+private fun IrClass.getPropertyDeclaration(name: String): IrProperty? {
+    val properties = declarations.filterIsInstanceAnd<IrProperty> { it.name.asString() == name }
+    if (properties.size > 1) {
+        error(
+            "More than one property with name $name in class $fqNameWhenAvailable:\n" +
+                    properties.joinToString("\n", transform = IrProperty::render)
+        )
+    }
+    return properties.firstOrNull()
+}
+
+fun IrClass.getSimpleFunction(name: String): IrSimpleFunctionSymbol? =
+    findDeclaration<IrSimpleFunction> { it.name.asString() == name }?.symbol
+
+// This declaration accesses IrDeclarationContainer.declarations, which is marked with this opt-in
+@UnsafeDuringIrConstructionAPI
+fun IrClass.getPropertyGetter(name: String): IrSimpleFunctionSymbol? =
+    getPropertyDeclaration(name)?.getter?.symbol
+        ?: getSimpleFunction("<get-$name>").also { assert(it?.owner?.correspondingPropertySymbol?.owner?.name?.asString() == name) }
+
+// This declaration accesses IrDeclarationContainer.declarations, which is marked with this opt-in
+@UnsafeDuringIrConstructionAPI
+fun IrClass.getPropertySetter(name: String): IrSimpleFunctionSymbol? =
+    getPropertyDeclaration(name)?.setter?.symbol
+        ?: getSimpleFunction("<set-$name>").also { assert(it?.owner?.correspondingPropertySymbol?.owner?.name?.asString() == name) }
+
+@UnsafeDuringIrConstructionAPI
+fun IrClassSymbol.getSimpleFunction(name: String): IrSimpleFunctionSymbol? = owner.getSimpleFunction(name)
+
+@UnsafeDuringIrConstructionAPI
+fun IrClassSymbol.getPropertyGetter(name: String): IrSimpleFunctionSymbol? = owner.getPropertyGetter(name)
+
+@UnsafeDuringIrConstructionAPI
+fun IrClassSymbol.getPropertySetter(name: String): IrSimpleFunctionSymbol? = owner.getPropertySetter(name)
+
+fun filterOutAnnotations(classId: ClassId, annotations: List<IrAnnotation>): List<IrAnnotation> {
+    val fqName = classId.asSingleFqName()
+    return annotations.filterNot { it.isAnnotationWithEqualFqName(fqName) }
+}
+
+fun IrFunction.isBuiltInSuspendCoroutine(): Boolean =
+    isTopLevelInPackage("suspendCoroutine", StandardNames.COROUTINES_PACKAGE_FQ_NAME)
+
+fun IrFunction.isBuiltInSuspendCoroutineUninterceptedOrReturn(): Boolean =
+    isTopLevelInPackage(
+        "suspendCoroutineUninterceptedOrReturn",
+        StandardNames.COROUTINES_INTRINSICS_PACKAGE_FQ_NAME
+    )
+
+fun IrElement.isTypeOfIntrinsicCall() = this is IrCall && symbol.isTypeOfIntrinsic()
+
+fun IrFunctionSymbol.isTypeOfIntrinsic(): Boolean {
+    val packageFqName = StandardNames.KOTLIN_REFLECT_FQ_NAME
+
+    return if (isBound) {
+        this is IrSimpleFunctionSymbol && owner.isTopLevelInPackage("typeOf", packageFqName) && owner.hasShape()
+    } else {
+        hasTopLevelEqualFqName(packageFqName.asString(), "typeOf")
+    }
+}
+
+/**
+ * @return null - if [this] class is not an annotation class ([isAnnotationClass])
+ * set of [KotlinTarget] representing the annotation targets of the annotation
+ * ```
+ * @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY, AnnotationTarget.CONSTRUCTOR)
+ * annotation class Foo
+ * ```
+ *
+ * shall return Class, Function, Property & Constructor
+ */
+fun IrClass.getAnnotationTargets(): Set<KotlinTarget>? {
+    if (!this.isAnnotationClass) return null
+
+    val valueArgument = getAnnotation(StandardNames.FqNames.target)
+        ?.argumentMapping[StandardClassIds.Annotations.ParameterNames.targetAllowedTargets] as? IrVararg
+        ?: return KotlinTarget.DEFAULT_TARGET_SET
+    return valueArgument.elements.filterIsInstance<IrGetEnumValue>().mapNotNull {
+        KotlinTarget.valueOrNull(it.symbol.owner.name.asString())
+    }.toSet()
+}
+
+val IrFunctionSymbol.isFunctionalTypeInvoke: Boolean
+    get() = owner.name == OperatorNameConventions.INVOKE && owner.parentClassOrNull?.symbol?.isFunctional() == true
+
+fun IrClass.selectSAMOverriddenFunctionOrNull(): IrSimpleFunction? {
+    return when {
+        // Function classes on jvm have some extra methods, which would be in fact implemented by super type,
+        // e.g., callBy and other reflection related callables. So we need to filter them out.
+        symbol.isFunctional() ->
+            functions.singleOrNull { it.name == OperatorNameConventions.INVOKE }
+        symbol.defaultType.isKProperty() ->
+            functions.singleOrNull { it.name == OperatorNameConventions.GET }
+        else ->
+            functions.singleOrNull { it.modality == Modality.ABSTRACT }
+    }
+}
+
+fun IrClass.selectSAMOverriddenFunction(): IrSimpleFunction = selectSAMOverriddenFunctionOrNull()
+    ?: error("${render()} should have a single abstract method to be a type of function reference")
+
+/**
+ * Creates an `IdSignature` representation for the current `ClassId`.
+ *
+ * Be aware that this is a straightforward transformation. It does not account for special cases, like C-interop classes.
+ */
+fun ClassId.toIdSignature(): IdSignature {
+    return IdSignature.CommonSignature(
+        packageFqName.asString(),
+        relativeClassName.asString(),
+        id = null,
+        mask = 0L,
+        description = null
+    )
+}
+
+fun IdSignature.CommonSignature.isClassSignature(): Boolean = id == null
+
+inline fun <reified T> IrAnnotation.getConstArgument(name: String): T? {
+    val expression = argumentMapping[Name.identifier(name)] as? IrConst
+    return expression?.value as? T
+}
+
+private val reflectionPackageNameFqName = StandardClassIds.Annotations.ReflectionPackageName.asSingleFqName()
+
+/**
+ * The package name that should be reported in the reflective information of the classes declared in this file
+ * instead of the real package name, or `null` if the file is not annotated with `@kotlin.internal.ReflectionPackageName`.
+ *
+ * The test infrastructure uses that annotation to compensate for the package renaming it performs when compiling
+ * several tests into one batch. Backends supporting reflective information are expected to respect it, so that
+ * the renaming does not affect the observable fully qualified names.
+ */
+val IrFile.reflectionPackageName: String?
+    get() = getAnnotation(reflectionPackageNameFqName)?.getConstArgument("name")
+
+val IrBlock.singleExpressionOrNull get() = statements.singleOrNull() as? IrExpression
+
+tailrec fun getSinglePropertyReference(expression: IrExpression?, expectedReturn: IrReturnableBlockSymbol?): IrRichPropertyReference? {
+    return when {
+        expression == null -> null
+        expectedReturn == null && expression is IrRichPropertyReference -> expression
+        expectedReturn == null && expression is IrReturnableBlock -> getSinglePropertyReference(expression.singleExpressionOrNull, expression.symbol)
+        expression is IrReturn && expression.returnTargetSymbol == expectedReturn -> getSinglePropertyReference(expression.value, null)
+        expression is IrBlock -> getSinglePropertyReference(expression.singleExpressionOrNull, expectedReturn)
+        expression is IrTypeOperatorCall && expression.operator == IrTypeOperator.IMPLICIT_CAST -> getSinglePropertyReference(expression.argument, expectedReturn)
+        else -> null
+    }
+}

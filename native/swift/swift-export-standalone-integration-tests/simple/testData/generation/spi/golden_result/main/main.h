@@ -1,0 +1,116 @@
+#include <Foundation/Foundation.h>
+#include <stdint.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+_Bool MyInterface_bar__reverse_swift(void * self);
+
+_Bool MyInterface_bazFun__TypesOfArgumentsE__lib_ExperimentalLibClass____reverse_swift(void * self, void * receiver);
+
+NSString * MyInterface_foo_get__reverse_swift(void * self);
+
+_Bool MyInterface_foo_set__TypesOfArguments__Swift_String____reverse_swift(void * self, NSString * newValue);
+
+_Bool MyInterface_optInFunWithDefault__reverse_swift(void * self);
+
+_Bool MyInterface_optInFun__reverse_swift(void * self);
+
+NSString * MyInterface_optInProp_get__reverse_swift(void * self);
+
+_Bool MyInterface_optInProp_set__TypesOfArguments__Swift_String____reverse_swift(void * self, NSString * newValue);
+
+_Bool main_internal_functional_type_callee_SwiftU2EVoid__TypesOfArguments__Swift_UnsafeMutableRawPointer_anyU20lib_InternalLibInterface__(void * pointerToClosure, void * _1);
+
+_Bool main_internal_functional_type_callee_SwiftU2EVoid__TypesOfArguments__Swift_UnsafeMutableRawPointer_main_MyOptInClass__(void * pointerToClosure, void * _1);
+
+void * main_internal_functional_type_callee_mainU2EMyOptInClass__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * pointerToClosure);
+
+_Bool MyImplementation_bar(void * self);
+
+_Bool MyImplementation_experimentalFun(void * self);
+
+NSString * MyImplementation_experimentalProp_get(void * self);
+
+_Bool MyImplementation_experimentalProp_set__TypesOfArguments__Swift_String__(void * self, NSString * newValue);
+
+NSString * MyImplementation_foo_get(void * self);
+
+_Bool MyImplementation_foo_set__TypesOfArguments__Swift_String__(void * self, NSString * newValue);
+
+_Bool MyImplementation_internalFun(void * self);
+
+NSString * MyImplementation_internalProp_get(void * self);
+
+_Bool MyImplementation_internalProp_set__TypesOfArguments__Swift_String__(void * self, NSString * newValue);
+
+_Bool MyInterface_bar(void * self);
+
+_Bool MyInterface_bazFun__TypesOfArgumentsE__lib_ExperimentalLibClass__(void * self, void * receiver);
+
+_Bool MyInterface_bazProp_get__TypesOfArgumentsE__lib_ExperimentalLibClass__(void * self, void * receiver);
+
+_Bool MyInterface_bazProp_set__TypesOfArgumentsE__lib_ExperimentalLibClass_Swift_Bool__(void * self, void * receiver, _Bool value);
+
+NSString * MyInterface_foo_get(void * self);
+
+_Bool MyInterface_foo_set__TypesOfArguments__Swift_String__(void * self, NSString * newValue);
+
+_Bool MyInterface_optInFun(void * self);
+
+_Bool MyInterface_optInFunWithDefault(void * self);
+
+_Bool MyInterface_optInFunWithDefault_direct(void * self);
+
+NSString * MyInterface_optInProp_get(void * self);
+
+_Bool MyInterface_optInProp_set__TypesOfArguments__Swift_String__(void * self, NSString * newValue);
+
+void * __root___MyImplementation_init_allocate();
+
+_Bool __root___MyImplementation_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+void * __root___MyOptInClass_init_allocate();
+
+_Bool __root___MyOptInClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+void * __root___MySubClass_init_allocate();
+
+_Bool __root___MySubClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+void * __root___MySubInterface_init_allocate();
+
+_Bool __root___MySubInterface_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+_Bool __root___callbackFunction__TypesOfArguments__U2829202D_U20main_MyOptInClass__(void * action);
+
+void * __root___functionalTypePropertyA_get();
+
+_Bool __root___functionalTypePropertyA_set__TypesOfArguments__U28main_MyOptInClassU29202D_U20Swift_Void__(void * newValue);
+
+void * __root___functionalTypePropertyB_get();
+
+_Bool __root___functionalTypePropertyB_set__TypesOfArguments__U28anyU20lib_InternalLibInterfaceU29202D_U20Swift_Void__(void * newValue);
+
+_Bool __root___optInFunctionA();
+
+_Bool __root___optInFunctionB();
+
+void * __root___optInFunctionC();
+
+void * __root___optInFunctionD();
+
+NSString * __root___optInFunctionE();
+
+_Bool __root___optInFunctionF();
+
+_Bool __root___regularFunctionA();
+
+_Bool __root___regularFunctionB();
+
+void * __root___regularFunctionC();
+
+_Bool main_internal_functional_type_caller_SwiftU2EVoid__TypesOfArguments__Swift_UnsafeMutableRawPointer_main_MyOptInClass__(void * pointerToBlock, void * _1);
+
+_Bool main_internal_functional_type_caller_SwiftU2EVoid__TypesOfArguments__Swift_UnsafeMutableRawPointer_anyU20lib_InternalLibInterface__(void * pointerToBlock, void * _1);
+
+NS_ASSUME_NONNULL_END

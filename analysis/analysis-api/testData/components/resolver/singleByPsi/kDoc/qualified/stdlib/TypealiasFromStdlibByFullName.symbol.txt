@@ -1,0 +1,5 @@
+KDocName(8,36): 'kotlin.collections.ArrayList'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/collections/ArrayList
+    ]

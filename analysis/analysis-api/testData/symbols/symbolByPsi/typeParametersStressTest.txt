@@ -1,0 +1,1656 @@
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: A
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Number
+  ]
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /topLevelFunction
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: topLevelFunction
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: A
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: [
+        KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Number
+      ]
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: TypeParametersStressTestKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: topLevelFunction
+  importableFqName: topLevelFunction
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: B
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaKotlinPropertySymbol:
+  anchorPsi: KtProperty
+  annotations: []
+  backingFieldSymbol: KaBackingFieldSymbol:
+    anchorPsi: KtProperty
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isNotDefault: false
+    isVal: true
+    location: PROPERTY
+    modality: FINAL
+    name: field
+    origin: PROPERTY_BACKING_FIELD
+    owningProperty: KaKotlinPropertySymbol(/topLevelProperty)
+    psi: null
+    realPsi: null
+    receiverParameter: null
+    returnType: KaTypeParameterType:
+      annotations: []
+      type: B
+    typeParameters: []
+    visibility: PRIVATE
+    getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+    getContainingJvmClassName: TypeParametersStressTestKt
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  callableId: /topLevelProperty
+  contextParameters: []
+  contextReceivers: []
+  getter: KaPropertyGetterSymbol:
+    anchorPsi: KtPropertyAccessor
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    hasStableParameterNames: true
+    isActual: false
+    isCompanion: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isInline: false
+    isNotDefault: true
+    isOverride: false
+    location: PROPERTY
+    modality: FINAL
+    origin: SOURCE
+    psi: KtPropertyAccessor
+    realPsi: KtPropertyAccessor
+    receiverParameter: KaReceiverParameterSymbol:
+      anchorPsi: KtTypeReference
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      isActual: false
+      isCompanion: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isVal: true
+      location: LOCAL
+      modality: FINAL
+      name: <receiver>
+      origin: SOURCE
+      owningCallableSymbol: KaKotlinPropertySymbol(/topLevelProperty)
+      psi: KtTypeReference
+      realPsi: KtTypeReference
+      receiverParameter: null
+      returnType: KaTypeParameterType:
+        annotations: []
+        type: B
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingJvmClassName: TypeParametersStressTestKt
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+    returnType: KaTypeParameterType:
+      annotations: []
+      type: B
+    typeParameters: []
+    valueParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+    getContainingJvmClassName: TypeParametersStressTestKt
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    javaMethodName: getTopLevelProperty
+    importableFqName: null
+  hasBackingField: false
+  hasGetter: true
+  hasSetter: false
+  initializer: null
+  isActual: false
+  isCompanion: false
+  isConst: false
+  isDelegated: false
+  isExpect: false
+  isExtension: true
+  isExternal: false
+  isLateInit: false
+  isOverride: false
+  isStatic: false
+  isVal: true
+  location: TOP_LEVEL
+  modality: FINAL
+  name: topLevelProperty
+  origin: SOURCE
+  primaryConstructorParameter: null
+  psi: KtProperty
+  realPsi: KtProperty
+  receiverParameter: KaReceiverParameterSymbol:
+    anchorPsi: KtTypeReference
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isVal: true
+    location: LOCAL
+    modality: FINAL
+    name: <receiver>
+    origin: SOURCE
+    owningCallableSymbol: KaKotlinPropertySymbol(/topLevelProperty)
+    psi: KtTypeReference
+    realPsi: KtTypeReference
+    receiverParameter: null
+    returnType: KaTypeParameterType:
+      annotations: []
+      type: B
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+    getContainingJvmClassName: TypeParametersStressTestKt
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  returnType: KaTypeParameterType:
+    annotations: []
+    type: B
+  setter: null
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: B
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: TypeParametersStressTestKt
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  isInline: false
+  importableFqName: topLevelProperty
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: C
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: D
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: [
+    KaTypeParameterType:
+      annotations: []
+      type: C
+  ]
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaConstructorSymbol:
+  anchorPsi: KtSecondaryConstructor
+  annotations: []
+  callableId: null
+  containingClassId: TopLevelClass
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isPrimary: false
+  location: CLASS
+  modality: FINAL
+  origin: SOURCE
+  psi: KtSecondaryConstructor
+  realPsi: KtSecondaryConstructor
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaTypeParameterType:
+        annotations: []
+        type: C
+      KaTypeParameterType:
+        annotations: []
+        type: D
+    ]
+    type: TopLevelClass<C, D>
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: C
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: D
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: [
+        KaTypeParameterType:
+          annotations: []
+          type: C
+      ]
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: arg
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaTypeParameterType:
+        annotations: []
+        type: D
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingJvmClassName: TopLevelClass
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: TopLevelClass
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: null
+  importableFqName: TopLevelClass
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: E
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: F
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: G
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: H
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: I
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: CLASS
+  modality: FINAL
+  name: localMemberFunction
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: I
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaTypeParameterType:
+        annotations: []
+        type: E
+    ]
+    type: <local>/LocalClass<H, G, F, E>
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: null
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: localMemberFunction
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: J
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: null
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: true
+  location: CLASS
+  modality: FINAL
+  name: LocalInnerClass
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: J
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: null
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: null
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: false
+  location: LOCAL
+  modality: FINAL
+  name: LocalClass
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: H
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: LOCAL
+  modality: FINAL
+  name: localFunction
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: G
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: []
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: null
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /TopLevelClass.NestedClass.nestedFunction
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: CLASS
+  modality: FINAL
+  name: nestedFunction
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: F
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaTypeParameterType:
+        annotations: []
+        type: E
+    ]
+    type: TopLevelClass.NestedClass<E>
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: TopLevelClass.NestedClass
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: nestedFunction
+  importableFqName: null
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: TopLevelClass.NestedClass
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: false
+  location: CLASS
+  modality: FINAL
+  name: NestedClass
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: E
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: TopLevelClass.NestedClass
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: K
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: L
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: M
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: N
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: O
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: CLASS
+  modality: FINAL
+  name: localMemberFunction
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: O
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaTypeParameterType:
+        annotations: []
+        type: D
+    ]
+    type: <local>/LocalClass<N, M, L, K, C, D>
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: null
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: localMemberFunction
+  importableFqName: null
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: CLASS
+  modality: FINAL
+  name: P
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: null
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: true
+  location: CLASS
+  modality: FINAL
+  name: LocalInnerClass
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: P
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: null
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: null
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: false
+  location: LOCAL
+  modality: FINAL
+  name: LocalClass
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: N
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: LOCAL
+  modality: FINAL
+  name: localFunction
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: M
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: []
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: null
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: null
+  importableFqName: null
+
+KaLocalVariableSymbol:
+  anchorPsi: KtProperty
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  isActual: false
+  isCompanion: false
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isLateInit: false
+  isVal: true
+  location: LOCAL
+  modality: FINAL
+  name: localProperty
+  origin: SOURCE
+  psi: KtProperty
+  realPsi: KtProperty
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Int
+  typeParameters: []
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: null
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /TopLevelClass.InnerClass.nestedFunction
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: CLASS
+  modality: FINAL
+  name: nestedFunction
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: L
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  valueParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaTypeParameterType:
+        annotations: []
+        type: K
+    ]
+    type: TopLevelClass.InnerClass<K, C, D>
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingJvmClassName: TopLevelClass.InnerClass
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: nestedFunction
+  importableFqName: null
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: TopLevelClass.InnerClass
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: true
+  location: CLASS
+  modality: FINAL
+  name: InnerClass
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: K
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: TopLevelClass.InnerClass
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: TopLevelClass
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: TopLevelClass
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: C
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: CLASS
+      modality: FINAL
+      name: D
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: [
+        KaTypeParameterType:
+          annotations: []
+          type: C
+      ]
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: TopLevelClass
+
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: []
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: Q
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null
+
+KaTypeAliasSymbol:
+  anchorPsi: KtTypeAlias
+  annotations: []
+  classId: TopLevelTypeAlias
+  expandedType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Int
+  isActual: false
+  isExpect: false
+  isExternal: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: TopLevelTypeAlias
+  origin: SOURCE
+  psi: KtTypeAlias
+  realPsi: KtTypeAlias
+  typeParameters: [
+    KaTypeParameterSymbol:
+      anchorPsi: KtTypeParameter
+      annotations: []
+      isActual: false
+      isExpect: false
+      isExternal: false
+      isReified: false
+      location: LOCAL
+      modality: FINAL
+      name: Q
+      origin: SOURCE
+      psi: KtTypeParameter
+      realPsi: KtTypeParameter
+      upperBounds: []
+      variance: INVARIANT
+      visibility: LOCAL
+      getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeParametersStressTest.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: TopLevelTypeAlias

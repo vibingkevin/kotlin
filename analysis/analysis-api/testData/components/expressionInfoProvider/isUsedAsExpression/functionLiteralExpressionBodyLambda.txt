@@ -1,0 +1,4 @@
+expression: FUNCTION
+text: fun(): () -> Int = { 54 }
+isUsedAsExpression: true
+isUsedAsResultOfLambda: false

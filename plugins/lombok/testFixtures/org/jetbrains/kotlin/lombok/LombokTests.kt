@@ -1,0 +1,49 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.lombok
+
+import org.jetbrains.kotlin.lombok.LombokDirectives.ENABLE_LOMBOK
+import org.jetbrains.kotlin.test.backend.handlers.IrPrettyKotlinDumpHandler
+import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
+import org.jetbrains.kotlin.test.builders.configureIrHandlersStep
+import org.jetbrains.kotlin.test.preprocessors.ConfigCommentTransformerPreprocessor
+import org.jetbrains.kotlin.test.runners.AbstractFirPsiDiagnosticTest
+import org.jetbrains.kotlin.test.runners.codegen.AbstractFirLightTreeBlackBoxCodegenTest
+
+// ---------------------------- box ----------------------------
+
+open class AbstractFirLightTreeBlackBoxCodegenTestForLombok : AbstractFirLightTreeBlackBoxCodegenTest() {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.enableLombok()
+        builder.configureIrHandlersStep {
+            useHandlers(
+                ::IrPrettyKotlinDumpHandler
+            )
+        }
+    }
+}
+
+// ---------------------------- diagnostics ----------------------------
+
+open class AbstractFirPsiDiagnosticTestForLombok : AbstractFirPsiDiagnosticTest() {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.enableLombok()
+    }
+}
+
+// ---------------------------- configuration ----------------------------
+
+fun TestConfigurationBuilder.enableLombok() {
+    defaultDirectives {
+        +ENABLE_LOMBOK
+    }
+    useConfigurators(::LombokEnvironmentConfigurator)
+    useAdditionalSourceProviders(::LombokAdditionalSourceFileProvider)
+    useCustomRuntimeClasspathProviders(::LombokRuntimeClassPathProvider)
+    useSourcePreprocessor(::ConfigCommentTransformerPreprocessor)
+}

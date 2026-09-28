@@ -1,0 +1,53 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.js.test.handlers
+
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.TranslationMode
+import org.jetbrains.kotlin.js.parser.sourcemaps.SourceMap
+import org.jetbrains.kotlin.test.model.TestFile
+import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.services.configuration.JsEnvironmentConfigurator
+import org.jetbrains.kotlin.test.services.moduleStructure
+import java.io.File
+import java.io.FileNotFoundException
+
+/**
+ * The sourcemaps generated for test files contain relative paths that don't resolve anywhere.
+ * This handler rewrites the sourcemaps to contain the correct absolute paths.
+ */
+class JsSourceMapPathRewriter(testServices: TestServices) : AbstractJsArtifactsCollector(testServices) {
+
+    override fun processAfterAllModules(someAssertionWasFailed: Boolean) {
+        val supportedTranslationModes = arrayOf(
+            TranslationMode.FULL_DEV,
+            TranslationMode.FULL_PROD_MINIMIZED_NAMES,
+            TranslationMode.PER_MODULE_DEV,
+            TranslationMode.PER_MODULE_PROD_MINIMIZED_NAMES,
+        )
+        val testModules = testServices.moduleStructure.modules
+        val allTestFiles = testModules.flatMap { it.files }
+        for (module in testModules) {
+            for (mode in supportedTranslationModes) {
+                val sourceMapFile =
+                    File(JsEnvironmentConfigurator.getJsModuleArtifactPath(testServices, module.name, mode) + ".js.map")
+                try {
+                    SourceMap.replaceSources(sourceMapFile) { path ->
+                        tryToMapTestFile(allTestFiles, path) ?: path
+                    }
+                } catch (_: FileNotFoundException) {
+                    continue
+                }
+            }
+        }
+    }
+
+    private fun tryToMapTestFile(allTestFiles: Iterable<TestFile>, sourceMapPath: String): String? {
+        val testFile = allTestFiles.find { it.name == sourceMapPath }
+            ?: allTestFiles.find { "/${it.name}" == sourceMapPath }
+            ?: return null
+        return testFile.originalFile.absolutePath
+    }
+}

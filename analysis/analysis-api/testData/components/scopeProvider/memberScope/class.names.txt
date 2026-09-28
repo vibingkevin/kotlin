@@ -1,0 +1,20 @@
+Classifier names:
+  C1
+  C2
+  Companion
+  O1
+  O2
+
+Callable names:
+  <init>
+  aCompanionFunction
+  aCompanionProperty
+  bar
+  cCompanionFunction
+  cCompanionProperty
+  equals
+  foo
+  hashCode
+  perform
+  toString
+  x

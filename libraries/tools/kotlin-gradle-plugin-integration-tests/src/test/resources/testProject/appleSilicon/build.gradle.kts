@@ -1,0 +1,54 @@
+plugins {
+    kotlin("multiplatform")
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+kotlin {
+    jvm()
+    iosArm64()
+    iosX64()
+    iosSimulatorArm64()
+    watchosArm64()
+    watchosDeviceArm64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosSimulatorArm64()
+
+    macosArm64 {
+        binaries.executable {
+            entryPoint = "main"
+        }
+    }
+
+    sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test-common"))
+            implementation(kotlin("test-annotations-common"))
+        }
+
+        jvmTest.dependencies {
+            implementation(kotlin("test-junit"))
+        }
+
+    }
+
+    tasks.withType<AbstractTestTask>().configureEach {
+        testLogging {
+            showStandardStreams = true
+        }
+    }
+}
+
+
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+        mavenLocal()
+    }
+}
+

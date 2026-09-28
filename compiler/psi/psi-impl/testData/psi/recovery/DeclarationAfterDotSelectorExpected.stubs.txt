@@ -1,0 +1,50 @@
+FILE[kind=Facade[packageFqName=<root>, facadeFqName=DeclarationAfterDotSelectorExpectedKt]]
+  facadeFqName: DeclarationAfterDotSelectorExpectedKt
+  partSimpleName: "DeclarationAfterDotSelectorExpectedKt"
+  PACKAGE_DIRECTIVE
+  IMPORT_LIST
+  FUNCTION[fqName=foo, hasBody=true, hasNoExpressionBody=true, hasTypeParameterListBeforeFunctionName=false, isExtension=false, isTopLevel=true, mayHaveContract=false, name=foo]
+    VALUE_PARAMETER_LIST
+      VALUE_PARAMETER[fqName=null, hasDefaultValue=false, hasValOrVar=false, isMutable=false, name=x]
+        TYPE_REFERENCE
+          USER_TYPE
+            REFERENCE_EXPRESSION[referencedName=Any]
+    FUNCTION[fqName=null, hasBody=true, hasNoExpressionBody=false, hasTypeParameterListBeforeFunctionName=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=bar]
+      VALUE_PARAMETER_LIST
+      INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=2]
+    FUNCTION[fqName=null, hasBody=true, hasNoExpressionBody=false, hasTypeParameterListBeforeFunctionName=false, isExtension=true, isTopLevel=false, mayHaveContract=false, name=null]
+      TYPE_REFERENCE
+        USER_TYPE
+          REFERENCE_EXPRESSION[referencedName=String]
+      VALUE_PARAMETER_LIST
+      INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=3]
+  CLASS[classId=/A, fqName=A, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=A, superNames=[]]
+    CLASS_BODY
+      PROPERTY[fqName=A.z, hasBackingField=null, hasDelegate=false, hasDelegateExpression=false, hasInitializer=true, hasReturnTypeRef=false, isExtension=false, isTopLevel=false, isVar=false, name=z]
+        DOT_QUALIFIED_EXPRESSION
+          STRING_TEMPLATE
+            LITERAL_STRING_TEMPLATE_ENTRY[text=a]
+      PROPERTY[fqName=A.x, hasBackingField=null, hasDelegate=false, hasDelegateExpression=false, hasInitializer=true, hasReturnTypeRef=false, isExtension=false, isTopLevel=false, isVar=false, name=x]
+        INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=4]
+      PROPERTY[fqName=A.y, hasBackingField=null, hasDelegate=false, hasDelegateExpression=false, hasInitializer=true, hasReturnTypeRef=false, isExtension=false, isTopLevel=false, isVar=false, name=y]
+        DOT_QUALIFIED_EXPRESSION
+          STRING_TEMPLATE
+            LITERAL_STRING_TEMPLATE_ENTRY[text=b]
+      FUNCTION[fqName=A.baz, hasBody=true, hasNoExpressionBody=false, hasTypeParameterListBeforeFunctionName=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=baz]
+        VALUE_PARAMETER_LIST
+        INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=5]
+      PROPERTY[fqName=A.q, hasBackingField=null, hasDelegate=false, hasDelegateExpression=false, hasInitializer=true, hasReturnTypeRef=false, isExtension=false, isTopLevel=false, isVar=false, name=q]
+        DOT_QUALIFIED_EXPRESSION
+          STRING_TEMPLATE
+            LITERAL_STRING_TEMPLATE_ENTRY[text=c]
+          FUNCTION[fqName=null, hasBody=true, hasNoExpressionBody=false, hasTypeParameterListBeforeFunctionName=false, isExtension=true, isTopLevel=false, mayHaveContract=false, name=null]
+            TYPE_REFERENCE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=String]
+            VALUE_PARAMETER_LIST
+            INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=6]
+      PROPERTY[fqName=A.a, hasBackingField=null, hasDelegate=false, hasDelegateExpression=false, hasInitializer=true, hasReturnTypeRef=false, isExtension=false, isTopLevel=false, isVar=true, name=a]
+        DOT_QUALIFIED_EXPRESSION
+          INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=24]
+      PROPERTY[fqName=A.b, hasBackingField=null, hasDelegate=false, hasDelegateExpression=false, hasInitializer=true, hasReturnTypeRef=false, isExtension=false, isTopLevel=false, isVar=true, name=b]
+        FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=42.0]

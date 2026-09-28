@@ -1,0 +1,14 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+description "Dokka Plugin to transform the samples from stdlib"
+
+dependencies {
+    compileOnly libs.dokka.core
+    compileOnly libs.dokka.analysisKotlinApi
+}
+
+kotlin {
+    jvmToolchain(8)
+}
+

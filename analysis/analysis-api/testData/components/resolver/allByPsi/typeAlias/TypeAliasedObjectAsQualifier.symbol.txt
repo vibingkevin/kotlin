@@ -1,0 +1,197 @@
+KtFile: 'TypeAliasedObjectAsQualifier.kt'
+  null
+
+KtPackageDirective(0,12): 'package test'
+  null
+
+KtNameReferenceExpression(8,12): 'test'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test
+    ]
+
+KtImportList(12,12): ''
+  null
+
+KtObjectDeclaration(14,83): 'object MyObject {'
+  null
+
+KtClassBody(30,83): '{'
+  null
+
+KtNamedFunction(36,53): 'fun function() {}'
+  null
+
+KtParameterList(48,50): '()'
+  null
+
+KtBlockExpression(51,53): '{}'
+  null
+
+KtProperty(59,81): 'val property: Int = 10'
+  null
+
+KtTypeReference(73,76): 'Int'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Int
+    ]
+
+KtUserType(73,76): 'Int'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Int
+    ]
+
+KtNameReferenceExpression(73,76): 'Int'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Int
+    ]
+
+KtConstantExpression(79,81): '10'
+  null
+
+KtTypeAlias(85,113): 'typealias MyAlias = MyObject'
+  null
+
+KtTypeReference(105,113): 'MyObject'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject
+    ]
+
+KtUserType(105,113): 'MyObject'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject
+    ]
+
+KtNameReferenceExpression(105,113): 'MyObject'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject
+    ]
+
+KtNamedFunction(115,219): 'fun usage() {'
+  null
+
+KtParameterList(124,126): '()'
+  null
+
+KtBlockExpression(127,219): '{'
+  null
+
+KtDotQualifiedExpression(133,151): 'MyAlias.function()'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject.function(<dispatch receiver>: test.MyObject): kotlin.Unit
+    ]
+
+KtNameReferenceExpression(133,140): 'MyAlias'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyAlias
+    ]
+
+KtCallExpression(141,151): 'function()'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject.function(<dispatch receiver>: test.MyObject): kotlin.Unit
+    ]
+
+KtNameReferenceExpression(141,149): 'function'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject.function(<dispatch receiver>: test.MyObject): kotlin.Unit
+    ]
+
+KtValueArgumentList(149,151): '()'
+  null
+
+KtDotQualifiedExpression(156,172): 'MyAlias.property'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val property: kotlin.Int
+    ]
+
+KtNameReferenceExpression(156,163): 'MyAlias'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyAlias
+    ]
+
+KtNameReferenceExpression(164,172): 'property'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val property: kotlin.Int
+    ]
+
+KtCallableReferenceExpression(178,195): 'MyAlias::function'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject.function(<dispatch receiver>: test.MyObject): kotlin.Unit
+    ]
+
+KtNameReferenceExpression(178,185): 'MyAlias'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyAlias
+    ]
+
+KtNameReferenceExpression(187,195): 'function'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyObject.function(<dispatch receiver>: test.MyObject): kotlin.Unit
+    ]
+
+KtCallableReferenceExpression(200,217): 'MyAlias::property'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val property: kotlin.Int
+    ]
+
+KtNameReferenceExpression(200,207): 'MyAlias'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/MyAlias
+    ]
+
+KtNameReferenceExpression(209,217): 'property'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val property: kotlin.Int
+    ]

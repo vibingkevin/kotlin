@@ -1,0 +1,164 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.cli.pipeline.web
+
+import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
+import org.jetbrains.kotlin.builtins.DefaultBuiltIns
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.cli.common.diagnosticsCollector
+import org.jetbrains.kotlin.cli.hasMessageCollectorErrors
+import org.jetbrains.kotlin.cli.pipeline.CheckCompilationErrors
+import org.jetbrains.kotlin.cli.pipeline.PerformanceNotifications
+import org.jetbrains.kotlin.cli.pipeline.PipelinePhase
+import org.jetbrains.kotlin.compiler.plugin.getCompilerExtensions
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.descriptors.impl.ModuleDescriptorImpl
+import org.jetbrains.kotlin.diagnostics.impl.BaseDiagnosticsCollector
+import org.jetbrains.kotlin.fir.backend.Fir2IrConfiguration
+import org.jetbrains.kotlin.fir.backend.Fir2IrExtensions
+import org.jetbrains.kotlin.fir.backend.Fir2IrVisibilityConverter
+import org.jetbrains.kotlin.fir.descriptors.FirModuleDescriptor
+import org.jetbrains.kotlin.fir.pipeline.*
+import org.jetbrains.kotlin.ir.KtDiagnosticReporterWithImplicitIrBasedContext
+import org.jetbrains.kotlin.ir.backend.js.checkers.JsKlibCheckers
+import org.jetbrains.kotlin.ir.backend.js.getSerializedData
+import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.JsManglerIr
+import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.collectJsExportNames
+import org.jetbrains.kotlin.ir.backend.js.wasm.WasmKlibCheckers
+import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
+import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.js.config.incrementalDataProvider
+import org.jetbrains.kotlin.js.config.wasmCompilation
+import org.jetbrains.kotlin.library.KotlinLibrary
+import org.jetbrains.kotlin.library.isJsStdlib
+import org.jetbrains.kotlin.library.isWasmStdlib
+import org.jetbrains.kotlin.library.metadata.DeserializedKlibModuleOrigin
+import org.jetbrains.kotlin.library.metadata.KlibModuleOrigin
+import org.jetbrains.kotlin.library.uniqueName
+import org.jetbrains.kotlin.name.Name.special
+import org.jetbrains.kotlin.platform.js.JsPlatforms
+import org.jetbrains.kotlin.storage.LockBasedStorageManager
+
+object WebFir2IrPipelinePhase : PipelinePhase<WebFrontendPipelineArtifact, WebFir2IrPipelineArtifact>(
+    name = "WebFir2IrPipelinePhase",
+    preActions = setOf(PerformanceNotifications.TranslationToIrStarted),
+    postActions = setOf(PerformanceNotifications.TranslationToIrFinished, CheckCompilationErrors.CheckDiagnosticCollector)
+) {
+    override fun executePhase(input: WebFrontendPipelineArtifact): WebFir2IrPipelineArtifact {
+        (val firResult = frontendOutput, val configuration, val resolvedLibraries, val hasErrors) = input
+        val diagnosticsReporter = configuration.diagnosticsCollector
+        val fir2IrActualizedResult = transformFirToIr(
+            configuration,
+            resolvedLibraries,
+            firResult.outputs,
+            diagnosticsReporter
+        )
+
+        runWebKlibCallCheckers(diagnosticsReporter, configuration, firResult.outputs, fir2IrActualizedResult)
+
+        return WebFir2IrPipelineArtifact(
+            fir2IrActualizedResult,
+            firResult,
+            configuration,
+            hasErrors = hasErrors || configuration.hasMessageCollectorErrors() || diagnosticsReporter.hasErrors,
+        )
+    }
+
+    private fun transformFirToIr(
+        configuration: CompilerConfiguration,
+        resolvedLibraries: List<KotlinLibrary>,
+        firOutputs: List<SingleModuleFrontendOutput>,
+        diagnosticsReporter: BaseDiagnosticsCollector,
+    ): Fir2IrActualizedResult {
+        val fir2IrExtensions = Fir2IrExtensions.Default
+
+        var builtInsModule: KotlinBuiltIns? = null
+        val dependencies = mutableListOf<ModuleDescriptorImpl>()
+
+        val librariesDescriptors = resolvedLibraries.map { resolvedLibrary ->
+            val storageManager = LockBasedStorageManager("ModulesStructure")
+
+            val moduleName = special("<${resolvedLibrary.uniqueName}>")
+            val moduleOrigin = DeserializedKlibModuleOrigin(resolvedLibrary)
+            val builtInsToUse = builtInsModule ?: object : KotlinBuiltIns(storageManager) {}
+            val moduleDescriptor = ModuleDescriptorImpl(
+                moduleName,
+                storageManager,
+                builtInsToUse,
+                capabilities = mapOf(KlibModuleOrigin.CAPABILITY to moduleOrigin),
+                platform = JsPlatforms.defaultJsPlatform
+            )
+
+            if (builtInsModule == null) {
+                builtInsToUse.builtInsModule = moduleDescriptor
+            }
+
+            dependencies += moduleDescriptor
+            moduleDescriptor.setDependencies(ArrayList(dependencies))
+
+            val isBuiltIns = resolvedLibrary.isJsStdlib || resolvedLibrary.isWasmStdlib
+            if (isBuiltIns) builtInsModule = moduleDescriptor.builtIns
+
+            moduleDescriptor
+        }
+
+        val firResult = AllModulesFrontendOutput(firOutputs)
+        return firResult.convertToIrAndActualize(
+            fir2IrExtensions,
+            Fir2IrConfiguration.forKlibCompilation(configuration, diagnosticsReporter),
+            configuration.getCompilerExtensions(IrGenerationExtension),
+            irMangler = JsManglerIr,
+            visibilityConverter = Fir2IrVisibilityConverter.Default,
+            kotlinBuiltIns = builtInsModule ?: DefaultBuiltIns.Instance,
+            typeSystemContextProvider = ::IrTypeSystemContextImpl,
+            createSpecialAnnotationsProvider = null,
+            extraActualDeclarationExtractorsInitializer = { emptyList() },
+        ) { irModuleFragment ->
+            (irModuleFragment.descriptor as? FirModuleDescriptor)?.let { it.allDependencyModules = librariesDescriptors }
+        }
+    }
+}
+
+
+private fun runWebKlibCallCheckers(
+    diagnosticReporter: BaseDiagnosticsCollector,
+    configuration: CompilerConfiguration,
+    firOutputs: List<SingleModuleFrontendOutput>,
+    fir2IrActualizedResult: Fir2IrActualizedResult,
+) {
+    val irDiagnosticReporter = KtDiagnosticReporterWithImplicitIrBasedContext(diagnosticReporter, configuration.languageVersionSettings)
+
+    val irModuleFragment = fir2IrActualizedResult.irModuleFragment
+
+    // collect clean files
+    val fir2KlibMetadataSerializer = Fir2KlibMetadataSerializer(
+        configuration,
+        firOutputs,
+        fir2IrActualizedResult,
+        produceHeaderKlib = false,
+    )
+    val cleanFiles = configuration.incrementalDataProvider?.getSerializedData(fir2KlibMetadataSerializer.sourceFiles).orEmpty()
+    val cleanFilesIrData = cleanFiles.map { it.irData ?: error("Metadata-only KLIBs are not supported in Kotlin/JS or Kotlin/Wasm") }
+
+    val checker = if (configuration.wasmCompilation) {
+        WasmKlibCheckers.makeChecker(
+            irDiagnosticReporter,
+            configuration
+        )
+    } else {
+        JsKlibCheckers.makeChecker(
+            irDiagnosticReporter,
+            configuration,
+            doCheckCalls = true,
+            doModuleLevelChecks = true,
+            cleanFiles = cleanFilesIrData,
+            exportedNames = irModuleFragment.collectJsExportNames(),
+        )
+    }
+
+    irModuleFragment.acceptVoid(checker)
+}

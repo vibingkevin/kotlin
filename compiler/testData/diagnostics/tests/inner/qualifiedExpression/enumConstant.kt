@@ -1,0 +1,10 @@
+// RUN_PIPELINE_TILL: BACKEND
+enum class E {
+    E1,
+    E2 { };
+}
+
+fun foo() = E.E1
+fun bar() = E.E2
+
+/* GENERATED_FIR_TAGS: enumDeclaration, enumEntry, functionDeclaration */

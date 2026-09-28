@@ -1,0 +1,2 @@
+KDocName(73,87): 'Foo.Nested.foo'
+  null

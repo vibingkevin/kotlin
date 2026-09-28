@@ -1,0 +1,255 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.gradle.plugin.mpp.publishing
+
+import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.attributes.*
+import org.gradle.api.publish.PublicationContainer
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.maven.internal.publication.MavenPublicationInternal
+import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
+import org.gradle.api.publish.maven.tasks.GenerateMavenPom
+import org.gradle.api.publish.tasks.GenerateModuleMetadata
+import org.gradle.plugins.signing.Sign
+import org.jetbrains.kotlin.gradle.dsl.multiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.*
+import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.Companion.kotlinPropertiesProvider
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.reportDiagnostic
+import org.jetbrains.kotlin.gradle.plugin.mpp.*
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
+import org.jetbrains.kotlin.gradle.tooling.buildKotlinToolingMetadataTask
+import org.jetbrains.kotlin.gradle.utils.*
+import org.jetbrains.kotlin.konan.target.HostManager
+
+private val Project.kotlinMultiplatformRootPublicationImpl: CompletableFuture<MavenPublication?>
+        by projectStoredProperty { CompletableFuture() }
+
+internal val Project.kotlinMultiplatformRootPublication: Future<MavenPublication?>
+    get() = kotlinMultiplatformRootPublicationImpl
+
+internal val MultiplatformPublishingSetupAction = KotlinProjectSetupCoroutine {
+    if (isPluginApplied("maven-publish")) {
+        if (project.shouldDisablePublishingDueToIncompatibleHost()) {
+            kotlinMultiplatformRootPublicationImpl.complete(null)
+        } else {
+            setupMultiplatformPublishing()
+        }
+        project.components.add(project.multiplatformExtension.rootSoftwareComponent)
+    } else {
+        kotlinMultiplatformRootPublicationImpl.complete(null)
+    }
+}
+
+/**
+ * Configures the Multiplatform publications.
+ * Can be called immediately or deferred depending on host compatibility checks.
+ */
+private fun Project.setupMultiplatformPublishing() {
+    if (project.kotlinPropertiesProvider.createDefaultMultiplatformPublications) {
+        project.extensions.configure(PublishingExtension::class.java) { publishing ->
+            createRootPublication(project, publishing).also(project.kotlinMultiplatformRootPublicationImpl::complete)
+            createTargetPublications(project, publishing)
+        }
+    } else {
+        kotlinMultiplatformRootPublicationImpl.complete(null)
+    }
+}
+
+/**
+ * Checks if the current host environment is incompatible with the project's targets.
+ *
+ * @return `true` if publishing should be disabled.
+ */
+private suspend fun Project.shouldDisablePublishingDueToIncompatibleHost(): Boolean {
+    // 1. Check for kotlin.internal.mpp.allowMultiplatformPublicationsOnUnsupportedHost property to allow partial publishing
+    if (project.kotlinPropertiesProvider.allowMultiplatformPublicationsOnUnsupportedHost) return false
+
+    // 2. Check if the current host is supported
+    if (HostManager.hostIsSupported) return false
+
+    // 3. Host is unsupported. Check if the project actually uses any Native targets.
+    // If the project is pure JVM/JS/Wasm, we shouldn't block publishing just because the OS is exotic (e.g., FreeBSD).
+    val hasNativeTargets = project.multiplatformExtension.awaitTargets().any { it is KotlinNativeTarget }
+
+    if (hasNativeTargets) {
+        project.reportDiagnostic(
+            KotlinToolingDiagnostics.PublishingDisabledOnUnsupportedHost(
+                name,
+                HostManager.platformName(),
+                HostManager().supportedHosts
+            )
+        )
+        return true
+    }
+
+    return false
+}
+
+/**
+ * The root publication that references the platform specific publications as its variants
+ */
+private fun createRootPublication(project: Project, publishing: PublishingExtension): MavenPublication {
+    val kotlinSoftwareComponent = project.multiplatformExtension.rootSoftwareComponent
+
+    return publishing.publications.create("kotlinMultiplatform", MavenPublication::class.java).apply {
+        from(kotlinSoftwareComponent)
+        (this as MavenPublicationInternal).publishWithOriginalFileName()
+
+        addKotlinToolingMetadataArtifactIfNeeded(project)
+    }
+}
+
+private fun MavenPublication.addKotlinToolingMetadataArtifactIfNeeded(project: Project) {
+    val buildKotlinToolingMetadataTask = project.buildKotlinToolingMetadataTask
+
+    artifact(buildKotlinToolingMetadataTask.map { it.outputFile }) { artifact ->
+        artifact.classifier = "kotlin-tooling-metadata"
+        artifact.builtBy(buildKotlinToolingMetadataTask)
+    }
+}
+
+private fun createTargetPublications(project: Project, publishing: PublishingExtension) {
+    val kotlin = project.multiplatformExtension
+    // Enforce the order of creating the publications, since the metadata publication is used in the other publications:
+    kotlin.targets
+        .withType(InternalKotlinTarget::class.java)
+        .matching { kotlinTarget ->
+            when (kotlinTarget) {
+                is KotlinNativeTarget -> kotlinTarget.publishableWithFallback
+                else -> kotlinTarget.publishable
+            }
+        }
+        .all { kotlinTarget ->
+            /** Publication for [KotlinMetadataTarget] is created in [createRootPublication] */
+            if (kotlinTarget is KotlinMetadataTarget) return@all
+            when (kotlinTarget) {
+                // Android targets have their variants created in afterEvaluate; TODO handle this better?
+                is KotlinAndroidTarget -> project.whenEvaluated {
+                    kotlinTarget.createTargetSpecificMavenPublications(publishing.publications)
+                }
+                is KotlinNativeTarget -> {
+                    project.launch {
+                        val crossCompilationSupported = kotlinTarget.crossCompilationOnCurrentHostSupported.await()
+                        if (!crossCompilationSupported) return@launch
+                        kotlinTarget.createTargetSpecificMavenPublications(publishing.publications)
+                    }
+                }
+                else -> kotlinTarget.createTargetSpecificMavenPublications(publishing.publications)
+            }
+        }
+}
+
+private fun InternalKotlinTarget.createTargetSpecificMavenPublications(publications: PublicationContainer) {
+    kotlinComponents
+        .filter { kotlinComponent -> kotlinComponent.publishableOnCurrentHost }
+        .forEach { kotlinComponent ->
+            val componentPublication = publications.create(kotlinComponent.name, MavenPublication::class.java).apply {
+                val publication = this
+
+                (publication as MavenPublicationInternal).publishWithOriginalFileName()
+                artifactId = kotlinComponent.defaultArtifactId
+
+                // do await for usages since older Gradle versions seem to check the files in the variant eagerly:
+                // We are deferring this to 'AfterFinaliseCompilations' as safety measure for now.
+                project.launchInStage(KotlinPluginLifecycle.Stage.AfterFinaliseCompilations) {
+                    val gradleComponent = components.find { kotlinComponent.name == it.name } ?: return@launchInStage
+                    publication.from(gradleComponent)
+                }
+                project.rewriteKmpDependenciesInPomForTargetPublication(kotlinComponent, publication)
+            }
+
+            (kotlinComponent as? KotlinTargetComponentWithPublication)?.publicationDelegate = componentPublication
+            onPublicationCreated(componentPublication)
+
+            // Also skip publishing when a project dependency disables cross-compilation (KT-87394).
+            if (this@createTargetSpecificMavenPublications is KotlinNativeTarget) {
+                skipPublicationTasksWhenCrossCompilationWithDependenciesUnsupported(componentPublication)
+            }
+        }
+}
+
+/**
+ * The publication is created eagerly, but the target's compilation may be skipped by the dependency-aware
+ * cross-compilation check. Gate its publish tasks on the same check so they don't fail on a missing KLIB.
+ */
+private fun KotlinNativeTarget.skipPublicationTasksWhenCrossCompilationWithDependenciesUnsupported(
+    publication: MavenPublication
+) {
+    val mainCompilation = compilations.getByName(KotlinCompilation.MAIN_COMPILATION_NAME)
+    val crossCompilationSharedData = mainCompilation.crossCompilationSharedData
+    fun isCrossCompilationSupported() = crossCompilationSharedData.dataForAllDependencies.all { it.crossCompilationSupported }
+
+    val skipReason = "Cross-compilation of target '$targetName' with project dependencies is supported on this host"
+
+    // These tasks expose the publication they operate on, so match by identity.
+    project.tasks.withType<GenerateModuleMetadata>().configureEach { task ->
+        if (task.publication.orNull === publication) {
+            task.onlyIf(skipReason) { isCrossCompilationSupported() }
+        }
+    }
+    project.tasks.withType<GenerateMavenPom>().configureEach { task ->
+        if (task.pom === publication.pom) {
+            task.onlyIf(skipReason) { isCrossCompilationSupported() }
+        }
+    }
+    project.tasks.withType<AbstractPublishToMaven>().configureEach { task ->
+        if (task.publication === publication) {
+            task.onlyIf(skipReason) { isCrossCompilationSupported() }
+        }
+    }
+
+    // The signing plugin's Sign task has no public accessor for the publication it signs, so it is matched
+    // by its conventional name 'sign<Publication>Publication'.
+    val signTaskName = lowerCamelCaseName("sign", publication.name, "publication")
+    project.tasks.withType<Sign>().configureEach { task ->
+        if (task.name == signTaskName) {
+            task.onlyIf(skipReason) { isCrossCompilationSupported() }
+        }
+    }
+}
+
+internal fun Configuration.configureSourcesPublicationAttributes(target: KotlinTarget) {
+    val project = target.project
+
+    // In order to be consistent with Java Gradle Plugin, set usage attribute for sources variant
+    // to be either JAVA_RUNTIME (for jvm) or KOTLIN_RUNTIME (for other targets)
+    // the latter isn't a strong requirement since there is no tooling that consume kotlin sources through gradle variants at the moment
+    // so consistency with Java Gradle Plugin seemed most desirable choice.
+    KotlinUsages.configureProducerRuntimeUsage(this, target)
+    attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.attributeValueByName(Category.DOCUMENTATION))
+    attributes.attribute(DocsType.DOCS_TYPE_ATTRIBUTE, project.attributeValueByName(DocsType.SOURCES))
+    // Bundling attribute is about component dependencies, external means that they are provided as separate components
+    // source variants doesn't have any dependencies (at least at the moment) so there is not much sense to use this attribute
+    // however for Java Gradle Plugin compatibility and in order to prevent weird Variant Resolution errors we include this attribute
+    attributes.attribute(Bundling.BUNDLING_ATTRIBUTE, project.attributeValueByName(Bundling.EXTERNAL))
+    usesPlatformOf(target)
+}
+
+internal fun HasAttributes.configureResourcesPublicationAttributes(target: KotlinTarget) {
+    val project = target.project
+
+    val usage = if (target is KotlinJsIrTarget) {
+        KotlinUsages.KOTLIN_RESOURCES_JS
+    } else {
+        KotlinUsages.KOTLIN_RESOURCES
+    }
+    attributes.attribute(
+        Usage.USAGE_ATTRIBUTE,
+        project.usageByName(usage)
+    )
+    attributes.attribute(
+        LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE,
+        project.objects.named(usage)
+    )
+
+    attributes.attribute(Category.CATEGORY_ATTRIBUTE, project.objects.named(Category.LIBRARY))
+    attributes.attribute(Bundling.BUNDLING_ATTRIBUTE, project.attributeValueByName(Bundling.EXTERNAL))
+
+    setUsesPlatformOf(target)
+}

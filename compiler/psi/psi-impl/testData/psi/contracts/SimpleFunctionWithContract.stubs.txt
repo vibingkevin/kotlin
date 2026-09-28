@@ -1,0 +1,24 @@
+FILE[kind=Facade[packageFqName=<root>, facadeFqName=SimpleFunctionWithContractKt]]
+  facadeFqName: SimpleFunctionWithContractKt
+  partSimpleName: "SimpleFunctionWithContractKt"
+  PACKAGE_DIRECTIVE
+  IMPORT_LIST
+  FUNCTION[fqName=foo, hasBody=true, hasNoExpressionBody=true, hasTypeParameterListBeforeFunctionName=false, isExtension=false, isTopLevel=true, mayHaveContract=false, name=foo]
+    VALUE_PARAMETER_LIST
+      VALUE_PARAMETER[fqName=null, hasDefaultValue=false, hasValOrVar=false, isMutable=false, name=s]
+        TYPE_REFERENCE
+          NULLABLE_TYPE
+            USER_TYPE
+              REFERENCE_EXPRESSION[referencedName=String]
+    CONTRACT_EFFECT_LIST
+      CONTRACT_EFFECT
+        BINARY_EXPRESSION
+          CALL_EXPRESSION
+            REFERENCE_EXPRESSION[referencedName=returns]
+            VALUE_ARGUMENT_LIST
+          OPERATION_REFERENCE[operationToken=IDENTIFIER, referencedName=implies]
+          PARENTHESIZED
+            BINARY_EXPRESSION
+              REFERENCE_EXPRESSION[referencedName=s]
+              OPERATION_REFERENCE[operationToken=EXCLEQ, referencedName=!=]
+              NULL[kind=NULL, value=null]

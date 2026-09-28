@@ -1,0 +1,34 @@
+0_.knm:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  public final annotation class Arrays public constructor(
+      public final val ia: kotlin.IntArray,
+
+      public final val la: kotlin.LongArray,
+
+      public final val fa: kotlin.FloatArray,
+
+      public final val da: kotlin.DoubleArray,
+
+      public final val ca: kotlin.CharArray,
+
+      public final val ba: kotlin.BooleanArray,
+  ) : kotlin.Annotation {
+  }
+
+1_.knm:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  @Arrays(ia = [1, 2, 3], la = [1L], fa = [], da = [2.2], ca = ['a'], ba = [true, false])
+  public final class WithArrays public constructor() {
+  }
+
+2_.knm:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  @Arrays(ia = [1, 2, 3], la = [1L], fa = [], da = [2.2], ca = ['a'], ba = [true, false])
+  public final class WithExplicitArrays public constructor() {
+  }

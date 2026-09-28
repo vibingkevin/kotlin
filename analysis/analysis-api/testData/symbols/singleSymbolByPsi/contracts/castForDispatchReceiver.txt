@@ -1,0 +1,98 @@
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: [
+    kotlin/OptIn(markerClass = [kotlin.contracts.ExperimentalContracts::class])
+      psi: KtAnnotationEntry
+  ]
+  callableId: /Result.isFailure
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: [
+    KaContractConditionalContractEffectDeclaration:
+      effect:
+        KaContractReturnsSuccessfullyEffectDeclaration:
+      condition:
+        KaContractIsInstancePredicateExpression:
+          argument:
+            KaContractOwnerParameterValue:
+              symbol:
+                KaNamedClassSymbol:
+                  anchorPsi: KtClass
+                  annotations: []
+                  classId: Result
+                  classKind: CLASS
+                  companionObject: null
+                  contextReceivers: []
+                  isActual: false
+                  isData: false
+                  isExpect: false
+                  isExternal: false
+                  isFun: false
+                  isInline: false
+                  isInner: false
+                  location: TOP_LEVEL
+                  modality: SEALED
+                  name: Result
+                  origin: SOURCE
+                  psi: KtClass
+                  realPsi: KtClass
+                  superTypes: [
+                    KaUsualClassType:
+                      annotations: []
+                      typeArguments: []
+                      type: kotlin/Any
+                  ]
+                  typeParameters: []
+                  visibility: PUBLIC
+                  getContainingFileSymbol: KaFileSymbol(castForDispatchReceiver.kt)
+                  getContainingModule: KaSourceModule "Sources of main"
+                  applicableAnnotationTargets: null
+                  deprecation: null
+                  importableFqName: Result
+          type:
+            KaUsualClassType:
+              annotations: []
+              typeArguments: []
+              type: Result.Failure
+          isNegated: false
+  ]
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: CLASS
+  modality: FINAL
+  name: isFailure
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Boolean
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: Result
+  getContainingFileSymbol: KaFileSymbol(castForDispatchReceiver.kt)
+  getContainingJvmClassName: Result
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: isFailure
+  importableFqName: null

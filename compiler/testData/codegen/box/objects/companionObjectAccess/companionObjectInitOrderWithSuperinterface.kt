@@ -1,0 +1,183 @@
+// LANGUAGE: +CompanionBlocks
+// ^ On Native `CompanionBlocks` language feature enables the JVM-like initialization.
+//   See nativeCompanionInitOrderLegacy for Native behavior without the language feature.
+
+var l = ""
+private fun log(t: String) {
+    l += t + "\n"
+}
+
+// Each test uses its own class hierarchy so companions are initialized fresh.
+
+// multiple interface inheritance
+interface I1 {
+    fun i() {}
+    companion object { init { log("I1.Companion") } }
+}
+interface J1 {
+    fun j() {}
+    companion object { init { log("J1.Companion") } }
+}
+interface K1 : I1 {
+    fun k() {}
+    companion object { init { log("K1.Companion") } }
+}
+interface L1 : J1 {
+    fun l() {}
+    companion object { init { log("L1.Companion") } }
+}
+interface M1 {
+    companion object { init { log("M1.Companion") } }
+}
+open class B1 : J1, K1 {
+    companion object { init { log("B1.Companion") } }
+}
+class A1: B1(), L1, M1 {
+    companion object { init { log("A1.Companion") } }
+}
+
+// multiple interface inheritance; with instance creation
+interface I2 {
+    fun i() {}
+    companion object { init { log("I2.Companion") } }
+}
+interface J2 {
+    fun j() {}
+    companion object { init { log("J2.Companion") } }
+}
+interface K2 : I2 {
+    fun k() {}
+    companion object { init { log("K2.Companion") } }
+}
+interface L2 : J2 {
+    fun l() {}
+    companion object { init { log("L2.Companion") } }
+}
+interface M2 {
+    companion object { init { log("M2.Companion") } }
+}
+open class B2 : J2, K2 {
+    init { log("B2.init") }
+    companion object { init { log("B2.Companion") } }
+}
+class A2: B2(), L2, M2 {
+    init { log("A2.init") }
+    companion object { init { log("A2.Companion") } }
+}
+
+// interface without non-abstract members extending one with non-abstract members
+// The intermediate interface J3 should NOT be initialized when A3 is accessed, because it
+// has no non-abstract members. Only I3 (which declares foo()) should be initialized.
+interface I3 {
+    fun foo() {}
+    companion object { init { log("I3.Companion") } }
+}
+interface J3 : I3 {
+    companion object { init { log("J3.Companion") } }
+}
+class A3 : J3 {
+    companion object { init { log("A3.Companion") } }
+}
+
+// same as test3 but with explicit access to J3 after A3
+interface I4 {
+    fun foo() {}
+    companion object { init { log("I4.Companion") } }
+}
+interface J4 : I4 {
+    companion object { init { log("J4.Companion") } }
+}
+class A4 : J4 {
+    companion object { init { log("A4.Companion") } }
+}
+
+// implementing the same interface multiple times through the interface chain
+interface A5 {
+    fun a() {}
+    companion object { init { log("A5.Companion") } }
+}
+interface B5 : A5 {
+    fun b() {}
+    companion object { init { log("B5.Companion") } }
+}
+interface C5 : B5, A5 {
+    fun c() {}
+    companion object { init { log("C5.Companion") } }
+}
+class D5 : C5, A5 {
+    companion object { init { log("D5.Companion") } }
+}
+
+interface I6 {
+    val value: String get() = "I6"
+    companion object { init { log("I6.Companion") } }
+}
+interface J6 : I6 {
+    companion object { init { log("J6.Companion") } }
+}
+class A6 : J6 {
+    companion object { init { log("A6.Companion") } }
+}
+
+// an interface with only abstract members is not an initialization dependency
+interface I7 {
+    fun foo() {}
+    companion object { init { log("I7.Companion") } }
+}
+interface J7 : I7 {
+    fun bar()
+    val value: Int
+    companion object { init { log("J7.Companion") } }
+}
+class A7 : J7 {
+    override fun bar() {}
+    override val value: Int = 0
+    companion object { init { log("A7.Companion") } }
+}
+
+fun box(): String {
+    l = ""
+    A1
+    val r1 = l
+    if (r1 != "J1.Companion\nI1.Companion\nK1.Companion\nB1.Companion\nL1.Companion\nA1.Companion\n") return "fail test1: '$r1'"
+
+    l = ""
+    A2()
+    val r2 = l
+    if (r2 != "J2.Companion\nI2.Companion\nK2.Companion\nB2.Companion\nL2.Companion\nA2.Companion\nB2.init\nA2.init\n") return "fail test2: '$r2'"
+
+    // J3 should NOT be initialized here, only I3 (declares foo()) and A3
+    l = ""
+    A3
+    val r3 = l
+    if (r3 != "I3.Companion\nA3.Companion\n") return "fail test3: '$r3'"
+
+    // J4 should be initialized only on direct access, not during A4 initialization
+    l = ""
+    A4
+    log("--")
+    J4
+    val r4 = l
+    if (r4 != "I4.Companion\nA4.Companion\n--\nJ4.Companion\n") return "fail test4: '$r4'"
+
+    // A5 should be initialized only once, despite being inherited by B5, C5, and D5
+    l = ""
+    D5
+    val r5 = l
+    if (r5 != "A5.Companion\nB5.Companion\nC5.Companion\nD5.Companion\n") return "fail test5: '$r5'"
+
+    // I6 declares a non-abstract property and should be initialized.
+    // J6 only inherits it and should not be initialized.
+    l = ""
+    A6
+    val r6 = l
+    if (r6 != "I6.Companion\nA6.Companion\n") return "fail test6: '$r6'"
+
+    // J7 declares members, but they are abstract and must not trigger its initialization.
+    l = ""
+    A7
+    val r7 = l
+    if (r7 != "I7.Companion\nA7.Companion\n") return "fail test7: '$r7'"
+
+    return "OK"
+}

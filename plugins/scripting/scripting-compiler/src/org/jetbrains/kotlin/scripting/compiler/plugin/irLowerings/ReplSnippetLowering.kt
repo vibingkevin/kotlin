@@ -1,0 +1,377 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+@file:OptIn(UnsafeDuringIrConstructionAPI::class)
+
+package org.jetbrains.kotlin.scripting.compiler.plugin.irLowerings
+
+import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
+import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
+import org.jetbrains.kotlin.backend.jvm.classNameOverride
+import org.jetbrains.kotlin.backend.jvm.createJvmFileFacadeClass
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.IrStatement
+import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.builders.declarations.addField
+import org.jetbrains.kotlin.ir.builders.declarations.buildReceiverParameter
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrTypeOperatorCallImpl
+import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
+import org.jetbrains.kotlin.ir.symbols.IrClassifierSymbol
+import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
+import org.jetbrains.kotlin.ir.types.classFqName
+import org.jetbrains.kotlin.ir.types.typeWith
+import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
+import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.load.kotlin.FacadeClassSource
+import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.renderer.DescriptorRenderer
+
+val REPL_SNIPPET_EVAL_FUN_NAME = Name.identifier("\$\$eval")
+val REPL_SNIPPET_RESULT_PROP_NAME = Name.identifier("\$\$result")
+
+internal class ReplSnippetsToClassesLowering(val context: IrPluginContext) : ModuleLoweringPass {
+    override fun lower(irModule: IrModuleFragment) {
+        val snippets = mutableListOf<IrReplSnippet>()
+
+        for (irFile in irModule.files) {
+            irFile.declarations.filterIsInstanceTo(snippets, IrReplSnippet::class.java)
+            irFile.declarations.removeIf { it is IrReplSnippet }
+        }
+
+        val symbolRemapper = ReplSnippetsToClassesSymbolRemapper()
+
+        snippets.sortBy { it.name }
+        for (irSnippet in snippets) {
+            finalizeReplSnippetClass(irSnippet, symbolRemapper)
+        }
+
+        // Patch IrExternalPackageFragment parents on external Kotlin top-level callees referenced from
+        // each snippet's `$$eval` body. Mirrors the K2 JVM `ExternalPackageParentPatcherLowering`, but
+        // runs eagerly on the snippet's `targetClass` so that the JVM codegen's
+        // `require(callee.parent is IrClass)` check at `ExpressionCodegen.visitCall` does not fail
+        // when a snippet references e.g. a classpath-loaded Kotlin top-level `val`/`fun` or an
+        // `@InlineOnly` stdlib operator.
+        for (irSnippet in snippets) {
+            val irSnippetClass = irSnippet.targetClass?.owner ?: continue
+            irSnippetClass.acceptVoid(ReplSnippetExternalPackageParentPatcher())
+        }
+    }
+
+    private fun finalizeReplSnippetClass(irSnippet: IrReplSnippet, symbolRemapper: ReplSnippetsToClassesSymbolRemapper) {
+        val irSnippetClass = irSnippet.targetClass!!.owner
+        val typeRemapper = SimpleTypeRemapper(symbolRemapper)
+
+        val implicitReceiversFieldsWithParameters = makeImplicitReceiversFieldsWithParameters(irSnippetClass, typeRemapper, irSnippet)
+
+        val irSnippetClassThisReceiver =
+            irSnippet.createThisReceiverParameter(context, IrDeclarationOrigin.INSTANCE_RECEIVER, irSnippetClass.typeWith()).also {
+                it.parent = irSnippetClass
+            }
+        irSnippetClass.thisReceiver = irSnippetClassThisReceiver
+
+        val snippetAccessCallsGenerator = ReplSnippetAccessCallsGenerator(
+            context, irSnippetClassThisReceiver, implicitReceiversFieldsWithParameters, irSnippetClass, irSnippet.stateObject!!
+        )
+
+        val evalFun = irSnippetClass.declarations
+            .filterIsInstance<IrFunction>()
+            .single { it.origin == IrDeclarationOrigin.REPL_EVAL_FUNCTION }
+        evalFun.parameters = buildList {
+            add(
+                evalFun.buildReceiverParameter {
+                    origin = irSnippetClass.origin
+                    type = irSnippetClass.defaultType
+                }
+            )
+            implicitReceiversFieldsWithParameters.forEach { [_, param] -> add(param) }
+        }
+        (evalFun.body as? IrBlockBody)?.statements?.add(
+            index = 0,
+            element = snippetAccessCallsGenerator.createPutSelfToState(
+                ScriptLikeToClassTransformerContext.makeRootContext(
+                    valueParameterForScriptThis = evalFun.dispatchReceiverParameter?.symbol,
+                    isInScriptConstructor = false,
+                    topLevelDeclarationWithScriptReceiver = evalFun
+                )
+            )
+        )
+
+        val replProperties = irSnippetClass.declarations.filterIsInstance<IrProperty>()
+        for (property in replProperties) {
+            // TO make sure initializing the property from the eval function works correctly,
+            // mark all REPL properties as vars. This makes sure that synthetic accessors are
+            // generated when needed.
+            property.isVar = true
+        }
+
+        val resultProp = replProperties
+            .singleOrNull { it.origin == IrDeclarationOrigin.SCRIPT_RESULT_PROPERTY }
+        resultProp?.let { irResultProperty ->
+            val backingField = irResultProperty.backingField ?: return@let
+            backingField.visibility = DescriptorVisibilities.PUBLIC
+
+            val fieldType = backingField.type.toIrBasedKotlinType()
+            irSnippetClass.scriptResultFieldDataAttr =
+                ScriptResultFieldData(
+                    irSnippetClass.kotlinFqName,
+                    irResultProperty.name,
+                    DescriptorRenderer.FQ_NAMES_IN_TYPES.renderType(fieldType)
+                )
+        }
+
+        val scriptTransformer = ReplSnippetToClassTransformer(
+            context,
+            irSnippet,
+            irSnippetClass,
+            irSnippetClassThisReceiver,
+            typeRemapper,
+            snippetAccessCallsGenerator,
+        )
+        val lambdaPatcher = ScriptFixLambdasTransformer(irSnippetClass)
+
+        irSnippetClass.declarations.transformInPlace {
+            val rootContext =
+                if (it is IrConstructor)
+                    ScriptLikeToClassTransformerContext.makeRootContext(irSnippetClass.thisReceiver!!.symbol, true)
+                else
+                    ScriptLikeToClassTransformerContext.makeRootContext(null, isInScriptConstructor = false)
+            it.transform(scriptTransformer, rootContext)
+                .transform(lambdaPatcher, ScriptFixLambdasTransformerContext())
+        }
+
+        // TODO: find out what problems could arise from copying annotations applicable to file only (KT-74176)
+        irSnippetClass.annotations += (irSnippetClass.parent as IrFile).annotations
+    }
+}
+
+private class ReplSnippetsToClassesSymbolRemapper : SymbolRemapper.Empty() {
+    override fun getReferencedClassifier(symbol: IrClassifierSymbol): IrClassifierSymbol =
+        (symbol.owner as? IrReplSnippet)?.targetClass ?: symbol
+}
+
+private class ReplSnippetAccessCallsGenerator(
+    context: IrPluginContext,
+    snippetClassReceiver: IrValueParameter,
+    implicitReceiversFieldsWithParameters: List<Pair<IrField, IrValueParameter>>,
+    val irSnippetClass: IrClass,
+    val irReplStateObjectSymbol: IrClassSymbol
+) : ScriptLikeAccessCallsGenerator(context, snippetClassReceiver, implicitReceiversFieldsWithParameters) {
+    private val mapClass = irReplStateObjectSymbol.owner
+    private val mapGet = mapClass.functions.single { it.name.asString() == "get" }
+    private val mapPut = mapClass.functions.single { it.name.asString() == "put" }
+
+    fun createPutSelfToState(data: ScriptLikeToClassTransformerContext): IrCall =
+        IrCallImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, mapPut.returnType, mapPut.symbol).apply {
+            arguments[0] =
+                IrGetObjectValueImpl(
+                    startOffset, endOffset,
+                    irReplStateObjectSymbol.typeWith(),
+                    irReplStateObjectSymbol,
+                )
+            arguments[1] =
+                IrConstImpl.string(
+                    startOffset,
+                    endOffset,
+                    context.irBuiltIns.stringType,
+                    irSnippetClass.name.asString()
+                )
+            arguments[2] = getAccessCallForSelf(data, startOffset, endOffset, null, null)
+        }
+
+    fun createAccessToSnippet(
+        irSnippetClassFromState: IrClassSymbol,
+        startOffset: Int,
+        endOffset: Int,
+    ): IrExpression {
+        val getSnippetCall = IrCallImpl(startOffset, endOffset, mapGet.returnType, mapGet.symbol).apply {
+            arguments[0] =
+                IrGetObjectValueImpl(
+                    startOffset, endOffset,
+                    irReplStateObjectSymbol.typeWith(),
+                    irReplStateObjectSymbol,
+                )
+            arguments[1] =
+                IrConstImpl.string(
+                    startOffset,
+                    endOffset,
+                    context.irBuiltIns.stringType,
+                    irSnippetClassFromState.owner.name.asString()
+                )
+        }
+        val targetType = irSnippetClassFromState.typeWith()
+        return IrTypeOperatorCallImpl(
+            startOffset, endOffset, targetType,
+            IrTypeOperator.CAST,
+            targetType, getSnippetCall
+        )
+    }
+
+}
+
+private class ReplSnippetToClassTransformer(
+    context: IrPluginContext,
+    val irSnippet: IrReplSnippet,
+    irSnippetClass: IrClass,
+    snippetClassReceiver: IrValueParameter,
+    typeRemapper: TypeRemapper,
+    override val accessCallsGenerator: ReplSnippetAccessCallsGenerator,
+) : ScriptLikeToClassTransformer(
+    context,
+    irSnippet,
+    irSnippetClass,
+    snippetClassReceiver,
+    typeRemapper,
+    accessCallsGenerator,
+    capturingClasses = emptySet(),
+    needsReceiverProcessing = true
+) {
+    override fun visitMemberAccess(expression: IrMemberAccessExpression<*>, data: ScriptLikeToClassTransformerContext): IrExpression {
+        val declaration = expression.symbol.owner as? IrDeclaration
+        if (declaration != null && declaration in irSnippet.declarationsFromOtherSnippets) {
+            expression.dispatchReceiver = declaration.toSnippetReceiverAccess(expression)
+            expression.transformChildren(this, data)
+            return expression
+        }
+        return super.visitMemberAccess(expression, data)
+    }
+
+    override fun visitRichCallableReference(
+        expression: IrRichCallableReference<*>,
+        data: ScriptLikeToClassTransformerContext,
+    ): IrExpression {
+        val declaration = expression.reflectionTargetSymbol?.owner as? IrDeclaration
+        if (declaration != null && declaration in irSnippet.declarationsFromOtherSnippets) {
+            val function = when (declaration) {
+                is IrProperty -> declaration.getter
+                is IrFunction -> declaration
+                else -> null
+            }
+            val contextCount = function?.parameters?.count { it.kind == IrParameterKind.Context } ?: 0
+            expression.boundValues[contextCount] = declaration.toSnippetReceiverAccess(expression)
+            expression.transformChildren(this, data)
+            return expression
+        }
+
+        return super.visitRichCallableReference(expression, data)
+    }
+
+    private fun IrDeclaration.toSnippetReceiverAccess(expression: IrElement): IrExpression {
+        return accessCallsGenerator.createAccessToSnippet(
+            (parent as IrClass).symbol,
+            expression.startOffset, expression.endOffset
+        )
+    }
+
+
+    override fun visitClass(declaration: IrClass, data: ScriptLikeToClassTransformerContext): IrClass {
+        declaration.updateVisibilityToPublicIfNeeded()
+        return super.visitClass(declaration, data)
+    }
+
+    override fun visitFunction(declaration: IrFunction, data: ScriptLikeToClassTransformerContext): IrStatement {
+        declaration.updateVisibilityToPublicIfNeeded()
+        return super.visitFunction(declaration, data)
+    }
+
+    override fun visitProperty(declaration: IrProperty, data: ScriptLikeToClassTransformerContext): IrStatement {
+        declaration.updateVisibilityToPublicIfNeeded()
+        return super.visitProperty(declaration, data)
+    }
+}
+
+private fun IrDeclarationWithVisibility.updateVisibilityToPublicIfNeeded() {
+    // The snippet top-level classes visibilities are set to public, so this function is used to update
+    // visibilities of such class memebrs recursively, to avoid incorrect codegeneration
+    if (visibility == DescriptorVisibilities.LOCAL &&
+        parent.let { it is IrClass && it.visibility == DescriptorVisibilities.PUBLIC }
+    ) {
+        visibility = DescriptorVisibilities.PUBLIC
+    }
+}
+
+private fun makeImplicitReceiversFieldsWithParameters(
+    irSnippetClass: IrClass,
+    typeRemapper: SimpleTypeRemapper,
+    irSnippet: IrReplSnippet,
+): List<Pair<IrField, IrValueParameter>> =
+    irSnippet.receiverParameters.map { param ->
+        val typeName = param.type.classFqName?.shortName()?.identifierOrNullIfSpecial
+        irSnippetClass.addField {
+            startOffset = UNDEFINED_OFFSET
+            endOffset = UNDEFINED_OFFSET
+            origin = IrDeclarationOrigin.SCRIPT_IMPLICIT_RECEIVER
+            name = Name.identifier("\$\$implicitReceiver_${typeName ?: param.indexInParameters.toString()}")
+            visibility = DescriptorVisibilities.PRIVATE
+            type = typeRemapper.remapType(param.type)
+            isFinal = true
+        } to param
+    }
+
+/**
+ * Patches the parent of external Kotlin top-level callables referenced from a snippet's body so that
+ * `ExpressionCodegen.visitCall` does not fail the `require(callee.parent is IrClass)` check.
+ *
+ * Mirrors `org.jetbrains.kotlin.backend.jvm.lower.ExternalPackageParentPatcherLowering` (K2 JVM
+ * file-class facade patching), but runs eagerly as part of REPL snippet→class lowering so the
+ * snippet body's IR is rewritten before any later JVM lowering observes the
+ * `IrExternalPackageFragment` parent.
+ *
+ * The patcher only fires for callees that:
+ *  - implement [IrMemberWithContainerSource]; and
+ *  - have a [FacadeClassSource] container; and
+ *  - currently have an [IrExternalPackageFragment] parent.
+ *
+ * The facade name is taken from the deserialised source's `className` / `facadeClassName`, so the
+ * resulting JVM bytecode references the real `*Kt` (or multifile facade) class on the classpath.
+ */
+private class ReplSnippetExternalPackageParentPatcher : IrVisitorVoid() {
+    override fun visitElement(element: IrElement) {
+        element.acceptChildrenVoid(this)
+    }
+
+    override fun visitMemberAccess(expression: IrMemberAccessExpression<*>) {
+        visitElement(expression)
+        val callee = expression.symbol.owner as? IrMemberWithContainerSource ?: return
+        if (callee.parent is IrExternalPackageFragment) {
+            val parentClass = generateOrGetFacadeClass(callee) ?: return
+            parentClass.parent = callee.parent
+            callee.parent = parentClass
+            when (callee) {
+                is IrProperty -> handleProperty(callee, parentClass)
+                is IrSimpleFunction -> callee.correspondingPropertySymbol?.owner?.let { handleProperty(it, parentClass) }
+            }
+        }
+    }
+
+    private fun generateOrGetFacadeClass(declaration: IrMemberWithContainerSource): IrClass? {
+        val deserializedSource = declaration.containerSource ?: return null
+        if (deserializedSource !is FacadeClassSource) return null
+        val facadeName = deserializedSource.facadeClassName ?: deserializedSource.className
+        return createJvmFileFacadeClass(
+            if (deserializedSource.facadeClassName != null) IrDeclarationOrigin.JVM_MULTIFILE_CLASS else IrDeclarationOrigin.FILE_CLASS,
+            facadeName.fqNameForTopLevelClassMaybeWithDollars.shortName(),
+            deserializedSource,
+        ).also {
+            it.createThisReceiverParameter()
+            it.classNameOverride = facadeName
+        }
+    }
+
+    private fun handleProperty(property: IrProperty, newParent: IrClass) {
+        property.parent = newParent
+        property.getter?.parent = newParent
+        property.setter?.parent = newParent
+        property.backingField?.parent = newParent
+    }
+}

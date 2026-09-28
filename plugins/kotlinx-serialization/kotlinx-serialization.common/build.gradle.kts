@@ -1,0 +1,24 @@
+description = "Kotlin Serialization Compiler Plugin (Common)"
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+}
+
+dependencies {
+    compileOnly(project(":core:language.version-settings"))
+    compileOnly(project(":compiler:util"))
+    compileOnly(project(":core:compiler.common"))
+    compileOnly(project(":core:deserialization.common.jvm"))
+    compileOnly(intellijCore())
+}
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" { none() }
+}
+
+runtimeJar()
+sourcesJar()
+javadocJar()

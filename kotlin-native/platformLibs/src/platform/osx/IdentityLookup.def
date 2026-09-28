@@ -1,0 +1,8 @@
+depends = CFCGTypes CFNetwork CoreFoundation CoreFoundationBase CoreGraphics CoreServices DiskArbitration Foundation IOKit Security darwin libkern osx posix
+language = Objective-C
+package = platform.IdentityLookup
+modules = IdentityLookup
+apiNotesSwiftName = true
+
+compilerOpts = -framework IdentityLookup
+linkerOpts = -framework IdentityLookup

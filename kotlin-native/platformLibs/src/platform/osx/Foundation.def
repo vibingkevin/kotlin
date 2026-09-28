@@ -1,0 +1,10 @@
+depends = CFCGTypes CFNetwork CoreFoundation CoreFoundationBase CoreGraphics CoreServices DiskArbitration IOKit Security darwin libkern osx posix
+language = Objective-C
+package = platform.Foundation
+modules = Foundation
+apiNotesSwiftName = true
+
+compilerOpts = -framework Foundation
+linkerOpts = -framework Foundation
+
+objcClassesIncludingCategories = NSURL

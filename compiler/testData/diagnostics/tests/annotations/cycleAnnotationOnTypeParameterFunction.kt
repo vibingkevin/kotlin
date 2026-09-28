@@ -1,0 +1,10 @@
+// RUN_PIPELINE_TILL: FRONTEND
+package myPack
+
+@Target(AnnotationTarget.TYPE_PARAMETER)
+annotation class Anno(val number: Int)
+
+fun <@Anno(<!ANNOTATION_ARGUMENT_MUST_BE_CONST!>function<String>()<!>) T> function() = 1
+
+/* GENERATED_FIR_TAGS: annotationDeclaration, functionDeclaration, integerLiteral, nullableType, primaryConstructor,
+propertyDeclaration, typeParameter */

@@ -1,0 +1,19 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// ISSUE: KT-20423
+
+// MODULE: m1
+// FILE: a.kt
+package a
+
+sealed class Base
+
+class A : Base()
+
+// MODULE: m2(m1)
+// FILE: b.kt
+
+package a
+
+class B : <!SEALED_INHERITOR_IN_DIFFERENT_MODULE!>Base<!>()
+
+/* GENERATED_FIR_TAGS: classDeclaration, sealed */

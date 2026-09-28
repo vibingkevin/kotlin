@@ -1,0 +1,21 @@
+// RUN_PIPELINE_TILL: BACKEND
+// ISSUE: KT-37375
+
+val foo: Any = Any()
+
+fun bar() {
+    operator fun Any.invoke(): String = ""
+
+    fun baz() {
+        operator fun Any.invoke(): Int = 1
+
+        fun barbaz() {
+            takeInt(foo())
+        }
+    }
+}
+
+fun takeInt(x: Int) {}
+
+/* GENERATED_FIR_TAGS: funWithExtensionReceiver, functionDeclaration, integerLiteral, localFunction, operator,
+propertyDeclaration, stringLiteral */

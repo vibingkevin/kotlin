@@ -1,0 +1,32 @@
+KaLocalVariableSymbol:
+  anchorPsi: KtProperty
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  isActual: false
+  isCompanion: false
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isLateInit: false
+  isVal: false
+  location: LOCAL
+  modality: FINAL
+  name: variable
+  origin: SOURCE
+  psi: KtProperty
+  realPsi: KtProperty
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/String
+  typeParameters: []
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(variableFromScriptStatement.kts)
+  getContainingJvmClassName: null
+  getContainingModule: KaScriptModule "Script variableFromScriptStatement.kts"
+  deprecation: null
+  importableFqName: null

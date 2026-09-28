@@ -1,0 +1,58 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// WITH_STDLIB
+
+class AllDeprecated {
+    companion object {
+        @Deprecated("", level = DeprecationLevel.HIDDEN)
+        operator fun of(vararg x: Int) = AllDeprecated()
+
+        @Deprecated("", level = DeprecationLevel.HIDDEN)
+        operator fun of() = AllDeprecated()
+    }
+}
+
+class OldSetDeprecated {
+    companion object {
+        @Deprecated("", level = DeprecationLevel.HIDDEN)
+        operator fun of(vararg x: Int) = OldSetDeprecated()
+
+        @Deprecated("", level = DeprecationLevel.HIDDEN)
+        operator fun of() = OldSetDeprecated()
+
+        operator fun of(vararg x: Long) = OldSetDeprecated()
+        operator fun of(x: Long) = OldSetDeprecated()
+    }
+}
+
+fun <T> take(t: T) = Unit
+
+fun test() {
+    take<AllDeprecated>(<!UNRESOLVED_COLLECTION_LITERAL!>[1, 2, 3]<!>)
+    take<AllDeprecated>(<!UNRESOLVED_COLLECTION_LITERAL!>[]<!>)
+
+    take<OldSetDeprecated>([1, 2, 3])
+    take<OldSetDeprecated>([])
+
+    val x = when {
+        true -> AllDeprecated()
+        else -> [1, 2, 3]
+    }
+
+    val y = when {
+        true -> OldSetDeprecated()
+        else -> [1, 2, 3]
+    }
+
+    val z = when {
+        true -> OldSetDeprecated()
+        else -> [42]
+    }
+
+    val t = when {
+        true -> OldSetDeprecated()
+        else -> []
+    }
+}
+
+/* GENERATED_FIR_TAGS: classDeclaration, companionObject, functionDeclaration, integerLiteral, localProperty,
+nullableType, objectDeclaration, operator, propertyDeclaration, stringLiteral, typeParameter, vararg, whenExpression */

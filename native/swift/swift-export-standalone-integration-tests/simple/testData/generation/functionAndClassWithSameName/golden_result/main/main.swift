@@ -1,0 +1,282 @@
+@_exported import ExportedKotlinPackages
+@_implementationOnly import KotlinBridges_main
+import KotlinRuntime
+import KotlinRuntimeSupport
+import dep
+import flattened
+
+public enum EnumWithFactory: KotlinRuntimeSupport._KotlinBridgeable, Swift.CaseIterable, Swift.LosslessStringConvertible, Swift.RawRepresentable {
+    case ONE
+    public var description: Swift.String {
+        get {
+            switch self {
+            case .ONE: "ONE"
+            default: fatalError()
+            }
+        }
+    }
+    public var rawValue: Swift.Int32 {
+        get {
+            switch self {
+            case .ONE: 0
+            default: fatalError()
+            }
+        }
+    }
+    public init?(
+        _ description: Swift.String
+    ) {
+        switch description {
+        case "ONE": self = .ONE
+        default: return nil
+        }
+    }
+    public init?(
+        rawValue: Swift.Int32
+    ) {
+        guard 0..<1 ~= rawValue else { return nil }
+        self = EnumWithFactory.allCases[Int(rawValue)]
+    }
+    public init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer!,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        switch __root___EnumWithFactory_ordinal(__externalRCRefUnsafe) {
+        case 0: self = .ONE
+        default: fatalError()
+        }
+    }
+    public func __externalRCRef() -> Swift.UnsafeMutableRawPointer! {
+        return switch self {
+        case .ONE: EnumWithFactory_ONE()
+        default: fatalError()
+        }
+    }
+}
+public typealias TCJ = any main.CompletableJob
+public protocol CompletableJob: KotlinRuntime.KotlinBase, main.Job, main._CompletableJob {
+}
+public protocol InterfaceWithFactory: KotlinRuntime.KotlinBase, main._InterfaceWithFactory {
+}
+public protocol Job: KotlinRuntime.KotlinBase, main._Job {
+}
+@objc(_main_CompletableJob)
+public protocol _CompletableJob: main._Job {
+}
+@objc(_main_InterfaceWithFactory)
+public protocol _InterfaceWithFactory {
+}
+@objc(_main_Job)
+public protocol _Job {
+}
+public protocol __CompletableJob: KotlinRuntimeSupport._KotlinBridgeable, main.__Job {
+}
+public protocol __InterfaceWithFactory: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public protocol __Job: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public final class ClassWithFactoryWithoutParameters: KotlinRuntime.KotlinBase {
+    public var value: Swift.Int32 {
+        get {
+            return ClassWithFactoryWithoutParameters_value_get(self.__externalRCRef())
+        }
+    }
+    public init(
+        value: Swift.Int32
+    ) {
+        let __kt = __root___ClassWithFactoryWithoutParameters_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { __root___ClassWithFactoryWithoutParameters_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer_Swift_Int32__(__kt, value); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public final class ObjectWithFactory: KotlinRuntime.KotlinBase {
+    public static var shared: main.ObjectWithFactory {
+        get {
+            return main.ObjectWithFactory.__createClassWrapper(externalRCRef: __root___ObjectWithFactory_get())
+        }
+    }
+    private init() {
+        fatalError()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public final class UtcOffset: KotlinRuntime.KotlinBase {
+    public init() {
+        let __kt = __root___UtcOffset_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { __root___UtcOffset_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public func FlattenedPackageClass(
+    f: Swift.Float
+) -> ExportedKotlinPackages.flattenedPackage.FlattenedPackageClass {
+    return ExportedKotlinPackages.flattenedPackage.FlattenedPackageClass.__createClassWrapper(externalRCRef: __root___FlattenedPackageClass__TypesOfArguments__Swift_Float__(f))
+}
+@available(*, unavailable, message: "Declaration uses unsupported types")
+public func annotationWithFactory(
+    arg: any KotlinRuntimeSupport._KotlinBridgeable
+) -> Swift.Never {
+    fatalError()
+}
+public func classWithFactoryWithoutParameters() -> main.ClassWithFactoryWithoutParameters {
+    return main.ClassWithFactoryWithoutParameters.__createClassWrapper(externalRCRef: __root___ClassWithFactoryWithoutParameters())
+}
+public func enumWithFactory(
+    x: Swift.Int32
+) -> main.EnumWithFactory {
+    return main.EnumWithFactory(__externalRCRefUnsafe: __root___EnumWithFactory__TypesOfArguments__Swift_Int32__(x), options: .asBestFittingWrapper)
+}
+public func interfaceWithFactory() -> any main.InterfaceWithFactory {
+    return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: __root___InterfaceWithFactory(), conformsTo: main.InterfaceWithFactory.Type.self) as! any main.InterfaceWithFactory
+}
+public func interfaceWithFactory(
+    arg: any KotlinRuntimeSupport._KotlinBridgeable
+) -> any main.InterfaceWithFactory {
+    return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: __root___InterfaceWithFactory__TypesOfArguments__anyU20KotlinRuntimeSupport__KotlinBridgeable__(arg.__externalRCRef()), conformsTo: main.InterfaceWithFactory.Type.self) as! any main.InterfaceWithFactory
+}
+public func job() -> main.TCJ {
+    return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: __root___Job(), conformsTo: main.CompletableJob.Type.self) as! any main.CompletableJob
+}
+public func job(
+    parent: (any main.Job)?
+) -> any main.CompletableJob {
+    return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: __root___Job__TypesOfArguments__Swift_Optional_anyU20main_Job___(parent.map { it in it.__externalRCRef() } ?? nil), conformsTo: main.CompletableJob.Type.self) as! any main.CompletableJob
+}
+public func objectWithFactory() -> main.ObjectWithFactory {
+    return main.ObjectWithFactory.__createClassWrapper(externalRCRef: __root___ObjectWithFactory())
+}
+public func utcOffset(
+    x: Swift.Int32
+) -> main.UtcOffset {
+    return main.UtcOffset.__createClassWrapper(externalRCRef: __root___UtcOffset__TypesOfArguments__Swift_Int32__(x))
+}
+@_documentation(visibility: internal)
+extension main.CompletableJob where Self : main.__CompletableJob {
+}
+extension main.CompletableJob {
+}
+@_documentation(visibility: internal)
+extension main.InterfaceWithFactory where Self : main.__InterfaceWithFactory {
+}
+extension main.InterfaceWithFactory {
+}
+@_documentation(visibility: internal)
+extension main.Job where Self : main.__Job {
+}
+extension main.Job {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.Job, main.__Job where Wrapped : main._Job {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.CompletableJob, main.__CompletableJob where Wrapped : main._CompletableJob {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.InterfaceWithFactory, main.__InterfaceWithFactory where Wrapped : main._InterfaceWithFactory {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._Job {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._CompletableJob {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._InterfaceWithFactory {
+}
+extension ExportedKotlinPackages.test.factory {
+    public final class ClassWithFactoryInAPackage: KotlinRuntime.KotlinBase {
+        public init() {
+            let __kt = test_factory_ClassWithFactoryInAPackage_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { test_factory_ClassWithFactoryInAPackage_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    public final class Outer: KotlinRuntime.KotlinBase {
+        public final class Nested: KotlinRuntime.KotlinBase {
+            public init() {
+                let __kt = test_factory_Outer_Nested_init_allocate()
+                super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+                { test_factory_Outer_Nested_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+            }
+            package override init(
+                __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+                options: KotlinRuntime.KotlinBaseConstructionOptions
+            ) {
+                super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+            }
+        }
+        public init() {
+            let __kt = test_factory_Outer_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { test_factory_Outer_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+        public func ClassWithFactoryInAPackage(
+            arg: any KotlinRuntimeSupport._KotlinBridgeable
+        ) -> ExportedKotlinPackages.test.factory.ClassWithFactoryInAPackage {
+            return ExportedKotlinPackages.test.factory.ClassWithFactoryInAPackage.__createClassWrapper(externalRCRef: test_factory_Outer_ClassWithFactoryInAPackage__TypesOfArguments__anyU20KotlinRuntimeSupport__KotlinBridgeable__(self.__externalRCRef(), arg.__externalRCRef()))
+        }
+        public func Nested(
+            x: any KotlinRuntimeSupport._KotlinBridgeable
+        ) -> ExportedKotlinPackages.test.factory.Outer.Nested {
+            return ExportedKotlinPackages.test.factory.Outer.Nested.__createClassWrapper(externalRCRef: test_factory_Outer_Nested__TypesOfArguments__anyU20KotlinRuntimeSupport__KotlinBridgeable__(self.__externalRCRef(), x.__externalRCRef()))
+        }
+    }
+    public static func Nested() -> ExportedKotlinPackages.test.factory.Outer.Nested {
+        return ExportedKotlinPackages.test.factory.Outer.Nested.__createClassWrapper(externalRCRef: test_factory_Nested())
+    }
+    public static func classWithFactoryInAPackage(
+        arg: any KotlinRuntimeSupport._KotlinBridgeable
+    ) -> ExportedKotlinPackages.test.factory.ClassWithFactoryInAPackage {
+        return ExportedKotlinPackages.test.factory.ClassWithFactoryInAPackage.__createClassWrapper(externalRCRef: test_factory_ClassWithFactoryInAPackage__TypesOfArguments__anyU20KotlinRuntimeSupport__KotlinBridgeable__(arg.__externalRCRef()))
+    }
+}
+extension ExportedKotlinPackages.test.not.factory {
+    public static func ClassWithFactoryInAPackage(
+        arg: any KotlinRuntimeSupport._KotlinBridgeable
+    ) -> ExportedKotlinPackages.test.factory.ClassWithFactoryInAPackage {
+        return ExportedKotlinPackages.test.factory.ClassWithFactoryInAPackage.__createClassWrapper(externalRCRef: test_not_factory_ClassWithFactoryInAPackage__TypesOfArguments__anyU20KotlinRuntimeSupport__KotlinBridgeable__(arg.__externalRCRef()))
+    }
+}
+extension ExportedKotlinPackages.test.factory.modules {
+    public static func classFromDependency(
+        arg: any KotlinRuntimeSupport._KotlinBridgeable
+    ) -> ExportedKotlinPackages.test.factory.modules.ClassFromDependency {
+        return ExportedKotlinPackages.test.factory.modules.ClassFromDependency.__createClassWrapper(externalRCRef: test_factory_modules_ClassFromDependency__TypesOfArguments__anyU20KotlinRuntimeSupport__KotlinBridgeable__(arg.__externalRCRef()))
+    }
+}
+extension ExportedKotlinPackages.typealiases {
+    public typealias TypealiasWithFactoryWithoutParameters = main.ClassWithFactoryWithoutParameters
+    public typealias TypealiasWithFactoryWithoutParameters2 = main.ClassWithFactoryWithoutParameters
+    public static func typealiasWithFactoryWithoutParameters() -> ExportedKotlinPackages.typealiases.TypealiasWithFactoryWithoutParameters {
+        return main.ClassWithFactoryWithoutParameters.__createClassWrapper(externalRCRef: typealiases_TypealiasWithFactoryWithoutParameters())
+    }
+}

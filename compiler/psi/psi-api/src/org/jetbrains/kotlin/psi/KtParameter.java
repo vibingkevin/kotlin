@@ -1,0 +1,371 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.navigation.ItemPresentation;
+import com.intellij.navigation.ItemPresentationProviders;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.search.LocalSearchScope;
+import com.intellij.psi.search.SearchScope;
+import com.intellij.psi.tree.TokenSet;
+import com.intellij.psi.util.PsiTreeUtil;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.stubs.KotlinParameterStub;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a parameter declaration in various contexts.
+ *
+ * <h3>Function parameter (including constructors and property accessors):</h3>
+ * <pre>{@code
+ * fun greet(name: String) {}
+ * //        ^__________^
+ * }</pre>
+ *
+ * <h3>Lambda parameter:</h3>
+ * <pre>{@code
+ * list.map { item -> item.toString() }
+ * //         ^__^
+ * }</pre>
+ *
+ * <h3>For-loop parameter:</h3>
+ * <pre>{@code
+ * for (item in list) {}
+ * //   ^__^
+ * }</pre>
+ *
+ * <h3>Catch clause parameter:</h3>
+ * <pre>{@code
+ * try {} catch (e: Exception) {}
+ * //            ^___________^
+ * }</pre>
+ *
+ * <h3>Function type parameter:</h3>
+ * <pre>{@code
+ * val f: (param: Int) -> Unit = {}
+ * //      ^________^
+ * }</pre>
+ *
+ * <h3>Context parameter:</h3>
+ * <pre>{@code
+ * context(ctx: Context)
+ * //      ^__________^
+ * fun foo() {}
+ * }</pre>
+ *
+ * @see #isLoopParameter()
+ * @see #isCatchParameter()
+ * @see #isLambdaParameter()
+ * @see #isFunctionTypeParameter()
+ * @see #isContextParameter()
+ * @see #hasValOrVar()
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtParameter extends KtNamedDeclarationStub<KotlinParameterStub> implements KtCallableDeclaration, KtValVarKeywordOwner {
+    /** A shared empty array, which can be reused to avoid unnecessary allocations. */
+    public static final KtParameter[] EMPTY_ARRAY = new KtParameter[0];
+
+    @KtImplementationDetail
+    public KtParameter(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtParameter(@NotNull KotlinParameterStub stub) {
+        super(stub, KtNodeTypes.VALUE_PARAMETER);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitParameter(this, data);
+    }
+
+    @Override
+    @Nullable
+    public KtTypeReference getTypeReference() {
+        return getStubOrPsiChild(KtNodeTypes.TYPE_REFERENCE, KtTypeReference.class);
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.setParameterTypeReference(this, typeRef)}
+     * instead.
+     */
+    @Override
+    @Nullable
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.setParameterTypeReference(this, typeRef)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.setParameterTypeReference(typeRef)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.setParameterTypeReference"
+            )
+    )
+    @Deprecated
+    public KtTypeReference setTypeReference(@Nullable KtTypeReference typeRef) {
+        return KtPsiMutationService.getInstance().setParameterTypeReference(this, typeRef);
+    }
+
+    @Nullable
+    @Override
+    public PsiElement getColon() {
+        return findChildByType(KtTokens.COLON);
+    }
+
+    /** Returns the {@code =} token preceding the default value, or {@code null} if this parameter has no default value. */
+    @Nullable
+    public PsiElement getEqualsToken() {
+        return findChildByType(KtTokens.EQ);
+    }
+
+    /** Returns {@code true} if this parameter declares a default value. */
+    public boolean hasDefaultValue() {
+        KotlinParameterStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.getHasDefaultValue();
+        }
+        return getDefaultValue() != null;
+    }
+
+    /** Returns the default value expression, or {@code null} if this parameter has no default value. */
+    @Nullable
+    public KtExpression getDefaultValue() {
+        KotlinParameterStub stub = getGreenStub();
+        if (stub != null) {
+            if (!stub.getHasDefaultValue()) {
+                return null;
+            }
+
+            KtExpression fromStub = getExpressionFromStub();
+            if (fromStub != null) {
+                return fromStub;
+            }
+        }
+
+        PsiElement equalsToken = getEqualsToken();
+        return equalsToken != null ? PsiTreeUtil.getNextSiblingOfType(equalsToken, KtExpression.class) : null;
+    }
+
+    /** Returns {@code true} if this parameter is a mutable {@code var} property parameter (only valid in a primary constructor). */
+    public boolean isMutable() {
+        KotlinParameterStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.isMutable();
+        }
+
+        return findChildByType(KtTokens.VAR_KEYWORD) != null;
+    }
+
+    /** Returns {@code true} if this parameter has the {@code vararg} modifier. */
+    public boolean isVarArg() {
+        KtModifierList modifierList = getModifierList();
+        return modifierList != null && modifierList.hasModifier(KtTokens.VARARG_KEYWORD);
+    }
+
+    /**
+     * Returns {@code true} if this parameter is declared with a {@code val} or {@code var} keyword (a primary constructor
+     * property parameter).
+     */
+    public boolean hasValOrVar() {
+        KotlinParameterStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.getHasValOrVar();
+        }
+        return getValOrVarKeyword() != null;
+    }
+
+    @Override
+    @Nullable
+    public PsiElement getValOrVarKeyword() {
+        KotlinParameterStub stub = getStub();
+        if (stub != null && !stub.getHasValOrVar()) {
+            return null;
+        }
+        return findChildByType(KtTokens.VAL_VAR);
+    }
+
+    /**
+     * Returns the destructuring declaration if this parameter destructures its argument (as in a lambda {@code { (a, b) -> ... }}), or
+     * {@code null} otherwise.
+     */
+    @Nullable
+    public KtDestructuringDeclaration getDestructuringDeclaration() {
+        // No destructuring declaration in stubs
+        if (getStub() != null) return null;
+
+        return findChildByType(KtNodeTypes.DESTRUCTURING_DECLARATION);
+    }
+
+    /**
+     * @deprecated use {@link KtTokens#VAL_VAR} instead.
+     */
+    @Deprecated
+    public static final TokenSet VAL_VAR_TOKEN_SET = KtTokens.VAL_VAR;
+
+    @Override
+    public ItemPresentation getPresentation() {
+        return ItemPresentationProviders.getItemPresentation(this);
+    }
+
+    /** Returns {@code true} if this parameter is the loop variable of a {@code for} loop (as in {@code for (item in list)}). */
+    public boolean isLoopParameter() {
+        return getParent() instanceof KtForExpression;
+    }
+
+    private <T extends PsiElement> boolean checkParentOfParentType(Class<T> klass) {
+        // `parent` is supposed to be KtParameterList
+        PsiElement parent = getParent();
+        if (parent == null) {
+            return false;
+        }
+        return klass.isInstance(parent.getParent());
+    }
+
+    /** Returns {@code true} if this parameter is the exception parameter of a {@code catch} clause. */
+    public boolean isCatchParameter() {
+        return checkParentOfParentType(KtCatchClause.class);
+    }
+
+    /**
+     * <pre>
+     *   context(contextParameter: Int)
+     *   fun foo() {}
+     * </pre>
+     *
+     * @return {@code true} if this {@link KtParameter} is a context parameter.
+     *
+     * @see KtContextParameterList
+     */
+    public boolean isContextParameter() {
+        return getParent() instanceof KtContextParameterList;
+    }
+
+    /**
+     * For example:
+     * <pre>{@code
+     *   lambdaConsumer { lambdaParameter ->
+     *     ...
+     *   }
+     * }</pre>
+     *
+     * @return {@code true} if this {@link KtParameter} is a parameter of a lambda.
+     */
+    public boolean isLambdaParameter() {
+        return checkParentOfParentType(KtFunctionLiteral.class);
+    }
+
+    /**
+     * For example:
+     * <pre>{@code
+     *   fun foo(lambdaArgument: (functionTypeParameter: T, ...) -> R) { ... }
+     * }</pre>
+     *
+     * @return {@code true} if this {@link KtParameter} is a parameter of a function type.
+     */
+    public boolean isFunctionTypeParameter() {
+        return checkParentOfParentType(KtFunctionType.class);
+    }
+
+    /** Always {@code null}: a parameter does not itself take value parameters. */
+    @Nullable
+    @Override
+    public KtParameterList getValueParameterList() {
+        return null;
+    }
+
+    /** Always empty: a parameter does not itself take value parameters. */
+    @NotNull
+    @Override
+    public List<KtParameter> getValueParameters() {
+        return Collections.emptyList();
+    }
+
+    /** Always {@code null}: a parameter cannot have an extension receiver. */
+    @Nullable
+    @Override
+    public KtTypeReference getReceiverTypeReference() {
+        return null;
+    }
+
+    /** Always {@code null}: a parameter cannot declare type parameters. */
+    @Nullable
+    @Override
+    public KtTypeParameterList getTypeParameterList() {
+        return null;
+    }
+
+    /** Always {@code null}: a parameter cannot have a {@code where} clause. */
+    @Nullable
+    @Override
+    public KtTypeConstraintList getTypeConstraintList() {
+        return null;
+    }
+
+    /** Always empty: a parameter has no type constraints. */
+    @NotNull
+    @Override
+    public List<KtTypeConstraint> getTypeConstraints() {
+        return Collections.emptyList();
+    }
+
+    /** Always empty: a parameter cannot declare type parameters. */
+    @NotNull
+    @Override
+    public List<KtTypeParameter> getTypeParameters() {
+        return Collections.emptyList();
+    }
+
+    /**
+     * Returns the function-like declaration this parameter belongs to, or {@code null} if it is not a value parameter of a function (for
+     * example, a context parameter or a parameter of a function type). See {@link #getOwnerDeclaration()} for the more general accessor.
+     */
+    @Nullable
+    public KtDeclarationWithBody getOwnerFunction() {
+        PsiElement parent = getParentByStub();
+        if (!(parent instanceof KtParameterList)) return null;
+        return ((KtParameterList) parent).getOwnerFunction();
+    }
+
+    /**
+     * @see KtParameterList#getOwnerFunction()
+     * @see KtContextParameterList#getOwnerDeclaration()
+     *
+     * @return the parameter's owner declaration or null if it is from a functional type
+     */
+    @Nullable
+    public KtDeclaration getOwnerDeclaration() {
+        PsiElement parent = getParent();
+        if (parent instanceof KtParameterList) {
+            return ((KtParameterList) parent).getOwnerFunction();
+        }
+
+        if (parent instanceof KtContextParameterList) {
+            return ((KtContextParameterList) parent).getOwnerDeclaration();
+        }
+
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public SearchScope getUseScope() {
+        KtExpression owner = getOwnerFunction();
+        if (owner instanceof KtPrimaryConstructor) {
+            if (hasValOrVar()) return super.getUseScope();
+            owner = ((KtPrimaryConstructor) owner).getContainingClassOrObject();
+        }
+        if (owner == null) {
+            owner = PsiTreeUtil.getParentOfType(this, KtExpression.class);
+        }
+        return new LocalSearchScope(owner != null ? owner : this);
+    }
+}

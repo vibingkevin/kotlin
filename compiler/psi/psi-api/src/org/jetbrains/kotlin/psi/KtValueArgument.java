@@ -1,0 +1,138 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.impl.source.tree.LeafPsiElement;
+import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.tree.TokenSet;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub;
+import org.jetbrains.kotlin.psi.stubs.KotlinValueArgumentStub;
+
+/**
+ * Represents a value argument in a function call.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * println("Hello")
+ * //      ^_____^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtValueArgument extends KtElementImplStub<KotlinValueArgumentStub<? extends KtValueArgument>> implements ValueArgument {
+    /** A shared empty array, which can be reused to avoid unnecessary allocations. */
+    public static final KtValueArgument[] EMPTY_ARRAY = new KtValueArgument[0];
+
+    @KtImplementationDetail
+    public KtValueArgument(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtValueArgument(@NotNull KotlinValueArgumentStub<KtValueArgument> stub) {
+        super(stub, KtNodeTypes.VALUE_ARGUMENT);
+    }
+
+    @KtImplementationDetail
+    protected KtValueArgument(@NotNull KotlinValueArgumentStub<? extends KtValueArgument> stub, @NotNull IElementType nodeType) {
+        super(stub, nodeType);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitArgument(this, data);
+    }
+
+    private static final TokenSet STRING_TEMPLATE_EXPRESSIONS_TYPES = TokenSet.create(
+            KtNodeTypes.STRING_TEMPLATE
+    );
+
+    @Override
+    @Nullable
+    @IfNotParsed
+    public KtExpression getArgumentExpression() {
+        KtExpression fromStub = getExpressionFromStub();
+        if (fromStub != null) {
+            return fromStub;
+        }
+
+        return findChildByClass(KtExpression.class);
+    }
+
+    /**
+     * Returns the argument expression as a {@link KtStringTemplateExpression} if the argument is a string literal, or {@code null}
+     * otherwise. This is an optimization that reads the string directly from the stub when possible.
+     */
+    @Nullable
+    public KtStringTemplateExpression getStringTemplateExpression() {
+        KotlinPlaceHolderStub<? extends KtValueArgument> stub = getStub();
+        KtExpression expression;
+        if (stub != null) {
+            KtExpression[] stringTemplateExpressions = stub.getChildrenByType(STRING_TEMPLATE_EXPRESSIONS_TYPES, KtExpression.EMPTY_ARRAY);
+            expression = stringTemplateExpressions.length != 0 ? stringTemplateExpressions[0] : null;
+        }
+        else {
+            expression = findChildByClass(KtExpression.class);
+        }
+        return expression instanceof KtStringTemplateExpression ? (KtStringTemplateExpression) expression : null;
+    }
+
+    @Override
+    @Nullable
+    public KtValueArgumentName getArgumentName() {
+        return getStubOrPsiChild(KtNodeTypes.VALUE_ARGUMENT_NAME, KtValueArgumentName.class);
+    }
+
+    /** Returns the {@code =} token of a named argument ({@code name = value}), or {@code null} if this argument is positional. */
+    @Nullable
+    public PsiElement getEqualsToken() {
+        return findChildByType(KtTokens.EQ);
+    }
+
+    @Override
+    public boolean isNamed() {
+        return getArgumentName() != null;
+    }
+
+    @NotNull
+    @Override
+    public KtElement asElement() {
+        return this;
+    }
+
+    @Override
+    public LeafPsiElement getSpreadElement() {
+        KotlinValueArgumentStub stub = getStub();
+        if (stub != null && !stub.isSpread()) {
+            return null;
+        }
+
+        ASTNode node = getNode().findChildByType(KtTokens.MUL);
+        return node == null ? null : (LeafPsiElement) node.getPsi();
+    }
+
+    @Override
+    public boolean isSpread() {
+        KotlinValueArgumentStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.isSpread();
+        }
+
+        return getSpreadElement() != null;
+    }
+
+    /** Always {@code false}: a value argument written in source is never an external (synthetic) argument. */
+    @Override
+    public boolean isExternal() {
+        return false;
+    }
+}

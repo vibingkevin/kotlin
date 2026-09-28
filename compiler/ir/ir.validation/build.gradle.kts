@@ -1,0 +1,36 @@
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+    id("test-inputs-check")
+}
+
+projectTests {
+    testTask()
+}
+
+dependencies {
+    api(project(":compiler:util"))
+    api(project(":core:compiler.common"))
+    api(project(":kotlin-stdlib"))
+    api(project(":compiler:ir.tree"))
+    implementation(project(":core:descriptors"))
+    implementation(project(":core:util.runtime"))
+    implementation(project(":kotlin-util-klib"))
+    implementation(project(":compiler:frontend.common-psi")) // required for error reporting
+
+    compileOnly(intellijCore())
+
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(testFixtures(project(":compiler:tests-common-new")))
+    testImplementation(testFixtures(project(":compiler:ir.tree")))
+    testImplementation(project(":compiler:ir.backend.common"))
+}
+
+optInToUnsafeDuringIrConstructionAPI()
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" { projectDefault() }
+}

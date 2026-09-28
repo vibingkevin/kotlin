@@ -1,0 +1,9 @@
+KtNameReferenceExpression(69,73): 'name'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: true
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val name: kotlin.String
+    ]
+  additional: [fake.kt]

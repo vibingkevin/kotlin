@@ -1,0 +1,3 @@
+expression: lst[0]
+expression PSI: KtArrayAccessExpression
+type: kotlin.collections.List<*>

@@ -1,0 +1,33 @@
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: test/WithGeneratedCompanion.Companion
+  classKind: COMPANION_OBJECT
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: false
+  location: CLASS
+  modality: FINAL
+  name: Companion
+  origin: PLUGIN
+  psi: null
+  realPsi: null
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(main.kt)
+  getContainingModule: KaSourceModule "Sources of common"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: test.WithGeneratedCompanion.Companion

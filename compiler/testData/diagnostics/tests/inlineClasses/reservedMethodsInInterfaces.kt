@@ -1,0 +1,62 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// ISSUE: KT-66976
+// WITH_STDLIB
+
+interface Lib {
+    fun <!METHOD_OF_ANY_IMPLEMENTED_IN_INTERFACE, VIRTUAL_MEMBER_HIDDEN!>hashCode<!>(): Boolean = true
+    fun box(): Boolean
+}
+
+interface Lib1 {
+    fun box(): Boolean = true
+}
+
+interface Lib2 {
+    fun box(): Boolean
+}
+
+interface Lib3 {
+    fun box(): Boolean = true
+}
+
+interface I1 {
+    fun <T> equals(other: A1): Boolean = true
+    fun <!METHOD_OF_ANY_IMPLEMENTED_IN_INTERFACE, VIRTUAL_MEMBER_HIDDEN!>hashCode<!>(): Boolean = true
+    fun box(): Boolean = true
+}
+
+@JvmInline
+value <!RESERVED_MEMBER_FROM_INTERFACE_INSIDE_VALUE_CLASS("I1; box"), RESERVED_MEMBER_FROM_INTERFACE_INSIDE_VALUE_CLASS("I1; equals")!>class A1<!>(val i: Int) : I1
+
+fun main1() {
+    val a1 = A1(1)
+    val a2 = A1(2)
+    a1.equals<Int>(a2)
+}
+
+interface I2 {
+    fun <T> equals(other: A2<T>): Boolean = true
+    fun box(): Boolean
+}
+
+interface I2_ : I2
+
+@JvmInline
+value <!ABSTRACT_MEMBER_NOT_IMPLEMENTED, RESERVED_MEMBER_FROM_INTERFACE_INSIDE_VALUE_CLASS("I2; equals")!>class A2<!><T>(val i: Int) : I2_
+
+fun main2() {
+    val a1 = A2<Int>(1)
+    val a2 = A2<String>(2)
+    a1.equals(a2)
+}
+
+
+abstract class AC {
+    fun equals(arg: AC): Boolean = true
+}
+
+@JvmInline
+value class A6(val i: Int) : <!VALUE_CLASS_CANNOT_EXTEND_CLASSES!>AC<!>()
+
+/* GENERATED_FIR_TAGS: classDeclaration, functionDeclaration, integerLiteral, interfaceDeclaration, localProperty,
+nullableType, override, primaryConstructor, propertyDeclaration, typeParameter, value */

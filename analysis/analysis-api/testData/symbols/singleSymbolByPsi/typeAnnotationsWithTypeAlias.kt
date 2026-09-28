@@ -1,0 +1,16 @@
+// PRETTY_RENDERER_OPTION: FULLY_EXPANDED_TYPES
+@Target(AnnotationTarget.TYPE)
+annotation class Anno1
+@Target(AnnotationTarget.TYPE)
+annotation class Anno2
+@Target(AnnotationTarget.TYPE)
+annotation class Anno3
+
+interface BaseInterface
+
+typealias FirstTypeAlias = @Anno1 BaseInterface
+typealias SecondTypeAlias = @Anno2 FirstTypeAlias
+
+fun f<caret>oo(): @Anno3 SecondTypeAlias {
+
+}

@@ -1,0 +1,13 @@
+/* anchor (KtDestructuringDeclaration) --> */val (a, b) = 1 to 2/* <-- */
+
+/* anchor (KtClass) --> */class Foo {
+    /* anchor (KtDestructuringDeclaration) --> */val (c, d) = 3 to 4/* <-- */
+}/* <-- */
+
+/* anchor (KtNamedFunction) --> */fun foo() {
+    val (e, f) = 5 to 6
+
+    ba { (a, b), c ->
+
+    }
+}/* <-- */

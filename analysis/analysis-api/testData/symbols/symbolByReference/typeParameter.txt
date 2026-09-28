@@ -1,0 +1,23 @@
+KaTypeParameterSymbol:
+  anchorPsi: KtTypeParameter
+  annotations: [
+    A()
+      psi: KtAnnotationEntry
+  ]
+  isActual: false
+  isExpect: false
+  isExternal: false
+  isReified: false
+  location: LOCAL
+  modality: FINAL
+  name: T
+  origin: SOURCE
+  psi: KtTypeParameter
+  realPsi: KtTypeParameter
+  upperBounds: []
+  variance: INVARIANT
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(typeParameter.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null

@@ -1,0 +1,14 @@
+// RUN_PIPELINE_TILL: BACKEND
+class Outer {
+
+    fun foo() = 1
+
+    inner class Inner {
+
+        val x = this@Outer.foo()
+
+        val y = foo()
+    }
+}
+
+/* GENERATED_FIR_TAGS: classDeclaration, functionDeclaration, inner, integerLiteral, propertyDeclaration, thisExpression */

@@ -1,0 +1,8 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase CoreGraphics CoreLocation Foundation Security UserNotifications _LocationEssentials darwin posix
+language = Objective-C
+package = platform.Intents
+modules = Intents
+apiNotesSwiftName = true
+
+compilerOpts = -framework Intents
+linkerOpts = -framework Intents

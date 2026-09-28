@@ -1,0 +1,133 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.sir.providers.impl.BridgeProvider
+
+internal sealed class CType {
+    abstract fun render(name: String): String
+
+    val nullable: CType get() = ((this as? NullabilityAnnotated)?.wrapped ?: this).let { NullabilityAnnotated(it, Nullability.NULLABLE) }
+    val nonnulll: CType get() = ((this as? NullabilityAnnotated)?.wrapped ?: this).let { NullabilityAnnotated(it, Nullability.NONNULL) }
+
+    sealed class Predefined(private val repr: String) : CType() {
+        override fun render(name: String): String = if (name.isBlank()) repr else "$repr $name"
+    }
+
+    enum class Nullability(val keyword: String) {
+        NULLABLE("_Nullable"),
+        NONNULL("_Nonnull"),
+        NULL_UNSPECIFIED("_Null_unspecified"),
+    }
+
+    class NullabilityAnnotated(val wrapped: CType, val nullability: Nullability) : CType() {
+        override fun render(name: String): String = wrapped.render(nullability.keyword + " " + (name.takeIf { name.isNotBlank() } ?: ""))
+    }
+
+    data object Void : Predefined("void")
+    data object Bool : Predefined("_Bool")
+    data object Int8 : Predefined("int8_t")
+    data object Int16 : Predefined("int16_t")
+    data object Int32 : Predefined("int32_t")
+    data object Int64 : Predefined("int64_t")
+    data object UInt8 : Predefined("uint8_t")
+    data object UInt16 : Predefined("uint16_t")
+    data object UInt32 : Predefined("uint32_t")
+    data object UInt64 : Predefined("uint64_t")
+    data object Float : Predefined("float")
+    data object Double : Predefined("double")
+    data object Object : Predefined("void *")
+    data object OutObject : Predefined("void *_Nullable *")
+    data object id : Predefined("id")
+    data object NSString : Predefined("NSString *")
+    data object NSNumber : Predefined("NSNumber *")
+    data object NSError : Predefined("NSError *")
+    data object NSObject : Predefined("id<NSObject>") // NSProxy and NSObject conforms to this
+
+    sealed class Generic(base: String, vararg args: CType) : Predefined(
+        repr = "$base<${args.joinToString(", ") { it.render("").trim() }}> *"
+    )
+
+    class NSArray(elem: CType) : Generic("NSArray", elem)
+    class NSSet(elem: CType) : Generic("NSSet", elem)
+    class NSDictionary(key: CType, value: CType) : Generic("NSDictionary", key, value)
+
+}
+
+internal enum class KotlinType(val repr: String) {
+    Unit("Unit"),
+
+    Boolean("Boolean"),
+    Char("Char"),
+
+    Byte("Byte"),
+    Short("Short"),
+    Int("Int"),
+    Long("Long"),
+
+    UByte("UByte"),
+    UShort("UShort"),
+    UInt("UInt"),
+    ULong("ULong"),
+
+    Float("Float"),
+    Double("Double"),
+
+    KotlinObject("kotlin.native.internal.NativePtr"),
+
+    PointerToKotlinObject("kotlinx.cinterop.COpaquePointerVar"),
+
+    // id, +0
+    ObjCObjectUnretained("kotlin.native.internal.NativePtr"),
+
+    String("String"),
+}
+
+internal val KotlinType.defaultValue: String
+    get() = when (this) {
+        KotlinType.Unit -> "Unit"
+        KotlinType.Boolean -> "false"
+        KotlinType.Char -> "'\\u0000'"
+        KotlinType.Byte,
+        KotlinType.Short,
+        KotlinType.Int,
+        KotlinType.Long,
+        KotlinType.UByte,
+        KotlinType.UShort,
+        KotlinType.UInt,
+        KotlinType.ULong,
+            -> "0"
+        KotlinType.Float,
+        KotlinType.Double,
+            -> "0.0"
+        KotlinType.PointerToKotlinObject -> error("PointerToKotlinObject shouldn't appear in return type position")
+        KotlinType.KotlinObject,
+        KotlinType.ObjCObjectUnretained, // This is semantically +0, so we're allowed to simply dismiss the pointer.
+            -> "kotlin.native.internal.NativePtr.NULL"
+        KotlinType.String -> ""
+    }
+
+internal fun CType.toSwiftTypeName(): String = when (this) {
+    CType.Void -> "Swift.Void"
+    CType.Bool -> "Swift.Bool"
+    CType.Int8 -> "Swift.Int8"
+    CType.Int16 -> "Swift.Int16"
+    CType.Int32 -> "Swift.Int32"
+    CType.Int64 -> "Swift.Int64"
+    CType.UInt8 -> "Swift.UInt8"
+    CType.UInt16 -> "Swift.UInt16"
+    CType.UInt32 -> "Swift.UInt32"
+    CType.UInt64 -> "Swift.UInt64"
+    CType.Float -> "Swift.Float"
+    CType.Double -> "Swift.Double"
+    CType.Object -> "Swift.UnsafeMutableRawPointer"
+    CType.OutObject -> "Swift.UnsafeMutablePointer<Swift.UnsafeMutableRawPointer?>"
+    CType.id -> "Any"
+    CType.NSString -> "Swift.String"
+    CType.NSError -> "Swift.Error"
+    CType.NSObject -> "Any"
+    CType.NSNumber -> "Foundation.NSNumber"
+    is CType.NullabilityAnnotated -> wrapped.toSwiftTypeName() + if (nullability == CType.Nullability.NONNULL) "" else "?"
+    else -> "Any"
+}

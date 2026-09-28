@@ -1,0 +1,17 @@
+KtThisExpression(65,69): 'this'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaScriptSymbol:
+        anchorPsi: KtScript
+        annotations: []
+        isActual: false
+        isExpect: false
+        isExternal: false
+        location: TOP_LEVEL
+        modality: FINAL
+        name: <script-ScriptThisExpression.kts>
+        origin: SOURCE
+        psi: KtScript
+        realPsi: KtScript
+        visibility: LOCAL
+    ]

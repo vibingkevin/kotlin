@@ -1,0 +1,48 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+
+/**
+ * Represents a {@code when} condition that performs a type check using {@code is} or {@code !is}.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * when (x) {
+ *     is String -> println(x.length)
+ * //  ^_______^
+ * }
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtWhenConditionIsPattern extends KtWhenCondition {
+    @KtImplementationDetail
+    public KtWhenConditionIsPattern(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    /** Returns {@code true} if this is a {@code !is} (negated) type check rather than a plain {@code is} check. */
+    public boolean isNegated() {
+        return getNode().findChildByType(KtTokens.NOT_IS) != null;
+    }
+
+    /** Returns the type reference being checked against, or {@code null} if it is absent in incomplete code. */
+    @Nullable @IfNotParsed
+    public KtTypeReference getTypeReference() {
+        return (KtTypeReference) findChildByType(KtNodeTypes.TYPE_REFERENCE);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitWhenConditionIsPattern(this, data);
+    }
+}

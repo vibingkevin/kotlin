@@ -1,0 +1,118 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("multiplatform")
+    id("generated-sources")
+    id("binaryen-configuration")
+    id("nodejs-configuration")
+    id("d8-configuration")
+}
+
+kotlin {
+    jvm()
+
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        nodejs()
+        d8()
+    }
+
+    sourceSets {
+        val commonMain = getByName("commonMain") {
+            dependencies {
+                api(kotlinStdlib())
+                implementation(libs.org.jetbrains.syntax.api)
+                implementation(libs.org.jetbrains.annotations)
+            }
+            kotlin {
+                srcDir("common/src")
+            }
+        }
+        val jvmTest = getByName("jvmTest") {
+            dependencies {
+                implementation(project(":compiler:psi:psi-api"))
+                implementation(intellijCore())
+                implementation(libs.opentelemetry.api)
+                runtimeOnly(libs.intellij.fastutil)
+                runtimeOnly(commonDependency("com.fasterxml:aalto-xml"))
+                implementation(project.dependencies.testFixtures(project(":compiler:test-infrastructure-utils")))
+                implementation(project(":compiler:cli"))
+                implementation(project(":compiler:psi:parser"))
+                implementation(libs.junit.jupiter.api)
+                runtimeOnly(libs.junit.jupiter.engine)
+                runtimeOnly(libs.junit.platform.launcher)
+                implementation(kotlinTest("junit5"))
+            }
+            kotlin {
+                srcDir("jvm/test")
+            }
+        }
+    }
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+
+    val testDataDirs = listOf(
+        project(":compiler").isolated.projectDirectory.dir("testData"),
+        project(":compiler:tests-spec").isolated.projectDirectory.dir("testData"),
+        project(":compiler:fir:analysis-tests").isolated.projectDirectory.dir("testData"),
+        project(":analysis:analysis-api").isolated.projectDirectory.dir("testData"),
+        project(":compiler:psi:psi-impl").isolated.projectDirectory.dir("testData"),
+    ).joinToString(File.pathSeparator)
+    systemProperty("test.data.dirs", testDataDirs)
+
+    val ideaHomeForTests = this.project.configurations.detachedConfiguration(this.project.dependencies.project(":", configuration = "ideaHomeForTests"))
+    jvmArgumentProviders.add(this.project.objects.newInstance(SystemPropertyClasspathDirectoryProvider::class.java).apply {
+        property.set("idea.home.path")
+        classpath.from(ideaHomeForTests)
+        directory.value(ideaHomePathForTests())
+    })
+}
+
+val flexGeneratorDependencies = configurations.dependencyScope("flexGeneratorDependencies")
+val flexGeneratorClasspath = configurations.resolvable("flexGeneratorClasspath") {
+    extendsFrom(flexGeneratorDependencies.get())
+}
+
+dependencies {
+    flexGeneratorDependencies.name(commonDependency("org.jetbrains.intellij.deps.jflex", "jflex")) {
+        // Flex brings many unrelated dependencies, so we are dropping them because only a flex `.jar` file is needed.
+        // It can be probably removed when https://github.com/JetBrains/intellij-deps-jflex/issues/10 is fixed.
+        isTransitive = false
+    }
+}
+
+val lexerGrammarsDirRelativeToRoot = layout.projectDirectory.dir("common/src/org/jetbrains/kotlin/kmp/lexer")
+
+for (lexerName in listOf("KDoc", "Kotlin")) {
+    val taskName = "generate${lexerName}Lexer"
+
+    val lexerFile = lexerGrammarsDirRelativeToRoot.file("$lexerName.flex")
+    val skeletonFile = lexerGrammarsDirRelativeToRoot.file("idea-flex-kotlin.skeleton")
+    generatedSourcesTask(
+        taskName = taskName,
+        generatorClasspath = flexGeneratorClasspath,
+        generatorMainClass = "jflex.Main",
+        argsProvider = { generationRoot ->
+            listOf(
+                lexerFile.asFile.absolutePath,
+                "-skel",
+                skeletonFile.asFile.absolutePath,
+                "-d",
+                generationRoot.asFile.absolutePath,
+                "--output-mode",
+                "kotlin",
+                "--nobak", // Prevent generating backup `.kt~` files
+            )
+        },
+        generatedSourceSetKind = GeneratedSourceSetKind.KmpCommon,
+        additionalInputsToTrack = { fileCollection ->
+            fileCollection.from(lexerFile)
+            fileCollection.from(skeletonFile)
+        }
+    )
+}

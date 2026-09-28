@@ -1,0 +1,36 @@
+// class version 52.0 (52)
+// access flags 0x31
+public final class MainKt {
+
+  // compiled from: main.kt
+  @Lkotlin/Metadata;
+
+  // access flags 0x19
+  public final static test(LContext;)V
+    // annotable parameter count: 1 (invisible)
+    @Lorg/jetbrains/annotations/NotNull;() // invisible, parameter 0
+   L0
+    ALOAD 0
+    LDC "context"
+    INVOKESTATIC kotlin/jvm/internal/Intrinsics.checkNotNullParameter (Ljava/lang/Object;Ljava/lang/String;)V
+   L1
+    LINENUMBER 22 L1
+    NEW java/lang/StringBuilder
+    DUP
+    INVOKESPECIAL java/lang/StringBuilder.<init> ()V
+    ALOAD 0
+    INVOKEVIRTUAL Context.my_foo ()Ljava/lang/String;
+    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
+    ALOAD 0
+    INVOKEVIRTUAL Context.my_getBar ()Ljava/lang/String;
+    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
+    INVOKEVIRTUAL java/lang/StringBuilder.toString ()Ljava/lang/String;
+    POP
+   L2
+    LINENUMBER 23 L2
+    RETURN
+   L3
+    LOCALVARIABLE context LContext; L0 L3 0
+    MAXSTACK = 2
+    MAXLOCALS = 1
+}

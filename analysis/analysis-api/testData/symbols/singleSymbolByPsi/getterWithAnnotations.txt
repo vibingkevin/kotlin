@@ -1,0 +1,39 @@
+KaPropertyGetterSymbol:
+  anchorPsi: KtPropertyAccessor
+  annotations: [
+    GetAnnotation()
+      psi: KtAnnotationEntry
+    ExplicitGetAnnotation()
+      psi: KtAnnotationEntry
+  ]
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInline: false
+  isNotDefault: true
+  isOverride: false
+  location: PROPERTY
+  modality: FINAL
+  origin: SOURCE
+  psi: KtPropertyAccessor
+  realPsi: KtPropertyAccessor
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Int
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(getterWithAnnotations.kt)
+  getContainingJvmClassName: GetterWithAnnotationsKt
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: getX
+  importableFqName: null

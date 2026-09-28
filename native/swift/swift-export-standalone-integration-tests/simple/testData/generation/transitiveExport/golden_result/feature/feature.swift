@@ -1,0 +1,33 @@
+@_exported import ExportedKotlinPackages
+@_implementationOnly import KotlinBridges_feature
+import KotlinRuntime
+import KotlinRuntimeSupport
+
+extension ExportedKotlinPackages.oh.my.kotlin {
+    public final class FeatureA: KotlinRuntime.KotlinBase {
+        public init() {
+            let __kt = oh_my_kotlin_FeatureA_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { oh_my_kotlin_FeatureA_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    public final class FeatureB: KotlinRuntime.KotlinBase {
+        public init() {
+            let __kt = oh_my_kotlin_FeatureB_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { oh_my_kotlin_FeatureB_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+}

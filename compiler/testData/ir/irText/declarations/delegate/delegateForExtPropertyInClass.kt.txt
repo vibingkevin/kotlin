@@ -1,0 +1,43 @@
+class Delegate {
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+  operator fun getValue(t: A, p: KProperty<*>): Int {
+    return 1
+  }
+
+}
+
+class F {
+  val A.prop: Int /* by */
+    field = Delegate()
+    get(): Int {
+      return <this>.#prop$delegate.getValue(t = <this>, p = KProperty2<F, A, Int>(
+        /* bound = */ [],
+        /* getter = */        local fun(p0: F, p1: A): Int {
+          return p0.<get-prop>(/* <this> = p1 */)
+        }
+      )
+)
+    }
+
+  class A {
+    constructor() /* primary */ {
+      super/*Any*/()
+      /* <init>() */
+
+    }
+
+  }
+
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+}
+

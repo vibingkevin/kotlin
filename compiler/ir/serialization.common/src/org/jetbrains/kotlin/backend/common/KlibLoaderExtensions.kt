@@ -1,0 +1,126 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.common
+
+import org.jetbrains.kotlin.backend.common.diagnostics.SerializationErrors
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
+import org.jetbrains.kotlin.cli.common.testEnvironment
+import org.jetbrains.kotlin.cli.report
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.DuplicatedUniqueNameStrategy
+import org.jetbrains.kotlin.config.duplicatedUniqueNameStrategy
+import org.jetbrains.kotlin.io.canonicalPathString
+import org.jetbrains.kotlin.library.KotlinLibrary
+import org.jetbrains.kotlin.library.loader.KlibLoader
+import org.jetbrains.kotlin.library.loader.KlibLoaderResult
+import org.jetbrains.kotlin.library.loader.reportLoadingProblemsIfAny
+import org.jetbrains.kotlin.library.uniqueName
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
+import java.nio.file.Paths
+import kotlin.io.path.exists
+import kotlin.io.path.pathString
+
+/**
+ * Checks for existence of duplicated [uniqueName]s among [KlibLoaderResult.librariesStdlibFirst].
+ * Processes the duplicates based on the [DuplicatedUniqueNameStrategy] which is stored in [CompilerConfiguration].
+ *
+ * TODO (KT-76785): In fact, handling of duplicated names is a workaround that needs to be removed in the future.
+ */
+fun KlibLoaderResult.eliminateLibrariesWithDuplicatedUniqueNames(configuration: CompilerConfiguration): KlibLoaderResult {
+    if (librariesStdlibFirst.isEmpty()) return this
+
+    // Note: Use LinkedHashMap to preserve the order of libraries.
+    val librariesByUniqueName: Map<String, List<KotlinLibrary>> = librariesStdlibFirst.groupByTo(LinkedHashMap()) { it.uniqueName }
+
+    val librariesWithDuplicatedUniqueNames: Map<String, List<KotlinLibrary>> = librariesByUniqueName.filterValues { it.size > 1 }
+    if (librariesWithDuplicatedUniqueNames.isEmpty()) {
+        return this
+    }
+
+    val duplicatedUniqueNameStrategy = configuration.duplicatedUniqueNameStrategy ?: DuplicatedUniqueNameStrategy.DENY
+
+    for ([uniqueName, libraries] in librariesWithDuplicatedUniqueNames) {
+        val message =
+            "KLIB loader: The same 'unique_name=$uniqueName' found in more than one library: ${libraries.joinToString { it.path.pathString }}"
+
+        when (duplicatedUniqueNameStrategy) {
+            DuplicatedUniqueNameStrategy.ALLOW_ALL -> {}
+            DuplicatedUniqueNameStrategy.ALLOW_ALL_WITH_WARNING, DuplicatedUniqueNameStrategy.ALLOW_FIRST_WITH_WARNING ->
+                configuration.report(SerializationErrors.KLIB_LOADING_WARNING, message)
+            DuplicatedUniqueNameStrategy.DENY ->
+                configuration.report(
+                    SerializationErrors.KLIB_LOADING_ERROR,
+                    message +
+                            "\nPlease file an issue to https://kotl.in/issue and meanwhile use CLI parameter -Xklib-duplicated-unique-name-strategy with one of the following values:\n" +
+                            "${DuplicatedUniqueNameStrategy.ALLOW_ALL}: Use all KLIB dependencies, even when they have same 'unique_name' property.\n" +
+                            "${DuplicatedUniqueNameStrategy.ALLOW_ALL_WITH_WARNING}: Use all KLIB dependencies, even when they have same 'unique_name' property, but emit a warning.\n" +
+                            "${DuplicatedUniqueNameStrategy.ALLOW_FIRST_WITH_WARNING}: Use the first KLIB dependency with clashing 'unique_name' property. No order guarantees are given though.\n" +
+                            "${DuplicatedUniqueNameStrategy.DENY}: Fail a compilation with the error."
+                )
+        }
+    }
+
+    return if (duplicatedUniqueNameStrategy == DuplicatedUniqueNameStrategy.ALLOW_FIRST_WITH_WARNING) {
+        KlibLoaderResult(
+            librariesStdlibFirst = librariesByUniqueName.map { it.value.first() },
+            problematicLibraries = problematicLibraries
+        )
+    } else {
+        this
+    }
+}
+
+/**
+ * Report any problems with loading KLIBs stored in [KlibLoaderResult] to compiler's [MessageCollector].
+ */
+fun KlibLoaderResult.reportLoadingProblemsIfAny(
+    configuration: CompilerConfiguration,
+    allAsErrors: Boolean = configuration.testEnvironment,
+) {
+    reportLoadingProblemsIfAny { defaultSeverity, message ->
+        val factory = if (allAsErrors) SerializationErrors.KLIB_LOADING_ERROR else when (defaultSeverity) {
+            KlibLoaderResult.ProblemSeverity.INFO -> SerializationErrors.KLIB_LOADING_INFO
+            KlibLoaderResult.ProblemSeverity.WARNING -> SerializationErrors.KLIB_LOADING_WARNING
+            KlibLoaderResult.ProblemSeverity.ERROR -> SerializationErrors.KLIB_LOADING_ERROR
+        }
+
+        configuration.report(factory, message)
+    }
+}
+
+/**
+ * A helper to load the list of libraries that are already present in [KlibLoaderResult] given their paths.
+ *
+ * Note: It is assumed that the paths of the libraries ([libraryPaths])  have already been passed to [KlibLoader],
+ * so the selected libraries should be in [KlibLoaderResult]. All we need is to "look up" them from the result.
+ */
+fun KlibLoaderResult.selectLibrariesByPaths(libraryPaths: List<String>): List<KotlinLibrary> {
+    if (libraryPaths.isEmpty() || librariesStdlibFirst.isEmpty()) return emptyList()
+
+    val canonicalFriendLibraryPaths: Set<String> = libraryPaths.mapNotNullTo(linkedSetOf()) { rawPath ->
+        if (rawPath.isEmpty()) return@mapNotNullTo null
+
+        val validPath: Path = try {
+            Paths.get(rawPath)
+        } catch (_: InvalidPathException) {
+            return@mapNotNullTo null
+        }
+
+        // First, check if this path exists on the file system.
+        if (!validPath.exists()) return@mapNotNullTo null
+
+        // And only then attempt to resolve it to a canonical path.
+        // Otherwise, we might end up with a Java IO exception.
+        validPath.toRealPath().toString()
+    }
+
+    if (canonicalFriendLibraryPaths.isEmpty()) return emptyList()
+
+    val canonicalLibraryPathsToLibraries: Map<String, KotlinLibrary> = librariesStdlibFirst.associateBy { it.path.canonicalPathString() }
+
+    return canonicalFriendLibraryPaths.mapNotNull { canonicalLibraryPathsToLibraries[it] }
+}

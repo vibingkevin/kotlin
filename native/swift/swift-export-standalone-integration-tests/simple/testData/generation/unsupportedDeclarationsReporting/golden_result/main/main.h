@@ -1,0 +1,28 @@
+#include <Foundation/Foundation.h>
+#include <stdint.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+void * Foo_Inner_init_allocate();
+
+_Bool Foo_Inner_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer_main_Foo__(void * __kt, void * outer__);
+
+void * Foo_Nested_init_allocate();
+
+_Bool Foo_Nested_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+void * Foo_Nested_plus__TypesOfArguments__Swift_Int32__(void * self, int32_t other);
+
+void * __root___Foo_init_allocate();
+
+_Bool __root___Foo_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+void * a_b_c_E_A();
+
+void * a_b_c_E_B();
+
+void * a_b_c_E_C();
+
+int32_t a_b_c_E_ordinal(void * self);
+
+NS_ASSUME_NONNULL_END

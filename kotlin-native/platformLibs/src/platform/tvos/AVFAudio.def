@@ -1,0 +1,8 @@
+depends = AudioToolbox CFCGTypes CFNetwork CoreAudio CoreAudioTypes CoreFoundation CoreFoundationBase CoreGraphics CoreMIDI CoreMedia CoreVideo Foundation IOSurface Metal OpenGLESCommon Security darwin posix
+language = Objective-C
+package = platform.AVFAudio
+
+modules = AVFAudio
+apiNotesSwiftName = true
+compilerOpts = -framework AVFAudio
+linkerOpts = -framework AVFAudio

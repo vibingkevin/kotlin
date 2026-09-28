@@ -1,0 +1,251 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.lombok
+
+import org.jetbrains.kotlin.descriptors.annotations.KotlinTarget
+import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
+import org.jetbrains.kotlin.diagnostics.KtDiagnosticRenderers.TO_STRING
+import org.jetbrains.kotlin.diagnostics.KtDiagnosticsContainer
+import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies
+import org.jetbrains.kotlin.diagnostics.error0
+import org.jetbrains.kotlin.diagnostics.error1
+import org.jetbrains.kotlin.diagnostics.errorWithoutSource
+import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
+import org.jetbrains.kotlin.diagnostics.rendering.BaseSourcelessDiagnosticRendererFactory
+import org.jetbrains.kotlin.diagnostics.rendering.CommonRenderers
+import org.jetbrains.kotlin.diagnostics.strongWarning1
+import org.jetbrains.kotlin.diagnostics.strongWarning2
+import org.jetbrains.kotlin.diagnostics.warning0
+import org.jetbrains.kotlin.diagnostics.warning1
+import org.jetbrains.kotlin.diagnostics.warning2
+import org.jetbrains.kotlin.diagnostics.warningWithoutSource
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.KOTLIN_TARGETS
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.RENDER_TYPE
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.lombok.LombokCliDiagnostics.LOMBOK_CONFIG_IS_MISSING
+import org.jetbrains.kotlin.lombok.LombokCliDiagnostics.LOMBOK_PLUGIN_IS_EXPERIMENTAL
+import org.jetbrains.kotlin.lombok.LombokCliDiagnostics.UNKNOWN_PLUGIN_OPTION
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.ANNOTATION_ARGUMENT_IS_NOT_SUPPORTED
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.UNSUPPORTED_ACCESS_LEVEL
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.ANNOTATION_HAS_NO_EFFECT
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.ANNOTATION_IS_NOT_SUPPORTED
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.DO_NOT_USE_GETTERS_IRRELEVANT
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.EQUALS_OR_HASH_CODE_FUNCTIONS_ALREADY_EXIST
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.EQUALS_OR_HASH_CODE_FUNCTIONS_ARE_FINAL_IN_SUPERCLASS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.EXCLUDE_AND_INCLUDE_MUTUALLY_EXCLUSIVE
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.EXCLUDE_IS_REDUNDANT_FOR_DOLLAR_PREFIXED_PROPERTY
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.EXCLUDE_IS_REDUNDANT_FOR_ONLY_EXPLICITLY_INCLUDED
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.FLAG_USAGE_ERROR
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.FLAG_USAGE_WARNING
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.LOG_PROPERTY_ALREADY_EXISTS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.NO_ARGS_CONSTRUCTOR_ALREADY_EXISTS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.STATIC_CONSTRUCTOR_ALREADY_EXISTS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.CALL_SUPER_NOT_CALLED
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.CALL_SUPER_TO_ANY_IS_POINTLESS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.COMPANION_OBJECT_IS_NOT_GENERATED
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.TO_STRING_FUNCTION_ALREADY_EXISTS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.TO_STRING_FUNCTION_IS_FINAL_IN_SUPERCLASS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.NO_ARGS_CONSTRUCTOR_FORCE_REQUIRED
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.NO_NOARG_CONSTRUCTOR_IN_SUPERCLASS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.BUILDER_WILL_IGNORE_INITIALIZING_EXPRESSION
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.BUILDER_DEFAULT_REQUIRES_INITIALIZING_EXPRESSION
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.BUILDER_DEFAULT_AND_SINGULAR_MIXED
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.BUILDER_REQUIRES_EXPLICIT_RETURN_TYPE
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.BUILDER_WITH_RECEIVER_OR_CONTEXT_PARAMETERS
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.SINGULAR_REQUIRES_EXPLICIT_NAME
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.CANNOT_SINGULARIZE_NAME
+import org.jetbrains.kotlin.lombok.LombokFirDiagnostics.UNSUPPORTED_SINGULAR_TYPE
+import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.psi.KtAnnotationEntry
+import org.jetbrains.kotlin.psi.KtExpression
+import org.jetbrains.kotlin.psi.KtNamedDeclaration
+import kotlin.getValue
+
+object LombokCliDiagnostics : KtDiagnosticsContainer() {
+    val LOMBOK_PLUGIN_IS_EXPERIMENTAL by warningWithoutSource()
+    val LOMBOK_CONFIG_IS_MISSING by warningWithoutSource()
+    val UNKNOWN_PLUGIN_OPTION by errorWithoutSource()
+
+    override fun getRendererFactory(): BaseDiagnosticRendererFactory = LombokCliDiagnosticsMessages
+}
+
+object LombokFirDiagnostics : KtDiagnosticsContainer() {
+    val ANNOTATION_IS_NOT_SUPPORTED by strongWarning1<KtAnnotationEntry, Name>()
+    val ANNOTATION_ARGUMENT_IS_NOT_SUPPORTED by strongWarning1<KtExpression, Name>()
+    val ANNOTATION_HAS_NO_EFFECT by strongWarning2<KtAnnotationEntry, String, Collection<KotlinTarget>>()
+    val LOG_PROPERTY_ALREADY_EXISTS by strongWarning1<KtAnnotationEntry, Name>()
+
+    val UNSUPPORTED_ACCESS_LEVEL by error1<KtExpression, Name>()
+    val FLAG_USAGE_WARNING by warning1<KtAnnotationEntry, Name>()
+    val FLAG_USAGE_ERROR by error1<KtAnnotationEntry, Name>()
+    val EXCLUDE_AND_INCLUDE_MUTUALLY_EXCLUSIVE by error1<KtAnnotationEntry, Name>()
+    val EXCLUDE_IS_REDUNDANT_FOR_DOLLAR_PREFIXED_PROPERTY by warning1<KtAnnotationEntry, Name>()
+    val EXCLUDE_IS_REDUNDANT_FOR_ONLY_EXPLICITLY_INCLUDED by warning1<KtAnnotationEntry, Name>()
+    val DO_NOT_USE_GETTERS_IRRELEVANT by warning0<KtExpression>()
+    val CALL_SUPER_NOT_CALLED by warning2<KtAnnotationEntry, String, Name>()
+    val CALL_SUPER_TO_ANY_IS_POINTLESS by error1<KtExpression, String>()
+
+    val TO_STRING_FUNCTION_ALREADY_EXISTS by warning0<KtAnnotationEntry>()
+    val TO_STRING_FUNCTION_IS_FINAL_IN_SUPERCLASS by error1<KtAnnotationEntry, Name>()
+    val NO_ARGS_CONSTRUCTOR_FORCE_REQUIRED by error0<KtAnnotationEntry>()
+    val NO_ARGS_CONSTRUCTOR_ALREADY_EXISTS by warning0<KtAnnotationEntry>()
+    val NO_NOARG_CONSTRUCTOR_IN_SUPERCLASS by error0<KtAnnotationEntry>()
+    val STATIC_CONSTRUCTOR_ALREADY_EXISTS by warning2<KtAnnotationEntry, Name, Name>()
+    val EQUALS_OR_HASH_CODE_FUNCTIONS_ALREADY_EXIST by error0<KtAnnotationEntry>()
+    val EQUALS_OR_HASH_CODE_FUNCTIONS_ARE_FINAL_IN_SUPERCLASS by error1<KtAnnotationEntry, Name>()
+
+    val COMPANION_OBJECT_IS_NOT_GENERATED by warning0<KtNamedDeclaration>(SourceElementPositioningStrategies.NAME_IDENTIFIER)
+
+    val BUILDER_WILL_IGNORE_INITIALIZING_EXPRESSION by warning0<KtExpression>()
+    val BUILDER_DEFAULT_REQUIRES_INITIALIZING_EXPRESSION by warning0<KtAnnotationEntry>()
+    val BUILDER_DEFAULT_AND_SINGULAR_MIXED by error0<KtAnnotationEntry>()
+    val BUILDER_REQUIRES_EXPLICIT_RETURN_TYPE by error0<KtAnnotationEntry>()
+    val BUILDER_WITH_RECEIVER_OR_CONTEXT_PARAMETERS by error0<KtAnnotationEntry>()
+    val SINGULAR_REQUIRES_EXPLICIT_NAME by error0<KtAnnotationEntry>()
+    val CANNOT_SINGULARIZE_NAME by error0<KtAnnotationEntry>()
+    val UNSUPPORTED_SINGULAR_TYPE by error1<KtAnnotationEntry, ConeKotlinType>()
+
+    override fun getRendererFactory(): BaseDiagnosticRendererFactory = LombokFirDiagnosticsMessages
+}
+
+object LombokCliDiagnosticsMessages : BaseSourcelessDiagnosticRendererFactory() {
+    override val MAP by KtDiagnosticFactoryToRendererMap("CLI") { map ->
+        map.put(LOMBOK_PLUGIN_IS_EXPERIMENTAL, MESSAGE_PLACEHOLDER)
+        map.put(LOMBOK_CONFIG_IS_MISSING, MESSAGE_PLACEHOLDER)
+        map.put(UNKNOWN_PLUGIN_OPTION, MESSAGE_PLACEHOLDER)
+    }
+}
+
+object LombokFirDiagnosticsMessages : BaseDiagnosticRendererFactory() {
+    const val FLAG_USAGE_MESSAGE = "Use of any @''{0}'' is flagged according to lombok configuration."
+    override val MAP by KtDiagnosticFactoryToRendererMap("FIR") { map ->
+        map.put(ANNOTATION_IS_NOT_SUPPORTED, "Lombok annotation ''{0}'' is not supported in Kotlin.", CommonRenderers.NAME)
+        map.put(
+            ANNOTATION_ARGUMENT_IS_NOT_SUPPORTED,
+            "Lombok annotation argument ''{0}'' is not supported in Kotlin.",
+            CommonRenderers.NAME
+        )
+        map.put(
+            UNSUPPORTED_ACCESS_LEVEL,
+            "''AccessLevel.{0}'' is not supported for Kotlin declarations.",
+            CommonRenderers.NAME
+        )
+        map.put(
+            ANNOTATION_HAS_NO_EFFECT,
+            "This annotation has no effect on target ''{0}''. Relevant targets: {1}.",
+            TO_STRING,
+            KOTLIN_TARGETS,
+        )
+        map.put(FLAG_USAGE_WARNING, FLAG_USAGE_MESSAGE, CommonRenderers.NAME)
+        map.put(FLAG_USAGE_ERROR, FLAG_USAGE_MESSAGE, CommonRenderers.NAME)
+
+        map.put(LOG_PROPERTY_ALREADY_EXISTS, "Property ''{0}'' already exists.", CommonRenderers.NAME)
+        map.put(TO_STRING_FUNCTION_ALREADY_EXISTS, "Not generating 'toString()': A method with that name already exists.")
+        map.put(
+            TO_STRING_FUNCTION_IS_FINAL_IN_SUPERCLASS,
+            "Cannot generate ''toString()'': it is final in ''{0}'' and cannot be overridden.",
+            CommonRenderers.NAME,
+        )
+        map.put(
+            CALL_SUPER_NOT_CALLED,
+            "Generating ''{0}'' implementation but without a call to superclass, even though this class does not extend ''Any''. " +
+                    "If this is intentional, add ''@{1}(callSuper=false)'' to your type.",
+            CommonRenderers.STRING,
+            CommonRenderers.NAME,
+        )
+        map.put(
+            CALL_SUPER_TO_ANY_IS_POINTLESS,
+            "Generating ''{0}'' with a supercall to ''Any'' is pointless: ''Any'' compares by identity.",
+            CommonRenderers.STRING,
+        )
+        map.put(
+            EXCLUDE_AND_INCLUDE_MUTUALLY_EXCLUSIVE,
+            "''@{0}.Exclude'' and ''@{0}.Include'' are mutually exclusive; the ''@Include'' annotation will be ignored.",
+            CommonRenderers.NAME,
+        )
+        map.put(
+            EXCLUDE_IS_REDUNDANT_FOR_DOLLAR_PREFIXED_PROPERTY,
+            "''@{0}.Exclude'' is not needed: a property whose name starts with ''$'' is not included anyway.",
+            CommonRenderers.NAME,
+        )
+        map.put(
+            EXCLUDE_IS_REDUNDANT_FOR_ONLY_EXPLICITLY_INCLUDED,
+            "''@{0}.Exclude'' is not needed: ''onlyExplicitlyIncluded'' is set, so this property is not included anyway.",
+            CommonRenderers.NAME,
+        )
+        map.put(
+            DO_NOT_USE_GETTERS_IRRELEVANT,
+            "The 'doNotUseGetters' parameter has no effect in Kotlin. " +
+                    "Unlike Java, Kotlin properties do not distinguish between direct field access and getter calls."
+        )
+        map.put(
+            NO_ARGS_CONSTRUCTOR_FORCE_REQUIRED,
+            "Class contains required properties. " +
+                    "Use '@NoArgsConstructor(force = true)' to force-initialize them to default values (0 / false / null)."
+        )
+        map.put(
+            NO_NOARG_CONSTRUCTOR_IN_SUPERCLASS,
+            "The superclass has no constructor without arguments for the generated one to delegate to. " +
+                    "Nothing is generated.",
+        )
+        // Lombok itself stays silent about both clashes below and lets `javac` reject the duplicate it generated,
+        // so the wording follows `javac`'s "{0} {1} is already defined in {2} {3}" rather than a Lombok original.
+        map.put(NO_ARGS_CONSTRUCTOR_ALREADY_EXISTS, "Constructor without parameters is already defined.")
+        map.put(
+            STATIC_CONSTRUCTOR_ALREADY_EXISTS,
+            "Method ''{0}()'' is already defined in ''{1}''.",
+            CommonRenderers.NAME,
+            CommonRenderers.NAME,
+        )
+        map.put(
+            EQUALS_OR_HASH_CODE_FUNCTIONS_ALREADY_EXIST,
+            "Not generating 'equals' and 'hashCode': A method with one of those names already exists. (Either both or none of these methods will be generated)."
+        )
+        map.put(
+            COMPANION_OBJECT_IS_NOT_GENERATED,
+            "Companion object required by Lombok can not be generated: existing declaration with the same name already exists.",
+        )
+        map.put(
+            EQUALS_OR_HASH_CODE_FUNCTIONS_ARE_FINAL_IN_SUPERCLASS,
+            "Cannot generate ''equals'' and ''hashCode'': one of them is final in ''{0}'' and cannot be overridden.",
+            CommonRenderers.NAME,
+        )
+        map.put(
+            BUILDER_WILL_IGNORE_INITIALIZING_EXPRESSION,
+            "'@Builder' will ignore the initializing expression entirely. To use the initializing expression as a default, add '@Builder.Default'."
+        )
+        map.put(
+            BUILDER_DEFAULT_REQUIRES_INITIALIZING_EXPRESSION,
+            "'@Builder.Default' requires an initializing expression (' = something;')."
+        )
+        map.put(
+            BUILDER_DEFAULT_AND_SINGULAR_MIXED,
+            "'@Builder.Default' and '@Singular' cannot be mixed."
+        )
+        map.put(
+            BUILDER_REQUIRES_EXPLICIT_RETURN_TYPE,
+            "'@Builder' infers the builder class name from the function's return type. " +
+                    "Specify the return type explicitly, or name the builder class with '@Builder(builderClassName = \"...\")'."
+        )
+        map.put(
+            BUILDER_WITH_RECEIVER_OR_CONTEXT_PARAMETERS,
+            "'@Builder' is not supported on a declaration with an extension receiver or context parameters."
+        )
+        map.put(
+            SINGULAR_REQUIRES_EXPLICIT_NAME,
+            "The singular must be specified explicitly (e.g. @Singular(\"task\")) because auto singularization is disabled."
+        )
+        map.put(
+            CANNOT_SINGULARIZE_NAME,
+            "Cannot singularize this name; specify the singular explicitly (e.g. @Singular(\"sheep\"))."
+        )
+        map.put(
+            UNSUPPORTED_SINGULAR_TYPE,
+            "Lombok does not know how to create the singular-form builder methods for type ''{0}''; these methods will not be generated.",
+            RENDER_TYPE,
+        )
+    }
+}

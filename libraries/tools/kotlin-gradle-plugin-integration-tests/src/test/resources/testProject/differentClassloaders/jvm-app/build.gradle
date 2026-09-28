@@ -1,0 +1,39 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm"
+    id "maven-publish"
+    id "org.jetbrains.kotlin.plugin.allopen"
+}
+
+group = "com.example"
+version = "1.0"
+
+if (project.findProperty("mppProjectDependency") == "true") {
+
+    dependencies {
+        api project(":mpp-lib")
+        api project(":mpp-lib-two")
+    }
+
+} else {
+
+    repositories {
+        maven { setUrl "${rootProject.rootDir}/build/repo" }
+    }
+
+    dependencies {
+        api "com.example:mpp-lib:1.0"
+        api "com.example:mpp-lib-two:1.0"
+    }
+
+}
+
+publishing {
+    publications {
+        main(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven { setUrl("${rootProject.rootDir}/build/repo") }
+    }
+}

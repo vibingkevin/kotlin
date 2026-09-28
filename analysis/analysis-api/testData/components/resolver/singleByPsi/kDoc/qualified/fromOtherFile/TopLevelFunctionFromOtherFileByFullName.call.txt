@@ -1,0 +1,2 @@
+KDocName(22,26): 'b.bb'
+  null

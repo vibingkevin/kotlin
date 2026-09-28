@@ -1,0 +1,10 @@
+// RUN_PIPELINE_TILL: FRONTEND
+open class A {
+    final fun foo() {}
+}
+
+class B : A() {
+    <!OVERRIDING_FINAL_MEMBER!>override<!> fun foo() {}
+}
+
+/* GENERATED_FIR_TAGS: classDeclaration, functionDeclaration, override */

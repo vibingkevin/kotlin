@@ -1,0 +1,39 @@
+Nested.class:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  package foo
+
+  public final annotation class Nested public constructor(
+      public final val i: kotlin.Int,
+
+      public final val s: kotlin.String,
+  ) : kotlin.Annotation {
+  }
+
+Outer.class:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  public final annotation class Outer public constructor(
+      public final val some: kotlin.String,
+
+      public final val nested: foo.Nested,
+  ) : kotlin.Annotation {
+  }
+
+WithNested.class:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  @Outer(some = "value", nested = foo.Nested(i = 0, s = "nested value"))
+  public final class WithNested public constructor() {
+  }
+
+WithQualifiedNested.class:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  @Outer(some = "value", nested = foo.Nested(i = 1, s = "nested value"))
+  public final class WithQualifiedNested public constructor() {
+  }

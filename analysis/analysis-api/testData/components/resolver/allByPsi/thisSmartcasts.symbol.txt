@@ -1,0 +1,802 @@
+KtFile: 'thisSmartcasts.kt'
+  null
+
+KtPackageDirective(0,0): ''
+  null
+
+KtImportList(0,0): ''
+  null
+
+KtClass(0,61): 'interface Base {'
+  null
+
+KtClassBody(15,61): '{'
+  null
+
+KtProperty(21,36): 'var baz: String'
+  null
+
+KtTypeReference(30,36): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtUserType(30,36): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtNameReferenceExpression(30,36): 'String'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtNamedFunction(41,59): 'fun baz(): Boolean'
+  null
+
+KtParameterList(48,50): '()'
+  null
+
+KtTypeReference(52,59): 'Boolean'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Boolean
+    ]
+
+KtUserType(52,59): 'Boolean'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Boolean
+    ]
+
+KtNameReferenceExpression(52,59): 'Boolean'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Boolean
+    ]
+
+KtClass(63,132): 'abstract class Test : Base {'
+  null
+
+KtDeclarationModifierList(63,71): 'abstract'
+  null
+
+KtSuperTypeList(85,89): 'Base'
+  null
+
+KtSuperTypeEntry(85,89): 'Base'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base
+    ]
+
+KtTypeReference(85,89): 'Base'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base
+    ]
+
+KtUserType(85,89): 'Base'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base
+    ]
+
+KtNameReferenceExpression(85,89): 'Base'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base
+    ]
+
+KtClassBody(90,132): '{'
+  null
+
+KtProperty(96,107): 'var foo = 1'
+  null
+
+KtConstantExpression(106,107): '1'
+  null
+
+KtNamedFunction(112,130): 'abstract fun foo()'
+  null
+
+KtDeclarationModifierList(112,120): 'abstract'
+  null
+
+KtParameterList(128,130): '()'
+  null
+
+KtNamedFunction(134,444): 'fun Any.test() {'
+  null
+
+KtTypeReference(138,141): 'Any'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Any
+    ]
+
+KtUserType(138,141): 'Any'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Any
+    ]
+
+KtNameReferenceExpression(138,141): 'Any'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Any
+    ]
+
+KtParameterList(146,148): '()'
+  null
+
+KtBlockExpression(149,444): '{'
+  null
+
+KtIfExpression(178,442): 'if (this is Base) {'
+  null
+
+KtContainerNode(182,194): 'this is Base'
+  null
+
+KtIsExpression(182,194): 'this is Base'
+  null
+
+KtThisExpression(182,186): 'this'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(182,186): 'this'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtOperationReferenceExpression(187,189): 'is'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtTypeReference(190,194): 'Base'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base
+    ]
+
+KtUserType(190,194): 'Base'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base
+    ]
+
+KtNameReferenceExpression(190,194): 'Base'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base
+    ]
+
+KtContainerNodeForControlStructureBody(196,442): '{'
+  null
+
+KtBlockExpression(196,442): '{'
+  null
+
+KtBinaryExpression(206,220): 'this.baz = baz'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtDotQualifiedExpression(206,214): 'this.baz'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtThisExpression(206,210): 'this'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(206,210): 'this'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(211,214): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtOperationReferenceExpression(215,216): '='
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtNameReferenceExpression(217,220): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtBinaryExpression(229,238): 'baz = baz'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtNameReferenceExpression(229,232): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtOperationReferenceExpression(233,234): '='
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtNameReferenceExpression(235,238): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtCallExpression(247,252): 'baz()'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base.baz(<dispatch receiver>: Base): kotlin.Boolean
+    ]
+
+KtNameReferenceExpression(247,250): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base.baz(<dispatch receiver>: Base): kotlin.Boolean
+    ]
+
+KtValueArgumentList(250,252): '()'
+  null
+
+KtIfExpression(290,437): 'if (this is Test) {'
+  null
+
+KtContainerNode(294,306): 'this is Test'
+  null
+
+KtIsExpression(294,306): 'this is Test'
+  null
+
+KtThisExpression(294,298): 'this'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(294,298): 'this'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtOperationReferenceExpression(299,301): 'is'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtTypeReference(302,306): 'Test'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Test
+    ]
+
+KtUserType(302,306): 'Test'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Test
+    ]
+
+KtNameReferenceExpression(302,306): 'Test'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Test
+    ]
+
+KtContainerNodeForControlStructureBody(308,437): '{'
+  null
+
+KtBlockExpression(308,437): '{'
+  null
+
+KtBinaryExpression(322,336): 'this.baz = baz'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtDotQualifiedExpression(322,330): 'this.baz'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtThisExpression(322,326): 'this'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(322,326): 'this'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(327,330): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtOperationReferenceExpression(331,332): '='
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtNameReferenceExpression(333,336): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtBinaryExpression(349,358): 'baz = baz'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtNameReferenceExpression(349,352): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtOperationReferenceExpression(353,354): '='
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtNameReferenceExpression(355,358): 'baz'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var baz: kotlin.String
+    ]
+
+KtBinaryExpression(372,386): 'this.foo = foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var foo: kotlin.Int
+    ]
+
+KtDotQualifiedExpression(372,380): 'this.foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var foo: kotlin.Int
+    ]
+
+KtThisExpression(372,376): 'this'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(372,376): 'this'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/test)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Any
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(377,380): 'foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var foo: kotlin.Int
+    ]
+
+KtOperationReferenceExpression(381,382): '='
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtNameReferenceExpression(383,386): 'foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var foo: kotlin.Int
+    ]
+
+KtBinaryExpression(399,408): 'foo = foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var foo: kotlin.Int
+    ]
+
+KtNameReferenceExpression(399,402): 'foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var foo: kotlin.Int
+    ]
+
+KtOperationReferenceExpression(403,404): '='
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  null
+
+KtNameReferenceExpression(405,408): 'foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var foo: kotlin.Int
+    ]
+
+KtCallExpression(422,427): 'foo()'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Test.foo(<dispatch receiver>: Test): kotlin.Unit
+    ]
+
+KtNameReferenceExpression(422,425): 'foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Test.foo(<dispatch receiver>: Test): kotlin.Unit
+    ]
+
+KtValueArgumentList(425,427): '()'
+  null

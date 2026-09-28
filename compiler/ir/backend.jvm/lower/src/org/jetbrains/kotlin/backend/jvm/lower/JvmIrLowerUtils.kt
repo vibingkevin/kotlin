@@ -1,0 +1,128 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.jvm.lower
+
+import org.jetbrains.kotlin.backend.jvm.ir.JvmIrBuilder
+import org.jetbrains.kotlin.backend.jvm.ir.irArrayOf
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.ir.IrStatement
+import org.jetbrains.kotlin.ir.builders.irBoolean
+import org.jetbrains.kotlin.ir.builders.irCall
+import org.jetbrains.kotlin.ir.builders.irInt
+import org.jetbrains.kotlin.ir.builders.irString
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrLocalDelegatedProperty
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
+import org.jetbrains.kotlin.ir.declarations.IrProperty
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.util.getPackageFragment
+import org.jetbrains.kotlin.ir.util.isFunctionOrKFunction
+import org.jetbrains.kotlin.ir.util.isSuspendFunctionOrKFunction
+import org.jetbrains.kotlin.ir.util.render
+import org.jetbrains.kotlin.ir.util.resolveFakeOverride
+import org.jetbrains.kotlin.ir.util.shallowCopyOrNull
+import org.jetbrains.kotlin.ir.util.statements
+import org.jetbrains.org.objectweb.asm.Handle
+
+val IrSimpleFunction.returnsResultOfStdlibCall: Boolean
+    get() {
+        fun IrStatement.isStdlibCall() =
+            this is IrCall && symbol.owner.getPackageFragment().packageFqName == StandardNames.BUILT_INS_PACKAGE_FQ_NAME
+
+        return when (val body = body) {
+            is IrExpressionBody -> body.expression.isStdlibCall()
+            is IrBlockBody -> body.statements.singleOrNull()
+                ?.let { it.isStdlibCall() || (it is IrReturn && it.value.isStdlibCall()) } == true
+            is IrSyntheticBody -> false
+            null -> false
+        }
+    }
+
+/** Criteria for delegate optimizations on the JVM. */
+fun IrProperty.getRichPropertyReferenceForOptimizableDelegatedProperty(): IrRichPropertyReference? {
+    if (!isDelegated || isFakeOverride || backingField == null) return null
+
+    val delegate = backingField?.initializer?.expression
+    if (delegate !is IrRichPropertyReference ||
+        getter?.returnsResultOfStdlibCall == false ||
+        setter?.returnsResultOfStdlibCall == false
+    ) return null
+
+    return delegate
+}
+
+internal val IrRichPropertyReference.contextParametersCount: Int
+    get() {
+        val getter = when (val target = reflectionTargetSymbol?.owner) {
+            is IrProperty -> target.getter?.let { it.resolveFakeOverride() ?: it } ?: return 0
+            is IrLocalDelegatedProperty -> target.getter
+            else -> error("Unexpected reflection target of a property reference: ${target?.render()}")
+        }
+        return getter.parameters.count { it.kind == IrParameterKind.Context }
+    }
+
+// If the receiver is bound, then everything is bound
+internal val IrRichPropertyReference.hasBoundReceiver: Boolean
+    get() = boundValues.size > contextParametersCount
+
+internal val IrRichPropertyReference.boundReceiverOrNull: IrExpression?
+    get() = if (hasBoundReceiver) boundValues.last() else null
+
+internal fun JvmIrBuilder.packBoundValues(
+    values: List<IrExpression>,
+    contextArgumentCount: Int,
+    hasReceiver: Boolean,
+): List<IrExpression> = buildList {
+    if (contextArgumentCount > 0) {
+        add(irArrayOf(backendContext.symbols.arrayOfAnyNType, values.take(contextArgumentCount)))
+    }
+    if (hasReceiver) {
+        add(values[contextArgumentCount])
+    }
+}
+
+fun IrProperty.getSingletonOrConstantForOptimizableDelegatedProperty(): IrExpression? {
+    fun IrExpression.isInlineable(): Boolean =
+        when (this) {
+            is IrConst, is IrGetSingletonValue -> true
+            is IrCall -> symbol.owner.run {
+                parameters.none { it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context }
+                        && arguments.all { it == null || it.isInlineable() }
+                        && modality == Modality.FINAL
+                        && origin == IrDeclarationOrigin.DEFAULT_PROPERTY_ACCESSOR
+                        && ((body?.statements?.singleOrNull() as? IrReturn)?.value as? IrGetField)?.symbol?.owner?.isFinal == true
+            }
+            is IrGetValue ->
+                symbol.owner.origin == IrDeclarationOrigin.INSTANCE_RECEIVER
+            else -> false
+        }
+
+    if (!isDelegated || isFakeOverride || backingField == null) return null
+    return backingField?.initializer?.expression?.takeIf { it.isInlineable() }
+}
+
+internal val IrRichPropertyReference.constInitializer: IrExpression?
+    get() {
+        val symbol = reflectionTargetSymbol ?: return null
+        val property = symbol.owner as? IrProperty ?: return null
+        if (!property.isConst) return null
+        val constPropertyField = property.backingField
+        return constPropertyField?.initializer?.expression?.shallowCopyOrNull()
+    }
+
+internal fun JvmIrBuilder.jvmMethodHandle(handle: Handle): IrCall =
+    irCall(backendContext.symbols.jvmMethodHandle).apply {
+        arguments[0] = irInt(handle.tag)
+        arguments[1] = irString(handle.owner)
+        arguments[2] = irString(handle.name)
+        arguments[3] = irString(handle.desc)
+        arguments[4] = irBoolean(handle.isInterface)
+    }
+
+internal fun IrRichFunctionReference.isSamConversion(): Boolean =
+    !type.isFunctionOrKFunction() && !type.isSuspendFunctionOrKFunction()

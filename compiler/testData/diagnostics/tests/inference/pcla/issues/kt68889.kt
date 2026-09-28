@@ -1,0 +1,16 @@
+// LANGUAGE: +NameBasedDestructuring +DeprecateNameMismatchInShortDestructuringWithParentheses +EnableNameBasedDestructuringShortForm
+// RUN_PIPELINE_TILL: BACKEND
+// WITH_STDLIB
+// ISSUE: KT-68889
+
+fun main(s: String?) {
+    val a = buildList {
+        val [_, matchResult] = s?.let { 1 to it } ?: return@buildList
+        add(matchResult)
+    }
+
+    a
+}
+
+/* GENERATED_FIR_TAGS: destructuringDeclaration, elvisExpression, functionDeclaration, integerLiteral, lambdaLiteral,
+localProperty, nullableType, propertyDeclaration, safeCall, unnamedLocalVariable */

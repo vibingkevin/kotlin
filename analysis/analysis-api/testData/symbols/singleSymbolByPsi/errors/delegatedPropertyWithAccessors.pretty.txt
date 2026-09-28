@@ -1,0 +1,3 @@
+var lazyProp: kotlin.collections.Set<kotlin.String>
+  private get()
+  internal set(`<set-?>`: kotlin.collections.Set<kotlin.String>)

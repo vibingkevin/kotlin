@@ -1,0 +1,108 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi.psiUtil
+
+import com.intellij.psi.PsiErrorElement
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.SpecialNames
+import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.utils.*
+
+/**
+ * Computes [ClassId]s for class-like declarations purely from the PSI structure, without semantic resolution.
+ */
+internal object ClassIdCalculator {
+    /**
+     * Returns the [ClassId] of the given [declaration] by walking its parents, or `null` if it has none — for example, a local declaration,
+     * an enum entry, or a declaration inside an object literal or code fragment.
+     */
+    fun calculateClassId(declaration: KtClassLikeDeclaration): ClassId? {
+        var ktFile: KtFile? = null
+        val containingClassNames = mutableListOf<String>()
+
+        for (element in declaration.parentsWithSelf) {
+            when (element) {
+                is KtEnumEntry,
+                is KtCallElement,
+                is KtObjectLiteralExpression,
+                is KtCodeFragment,
+                is PsiErrorElement,
+                    -> {
+                    return null
+                }
+                is KtClassLikeDeclaration -> {
+                    containingClassNames += element.name ?: SpecialNames.NO_NAME_PROVIDED.asString()
+                }
+                is KtFile -> {
+                    ktFile = element
+                    break
+                }
+                is KtScript -> {
+                    @OptIn(KtExperimentalApi::class)
+                    if (element.isReplSnippet) {
+                        containingClassNames += element.name
+                    } else {
+                        // Skip script parent
+                    }
+                }
+                is KtDeclaration -> {
+                    // Local declarations don't have a 'ClassId'
+                    return null
+                }
+            }
+        }
+
+        if (ktFile == null) return null
+        val relativeClassName = FqName.fromSegments(containingClassNames.asReversed())
+        return ClassId(ktFile.packageFqName, relativeClassName, isLocal = false)
+    }
+
+    /**
+     * Infers the [ClassId] of the given constant expression's type from PSI only, without semantic resolution.
+     */
+    fun inferConstantExpressionClassIdByPsi(expression: KtConstantExpression): ClassId? {
+        val elementType = expression.iElementType
+        val convertedText: Any? = when (elementType) {
+            KtNodeTypes.INTEGER_CONSTANT, KtNodeTypes.FLOAT_CONSTANT -> {
+                val isFloatingPoint = elementType == KtNodeTypes.FLOAT_CONSTANT
+                if (hasIllegallyPositionedUnderscore(expression.text, isFloatingPoint)) return null
+                parseNumericLiteral(expression.text, isFloatingPoint)
+            }
+
+            KtNodeTypes.BOOLEAN_CONSTANT -> parseBooleanLiteral(expression.text)
+            else -> null
+        }
+
+        return when (elementType) {
+            KtNodeTypes.INTEGER_CONSTANT -> when {
+                convertedText !is Long -> null
+                hasUnsignedLongNumericLiteralSuffix(expression.text) -> StandardClassIds.ULong
+                hasLongNumericLiteralSuffix(expression.text) -> StandardClassIds.Long
+                hasUnsignedNumericLiteralSuffix(expression.text) -> {
+                    if (convertedText.toULong() > UInt.MAX_VALUE || convertedText.toULong() < UInt.MIN_VALUE) {
+                        StandardClassIds.ULong
+                    } else {
+                        StandardClassIds.UInt
+                    }
+                }
+
+                else -> if (convertedText > Int.MAX_VALUE || convertedText < Int.MIN_VALUE) {
+                    StandardClassIds.Long
+                } else {
+                    StandardClassIds.Int
+                }
+            }
+
+            KtNodeTypes.FLOAT_CONSTANT -> if (convertedText is Float) StandardClassIds.Float else StandardClassIds.Double
+            KtNodeTypes.CHARACTER_CONSTANT -> StandardClassIds.Char
+            KtNodeTypes.BOOLEAN_CONSTANT -> StandardClassIds.Boolean
+            else -> null
+        }
+    }
+}

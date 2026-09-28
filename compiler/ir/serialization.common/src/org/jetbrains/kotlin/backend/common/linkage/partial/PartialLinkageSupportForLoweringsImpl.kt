@@ -1,0 +1,111 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.common.linkage.partial
+
+import org.jetbrains.kotlin.config.PartialLinkageConfig
+import org.jetbrains.kotlin.ir.IrBuiltIns
+import org.jetbrains.kotlin.ir.IrDiagnosticReporter
+import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrPackageFragment
+import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
+import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
+import org.jetbrains.kotlin.backend.common.linkage.partial.PartialLinkageSources.File as PLFile
+
+fun createPartialLinkageSupportForLowerings(
+    partialLinkageConfig: PartialLinkageConfig,
+    diagnosticReporter: IrDiagnosticReporter,
+): PartialLinkageSupportForLowerings = PartialLinkageSupportForLoweringsImpl(
+    PartialLinkageLogger(diagnosticReporter, partialLinkageConfig.logLevel)
+)
+
+internal class PartialLinkageSupportForLoweringsImpl(
+    private val logger: PartialLinkageLogger
+) : PartialLinkageSupportForLowerings {
+    override val isEnabled get() = true
+
+    /** To track the amount of rendered linkage issues. */
+    var linkageIssuesRendered = 0
+        private set
+
+    /**
+     * To track the amount of logged linkage issues.
+     * Note that the following condition is always true: [linkageIssuesLogged] <= [linkageIssuesRendered].
+     */
+    var linkageIssuesLogged = 0
+        private set
+
+    /**
+     * To track the amount of generated `throw` expressions.
+     * Note that the following condition is always true: [throwExpressionsGenerated] <= [linkageIssuesRendered].
+     */
+    var throwExpressionsGenerated = 0
+        private set
+
+    context(irBuiltIns: IrBuiltIns)
+    override fun throwLinkageError(
+        partialLinkageCase: PartialLinkageCase,
+        element: IrElement,
+        file: PLFile,
+        significance: PartialLinkageIssueSignificance,
+    ): IrCall {
+        val errorMessage = renderAndLogLinkageError(partialLinkageCase, element, file, significance)
+
+        throwExpressionsGenerated++ // Track each generated `throw` expression.
+
+        return IrCallImpl(
+            startOffset = element.startOffset,
+            endOffset = element.endOffset,
+            type = irBuiltIns.nothingType,
+            symbol = irBuiltIns.linkageErrorSymbol,
+            typeArgumentsCount = 0,
+            origin = IrStatementOrigin.PARTIAL_LINKAGE_RUNTIME_ERROR
+        ).apply {
+            arguments[0] = IrConstImpl.string(startOffset, endOffset, irBuiltIns.stringType, errorMessage)
+        }
+    }
+
+    override fun renderAndLogLinkageError(
+        partialLinkageCase: PartialLinkageCase,
+        element: IrElement,
+        file: PLFile,
+        significance: PartialLinkageIssueSignificance,
+    ): String {
+        val errorMessage = renderLinkageError(partialLinkageCase)
+        val locationInSourceCode = file.computeLocationForOffset(element.startOffsetOfFirstDenotableIrElement())
+
+        linkageIssuesLogged++ // Track each logged linkage issue.
+        logger.log(errorMessage, locationInSourceCode, significance)
+
+        return errorMessage
+    }
+
+    private fun renderLinkageError(partialLinkageCase: PartialLinkageCase): String {
+        linkageIssuesRendered++ // Track each rendered linkage issue.
+        return partialLinkageCase.renderLinkageError()
+    }
+
+    companion object {
+        private tailrec fun IrElement.startOffsetOfFirstDenotableIrElement(): Int = when (this) {
+            is IrPackageFragment -> UNDEFINED_OFFSET
+            !is IrDeclaration -> {
+                // We don't generate non-denotable IR expressions in the course of partial linkage.
+                startOffset
+            }
+
+            else -> if (origin in PartiallyLinkedDeclarationOrigin.entries) {
+                // There is no sense to take coordinates from the declaration that does not exist in the code.
+                // Let's take the coordinates of the parent.
+                parent.startOffsetOfFirstDenotableIrElement()
+            } else {
+                startOffset
+            }
+        }
+    }
+}

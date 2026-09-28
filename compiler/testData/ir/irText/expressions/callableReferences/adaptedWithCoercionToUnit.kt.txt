@@ -1,0 +1,58 @@
+fun fn0(): Int {
+  return 1
+}
+
+fun fn1(x: Int): Int {
+  return 1
+}
+
+fun fnv(vararg xs: Int): Int {
+  return 1
+}
+
+fun test0() {
+  return useUnit0(fn = Function0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return fn0() /*~> Unit */
+    }
+  )
+)
+}
+
+fun test1() {
+  return useUnit1(fn = Function1<Int, Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun(p0: Int) {
+      return fn1(x = p0) /*~> Unit */
+    }
+  )
+)
+}
+
+fun testV0() {
+  return useUnit0(fn = Function0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return fnv() /*~> Unit */
+    }
+  )
+)
+}
+
+fun testV1() {
+  return useUnit1(fn = Function1<Int, Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun(p0: Int) {
+      return fnv(xs = [p0]) /*~> Unit */
+    }
+  )
+)
+}
+
+fun useUnit0(fn: Function0<Unit>) {
+}
+
+fun useUnit1(fn: Function1<Int, Unit>) {
+}
+

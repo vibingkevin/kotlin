@@ -1,0 +1,8 @@
+depends = CFCGTypes CoreAudio CoreAudioTypes CoreFoundation CoreFoundationBase CoreGraphics CoreVideo darwin posix
+language = Objective-C
+package = platform.CoreMedia
+modules = CoreMedia
+apiNotesSwiftName = true
+
+compilerOpts = -framework CoreMedia
+linkerOpts = -framework CoreMedia

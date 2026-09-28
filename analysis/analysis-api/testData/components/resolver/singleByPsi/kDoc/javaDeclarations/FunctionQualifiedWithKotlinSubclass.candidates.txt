@@ -1,0 +1,2 @@
+KDocName(85,102): 'KotlinChild.myFun'
+  NO_CANDIDATES

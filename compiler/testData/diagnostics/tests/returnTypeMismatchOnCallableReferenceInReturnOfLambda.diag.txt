@@ -1,0 +1,11 @@
+/returnTypeMismatchOnCallableReferenceInReturnOfLambda.kt:14:11: error: Inapplicable candidate(s): fun callable(): String
+
+/returnTypeMismatchOnCallableReferenceInReturnOfLambda.kt:17:11: error: Inapplicable candidate(s): fun <T> genericCallable(): T
+
+/returnTypeMismatchOnCallableReferenceInReturnOfLambda.kt:20:11: error: Inapplicable candidate(s): fun callable(): String
+
+/returnTypeMismatchOnCallableReferenceInReturnOfLambda.kt:23:11: error: Inapplicable candidate(s): fun <T> genericCallable(): T
+
+/returnTypeMismatchOnCallableReferenceInReturnOfLambda.kt:26:11: error: Inapplicable candidate(s): fun callable(): String
+
+/returnTypeMismatchOnCallableReferenceInReturnOfLambda.kt:29:11: error: Inapplicable candidate(s): fun <T> genericCallable(): T

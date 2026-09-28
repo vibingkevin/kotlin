@@ -1,0 +1,54 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin
+
+import org.jetbrains.kotlin.cli.AbstractCliTest
+import org.jetbrains.kotlin.generators.dsl.junit5.generateTestGroupSuiteWithJUnit5
+import org.jetbrains.kotlin.generators.util.TestGeneratorUtil
+import org.jetbrains.kotlin.multiplatform.AbstractMultiPlatformIntegrationTest
+
+fun main(args: Array<String>) {
+    val mainClassName = TestGeneratorUtil.getMainClassName()
+    generateTestGroupSuiteWithJUnit5(args, mainClassName) {
+        testGroup("compiler/tests-integration/tests-gen", "compiler/testData") {
+            testClass<AbstractCliTest> {
+                model("cli/jvm/readingConfigFromEnvironment", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/plugins", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/hmpp", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/apiVersion", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/argFileCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/diagnosticTests", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/diagnosticTests/crv", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/extraArgCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/internalArgCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/jdkHome", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/languageVersion", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/optIn", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/sourcesCommonChecks", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XexplicitApi", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XjdkRelease", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XjspecifyAnnotation", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/Xjsr305", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XeagerLambdaAnalysis", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XminimumRuntimeJdk", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XnewInference", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XsupressWarnings", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm/XXmultiPlatformProject", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/jvm", extension = "args", testMethod = "doJvmTest", recursive = false)
+                model("cli/js", extension = "args", testMethod = "doJsTest", recursive = false)
+                model("cli/wasm", extension = "args", testMethod = "doWasmTest", recursive = false)
+                model("cli/metadata", extension = "args", testMethod = "doMetadataTest", recursive = false)
+            }
+        }
+
+
+        testGroup("compiler/tests-integration/tests-gen", "compiler/tests-integration/testData") {
+            testClass<AbstractMultiPlatformIntegrationTest> {
+                model("multiplatform", extension = null, recursive = true, excludeParentDirs = true)
+            }
+        }
+    }
+}

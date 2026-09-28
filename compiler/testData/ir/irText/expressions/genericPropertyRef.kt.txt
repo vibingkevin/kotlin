@@ -1,0 +1,110 @@
+val <T : Any?> Value<T>.additionalText: Int /* by */
+  field = DVal(kmember = KMutableProperty1<Value<T>, String?>(
+    /* bound = */ [],
+    /* getter = */    local fun(p0: Value<T>): String? {
+      return p0.<get-text>()
+    }
+    /* setter = */    local fun(p0: Value<T>, value: String?) {
+      return p0.<set-text>(<set-?> = value)
+    }
+  )
+)
+  get(): Int {
+    return #additionalText$delegate.getValue(t = <this>, p = KProperty1<Value<T>, Int>(
+      /* bound = */ [],
+      /* getter = */      local fun(p0: Value<T>): Int {
+        return <get-additionalText><T>(/* <this> = p0 */)
+      }
+    )
+)
+  }
+
+val <T : Any?> Value<T>.additionalValue: Int /* by */
+  field = DVal(kmember = KMutableProperty1<Value<T>, T>(
+    /* bound = */ [],
+    /* getter = */    local fun(p0: Value<T>): T {
+      return p0.<get-value>()
+    }
+    /* setter = */    local fun(p0: Value<T>, value: T) {
+      return p0.<set-value>(<set-?> = value)
+    }
+  )
+)
+  get(): Int {
+    return #additionalValue$delegate.getValue(t = <this>, p = KProperty1<Value<T>, Int>(
+      /* bound = */ [],
+      /* getter = */      local fun(p0: Value<T>): Int {
+        return <get-additionalValue><T>(/* <this> = p0 */)
+      }
+    )
+)
+  }
+
+var recivier: Any?
+  field = "fail"
+  get
+  set
+
+var value2: Any?
+  field = "fail2"
+  get
+  set
+
+val barRef: KMutableProperty1<String?, String?>
+  field = KMutableProperty1<String?, String?>(
+    /* bound = */ [],
+    /* getter = */    local fun(p0: String?): String? {
+      return <get-bar><String?>(/* <this> = p0 */)
+    }
+    /* setter = */    local fun(p0: String?, value: String?) {
+      return <set-bar><String?>(/* <this> = p0, */ value = value)
+    }
+  )
+
+  get
+
+class DVal {
+  val kmember: Any
+    field = kmember
+    get
+
+  constructor(kmember: Any) /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+  operator fun getValue(t: Any?, p: Any): Int {
+    return 42
+  }
+
+}
+
+class Value<T : Any?> {
+  var value: T
+    field = value
+    get
+    set
+
+  var text: String?
+    field = text
+    get
+    set
+
+  constructor(value: T = null as T, text: String? = null) /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+}
+
+var <T : Any?> T.bar: T
+  get(): T {
+    return <this>
+  }
+  set(value: T) {
+    <set-recivier>(<set-?> = <this>)
+    <set-value2>(<set-?> = value)
+  }
+

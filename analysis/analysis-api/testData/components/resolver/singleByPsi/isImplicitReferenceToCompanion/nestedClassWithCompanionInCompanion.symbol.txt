@@ -1,0 +1,8 @@
+KtNameReferenceExpression(146,163): 'NestedInCompanion'
+  isImplicitReferenceToCompanion: true
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /AA.Companion.NestedInCompanion.Companion
+    ]

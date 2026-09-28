@@ -1,0 +1,2 @@
+KDocName(54,75): 'JavaClass.staticField'
+  NO_CANDIDATES

@@ -1,0 +1,63 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlinx.dataframe.plugin.extensions
+
+import org.jetbrains.kotlin.diagnostics.*
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.MppCheckerKind
+import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.DeclarationCheckers
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirRegularClassChecker
+import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
+import org.jetbrains.kotlin.fir.declarations.FirRegularClass
+import org.jetbrains.kotlin.fir.declarations.utils.isCompanion
+import org.jetbrains.kotlin.fir.resolve.getContainingClassSymbol
+import org.jetbrains.kotlin.fir.resolve.toRegularClassSymbol
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.classId
+import org.jetbrains.kotlinx.dataframe.plugin.extensions.ImportedSchemasDiagnostics.INVALID_SUPERTYPE
+import org.jetbrains.kotlinx.dataframe.plugin.utils.Names
+
+class ImportedSchemasCheckers(
+    session: FirSession,
+) : FirAdditionalCheckersExtension(session) {
+    override val declarationCheckers: DeclarationCheckers = object : DeclarationCheckers() {
+        override val regularClassCheckers: Set<FirRegularClassChecker>
+            get() = setOfNotNull(
+                ImportedSchemaCompanionObjectChecker,
+            )
+    }
+}
+
+private object ImportedSchemaCompanionObjectChecker : FirRegularClassChecker(mppKind = MppCheckerKind.Common) {
+    context(context: CheckerContext, reporter: DiagnosticReporter)
+    override fun check(declaration: FirRegularClass) {
+        val containingClassSymbol = declaration.getContainingClassSymbol()
+        if (declaration.isCompanion && declaration.origin !is FirDeclarationOrigin.Plugin && containingClassSymbol != null) {
+            val className = containingClassSymbol.name
+            if (declaration.symbol.resolvedSuperTypes.none { it.classId == Names.DATAFRAME_PROVIDER }) {
+                reporter.reportOn(
+                    declaration.source,
+                    ImportedSchemasDiagnostics.CONFLICTING_COMPANION_OBJECT_DECLARATION,
+                    className.toString()
+                )
+            } else {
+                declaration.symbol.resolvedSuperTypes.forEach {
+                    val argument = it.typeArguments.firstOrNull() as? ConeKotlinType
+                    if (it.classId == Names.DATAFRAME_PROVIDER && argument != null && argument.toRegularClassSymbol() != containingClassSymbol) {
+                        reporter.reportOn(
+                            declaration.source,
+                            INVALID_SUPERTYPE,
+                            className.toString(),
+                            argument.toString()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

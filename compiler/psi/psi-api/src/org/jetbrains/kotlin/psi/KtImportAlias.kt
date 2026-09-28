@@ -1,0 +1,57 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi
+
+import com.intellij.lang.ASTNode
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.search.LocalSearchScope
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.psiUtil.startOffset
+import org.jetbrains.kotlin.psi.stubs.KotlinImportAliasStub
+
+/**
+ * Represents an import alias that provides an alternative name for an imported declaration.
+ *
+ * ### Example:
+ *
+ * ```kotlin
+ * import java.util.Date as JavaDate
+ * //                    ^^^^^^^^^^^
+ * ```
+ */
+@OptIn(KtImplementationDetail::class)
+class KtImportAlias : KtElementImplStub<KotlinImportAliasStub>, PsiNameIdentifierOwner {
+    @Suppress("unused")
+    @KtImplementationDetail
+    constructor(node: ASTNode) : super(node)
+
+    @Suppress("unused")
+    @KtImplementationDetail
+    constructor(stub: KotlinImportAliasStub) : super(stub, KtNodeTypes.IMPORT_ALIAS)
+
+    override fun <R : Any?, D : Any?> accept(visitor: KtVisitor<R, D>, data: D): R {
+        return visitor.visitImportAlias(this, data)
+    }
+
+    /**
+     * The import directive this alias belongs to, or `null` if the alias is detached from an import.
+     */
+    val importDirective: KtImportDirective?
+        get() = parent as? KtImportDirective
+
+    override fun getName(): String? = greenStub?.getName() ?: nameIdentifier?.text
+
+    @OptIn(KtNonPublicApi::class)
+    override fun setName(name: String): PsiElement = KtPsiMutationService.getInstance().setImportAliasName(this, name)
+
+    override fun getNameIdentifier(): PsiElement? = findChildByType(KtTokens.IDENTIFIER)
+
+    override fun getTextOffset() = nameIdentifier?.textOffset ?: startOffset
+
+    override fun getUseScope() = LocalSearchScope(containingFile)
+}

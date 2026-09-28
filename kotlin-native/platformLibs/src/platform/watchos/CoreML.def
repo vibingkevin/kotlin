@@ -1,0 +1,10 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase CoreGraphics CoreVideo Foundation ImageIO Security darwin posix
+language = Objective-C
+package = platform.CoreML
+modules = CoreML
+apiNotesSwiftName = true
+
+compilerOpts = -framework CoreML
+linkerOpts = -framework CoreML
+
+excludedFunctions = MLModelCollectionDidChangeNotification

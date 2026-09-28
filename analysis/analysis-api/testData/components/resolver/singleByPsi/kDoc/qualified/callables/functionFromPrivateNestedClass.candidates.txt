@@ -1,0 +1,2 @@
+KDocName(77,91): 'Foo.Nested.foo'
+  NO_CANDIDATES

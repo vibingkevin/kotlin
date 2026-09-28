@@ -1,0 +1,2 @@
+KDocName(45,54): 'ArrayList'
+  NO_CANDIDATES

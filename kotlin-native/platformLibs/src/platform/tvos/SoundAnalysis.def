@@ -1,0 +1,8 @@
+depends = AVFAudio AudioToolbox CFCGTypes CFNetwork CoreAudio CoreAudioTypes CoreFoundation CoreFoundationBase CoreGraphics CoreMIDI CoreML CoreMedia CoreVideo Foundation IOSurface ImageIO Metal OpenGLESCommon Security darwin posix
+language = Objective-C
+package = platform.SoundAnalysis
+modules = SoundAnalysis
+apiNotesSwiftName = true
+
+compilerOpts = -framework SoundAnalysis
+linkerOpts = -framework SoundAnalysis

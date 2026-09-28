@@ -1,0 +1,5 @@
+error: [COMPILER_ARGUMENTS_ERROR] Invalid argument for -Xwarning-level=UNCHECKED_CAST
+error: [COMPILER_ARGUMENTS_ERROR] -Xwarning-level is duplicated for warning CONFLICTING_PROJECTION
+error: [COMPILER_ARGUMENTS_ERROR] Invalid argument for -Xwarning-level=NON_EXISTING_DIAGNOSTIC
+error: [COMPILER_ARGUMENTS_ERROR] -Xwarning-level is duplicated for warning UNCHECKED_CAST
+COMPILATION_ERROR

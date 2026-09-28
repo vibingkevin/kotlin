@@ -1,0 +1,81 @@
+/*
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.fir.backend.jvm
+
+import org.jetbrains.kotlin.backend.jvm.overrides.IrJavaIncompatibilityRulesOverridabilityCondition
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.Visibility
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.backend.Fir2IrConversionScope
+import org.jetbrains.kotlin.fir.backend.Fir2IrExtensions
+import org.jetbrains.kotlin.fir.backend.utils.InjectedValue
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
+import org.jetbrains.kotlin.fir.declarations.FirProperty
+import org.jetbrains.kotlin.fir.declarations.utils.isDeserializedPropertyFromAnnotation
+import org.jetbrains.kotlin.fir.expressions.FirExpression
+import org.jetbrains.kotlin.fir.java.hasJvmFieldAnnotation
+import org.jetbrains.kotlin.fir.references.FirReference
+import org.jetbrains.kotlin.fir.scopes.jvm.FirJvmDelegatedMembersFilter.Companion.PLATFORM_DEPENDENT_ANNOTATION_CLASS_ID
+import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrOverridableDeclaration
+import org.jetbrains.kotlin.ir.overrides.IrExternalOverridabilityCondition
+import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.resolveFakeOverride
+import org.jetbrains.kotlin.name.JvmStandardClassIds
+import org.jetbrains.kotlin.utils.addToStdlib.runIf
+
+class JvmFir2IrExtensions : Fir2IrExtensions {
+    override val parametersAreAssignable: Boolean get() = true
+    override val externalOverridabilityConditions: List<IrExternalOverridabilityCondition>
+        get() = listOf(IrJavaIncompatibilityRulesOverridabilityCondition())
+
+    override fun findInjectedValue(calleeReference: FirReference, conversionScope: Fir2IrConversionScope): InjectedValue? {
+        return null
+    }
+
+    override fun findInjectedInlineLambdaArgument(parameter: FirValueParameterSymbol): FirExpression? = null
+
+    override fun hasBackingField(property: FirProperty, session: FirSession): Boolean =
+        property.origin is FirDeclarationOrigin.Java ||
+                // Metadata for properties says that the backing field doesn't exist,
+                // but the field has to be generated in IR anyway as this is the only way
+                // to propagate default values
+                property.isDeserializedPropertyFromAnnotation == true ||
+                Fir2IrExtensions.Default.hasBackingField(property, session)
+
+    override fun specialBackingFieldVisibility(firProperty: FirProperty, session: FirSession): Visibility? {
+        return runIf(firProperty.hasJvmFieldAnnotation(session)) {
+            firProperty.status.visibility
+        }
+    }
+
+    // See FirJvmDelegatedMembersFilter for reference
+    override fun shouldGenerateDelegatedMember(delegateMemberFromBaseType: IrOverridableDeclaration<*>): Boolean {
+        val original = delegateMemberFromBaseType.resolveFakeOverride() ?: return true
+
+        fun IrOverridableDeclaration<*>.isNonAbstractJavaMethod(): Boolean {
+            return origin == IrDeclarationOrigin.IR_EXTERNAL_JAVA_DECLARATION_STUB && modality != Modality.ABSTRACT
+        }
+
+        fun IrOverridableDeclaration<*>.hasJvmDefaultAnnotation(): Boolean {
+            return annotations.hasAnnotation(JvmStandardClassIds.JVM_DEFAULT_CLASS_ID)
+        }
+
+        fun IrOverridableDeclaration<*>.isBuiltInMemberMappedToJavaDefault(): Boolean {
+            return modality != Modality.ABSTRACT &&
+                    annotations.hasAnnotation(PLATFORM_DEPENDENT_ANNOTATION_CLASS_ID)
+        }
+
+        val shouldNotGenerate = original.isNonAbstractJavaMethod()
+                || original.hasJvmDefaultAnnotation()
+                || original.isBuiltInMemberMappedToJavaDefault()
+        // TODO(KT-69150): Investigate need of this check
+        //        || original.origin == FirDeclarationOrigin.Synthetic.FakeHiddenInPreparationForNewJdk
+
+        return !shouldNotGenerate
+    }
+}

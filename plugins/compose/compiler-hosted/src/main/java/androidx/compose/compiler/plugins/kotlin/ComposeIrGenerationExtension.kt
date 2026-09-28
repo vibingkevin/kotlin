@@ -1,0 +1,253 @@
+/*
+ * Copyright 2019 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package androidx.compose.compiler.plugins.kotlin
+
+import androidx.compose.compiler.plugins.kotlin.analysis.FqNameMatcher
+import androidx.compose.compiler.plugins.kotlin.analysis.StabilityInferencer
+import androidx.compose.compiler.plugins.kotlin.lower.*
+import androidx.compose.compiler.plugins.kotlin.lower.hiddenfromobjc.AddHiddenFromObjCLowering
+import com.intellij.openapi.progress.ProgressManager
+import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
+import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
+import org.jetbrains.kotlin.descriptors.annotations.KotlinRetention
+import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.util.getAnnotationRetention
+import org.jetbrains.kotlin.platform.isJs
+import org.jetbrains.kotlin.platform.isWasm
+import org.jetbrains.kotlin.platform.jvm.isJvm
+import org.jetbrains.kotlin.platform.konan.isNative
+
+class ComposeIrGenerationExtension(
+    @Suppress("unused") private val liveLiteralsEnabled: Boolean = false,
+    @Suppress("unused") private val liveLiteralsV2Enabled: Boolean = false,
+    private val generateFunctionKeyMetaAnnotations: Boolean? = null,
+    private val sourceInformationEnabled: Boolean = true,
+    private val traceMarkersEnabled: Boolean = true,
+    private val metricsDestination: String? = null,
+    private val reportsDestination: String? = null,
+    private val stableTypeMatchers: Set<FqNameMatcher> = emptySet(),
+    private val moduleMetricsFactory: ((StabilityInferencer, FeatureFlags) -> ModuleMetrics)? = null,
+    private val featureFlags: FeatureFlags,
+    private val skipIfRuntimeNotFound: Boolean = false,
+    private val targetRuntimeVersion: ComposeRuntimeVersion? = null,
+) : IrGenerationExtension {
+    var metrics: ModuleMetrics = EmptyModuleMetrics
+        private set
+
+    override fun generate(
+        moduleFragment: IrModuleFragment,
+        pluginContext: IrPluginContext,
+    ) {
+        val isKlibTarget = !pluginContext.platform.isJvm()
+        if (VersionChecker(pluginContext).check(skipIfRuntimeNotFound) == VersionCheckerResult.NOT_FOUND) {
+            return
+        }
+
+        val stabilityInferencer = StabilityInferencer(
+            pluginContext.platform.isJvm(),
+            stableTypeMatchers,
+        )
+
+        ComposableLambdaAnnotator(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            featureFlags,
+        ).lower(moduleFragment)
+
+        if (moduleMetricsFactory != null) {
+            metrics = moduleMetricsFactory.invoke(stabilityInferencer, featureFlags)
+        } else if (metricsDestination != null || reportsDestination != null) {
+            metrics = ModuleMetricsImpl(moduleFragment.name.asString(), featureFlags) { type, fileContainingDependent ->
+                stabilityInferencer.stabilityOf(type, fileContainingDependent)
+            }
+        }
+
+        if (pluginContext.platform.isNative()) {
+            AddHiddenFromObjCLowering(
+                pluginContext,
+                moduleFragment,
+                metrics,
+                stabilityInferencer,
+                featureFlags,
+            ).lower(moduleFragment)
+        }
+
+        ClassStabilityTransformer(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            featureFlags,
+            pluginContext.diagnosticReporter,
+        ).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        if (liveLiteralsEnabled || liveLiteralsV2Enabled) {
+            LiveLiteralTransformer(
+                liveLiteralsEnabled = true,
+                usePerFileEnabledFlag = liveLiteralsV2Enabled,
+                keyVisitor = DurableKeyVisitor(),
+                context = pluginContext,
+                irModule = moduleFragment,
+                metrics = metrics,
+                stabilityInferencer = stabilityInferencer,
+                featureFlags = featureFlags,
+            ).lower(moduleFragment)
+        }
+
+        ComposableFunInterfaceLowering(pluginContext).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        val functionKeyTransformer = DurableFunctionKeyTransformer(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            featureFlags,
+        )
+
+        functionKeyTransformer.lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        ComposableVersionOverloadsLowering(pluginContext).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        // Generate default wrappers for virtual functions
+        ComposableDefaultParamLowering(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            featureFlags,
+        ).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        // Strip the K-prefix from `KComposableFunctionN` static types of refs that
+        // ComposerParamTransformer will lower to adapted refs (runtime carrier:
+        // `AdaptedFunctionReference`, which doesn't implement `KFunction`). Must run before
+        // ComposerLambdaMemoization so the patched type propagates into `remember<T>` wrappers.
+        AdaptedComposableReferenceTypePatcher(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            featureFlags,
+        ).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        // Memoize normal lambdas and wrap composable lambdas
+        ComposerLambdaMemoization(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            featureFlags,
+        ).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        // transform all composable functions to have an extra synthetic composer
+        // parameter. this will also transform all types and calls to include the extra
+        // parameter.
+        ComposerParamTransformer(
+            pluginContext,
+            moduleFragment,
+            stabilityInferencer,
+            metrics,
+            featureFlags,
+        ).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        ComposableTargetAnnotationsTransformer(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            targetRuntimeVersion,
+            featureFlags,
+        ).lower(moduleFragment)
+
+        // transform calls to the currentComposer to just use the local parameter from the
+        // previous transform
+        ComposerIntrinsicTransformer(pluginContext).lower(moduleFragment)
+
+        ProgressManager.checkCanceled()
+
+        ComposableFunctionBodyTransformer(
+            pluginContext,
+            moduleFragment,
+            metrics,
+            stabilityInferencer,
+            sourceInformationEnabled,
+            traceMarkersEnabled,
+            targetRuntimeVersion,
+            featureFlags,
+        ).lower(moduleFragment)
+
+        ComposableAnnotationRemover().lower(moduleFragment)
+
+        if (isKlibTarget) {
+            KlibAssignableParamTransformer(
+                pluginContext,
+                moduleFragment,
+                metrics,
+                stabilityInferencer,
+                featureFlags,
+            ).lower(moduleFragment)
+        }
+
+        if (pluginContext.platform.isJs() || pluginContext.platform.isWasm()) {
+            WrapJsComposableLambdaLowering(
+                pluginContext,
+                moduleFragment,
+                metrics,
+                stabilityInferencer,
+                featureFlags,
+            ).lower(moduleFragment)
+        }
+
+        if (generateFunctionKeyMetaAnnotations == true ||
+            (generateFunctionKeyMetaAnnotations == null && !pluginContext.keyMetaAnnotation.hasRuntimeRetention())
+        ) {
+            functionKeyTransformer.realizeKeyMetaAnnotations(moduleFragment)
+        }
+
+        if (metricsDestination != null) {
+            metrics.saveMetricsTo(metricsDestination)
+        }
+        if (reportsDestination != null) {
+            metrics.saveReportsTo(reportsDestination)
+        }
+    }
+
+    private val IrPluginContext.keyMetaAnnotation: IrClass?
+        get() = finderForBuiltins().findClass(ComposeClassIds.FunctionKeyMeta)?.owner
+
+    private fun IrClass?.hasRuntimeRetention(): Boolean {
+        return this?.getAnnotationRetention()?.let { it == KotlinRetention.RUNTIME } ?: true
+    }
+}

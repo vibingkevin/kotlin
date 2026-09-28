@@ -1,0 +1,174 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.navigation.ItemPresentation;
+import com.intellij.navigation.ItemPresentationProviders;
+import com.intellij.psi.PsiElement;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.name.Name;
+import org.jetbrains.kotlin.psi.stubs.KotlinAnnotationEntryStub;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a single annotation applied to a declaration or expression.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ *    @Anno
+ * // ^___^
+ * fun foo() {}
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtAnnotationEntry extends KtElementImplStub<KotlinAnnotationEntryStub> implements KtCallElement {
+    /** A shared empty array, which can be reused to avoid unnecessary allocations. */
+    public static final KtAnnotationEntry[] EMPTY_ARRAY = new KtAnnotationEntry[0];
+
+    @KtImplementationDetail
+    public KtAnnotationEntry(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtAnnotationEntry(@NotNull KotlinAnnotationEntryStub stub) {
+        super(stub, KtNodeTypes.ANNOTATION_ENTRY);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitAnnotationEntry(this, data);
+    }
+
+
+    /** Returns the type reference naming the annotation class, or {@code null} if it is absent in incomplete code. */
+    @Nullable
+    @IfNotParsed
+    public KtTypeReference getTypeReference() {
+        KtConstructorCalleeExpression calleeExpression = getCalleeExpression();
+        if (calleeExpression == null) {
+            return null;
+        }
+        return calleeExpression.getTypeReference();
+    }
+
+    @Override
+    public KtConstructorCalleeExpression getCalleeExpression() {
+        return getStubOrPsiChild(KtNodeTypes.CONSTRUCTOR_CALLEE, KtConstructorCalleeExpression.class);
+    }
+
+    @Override
+    public KtValueArgumentList getValueArgumentList() {
+        return getStubOrPsiChild(KtNodeTypes.VALUE_ARGUMENT_LIST, KtValueArgumentList.class);
+    }
+
+    @NotNull
+    @Override
+    public List<? extends ValueArgument> getValueArguments() {
+        KotlinAnnotationEntryStub stub = getStub();
+        if (stub != null && !stub.getHasValueArguments()) {
+            return Collections.<KtValueArgument>emptyList();
+        }
+
+        KtValueArgumentList list = getValueArgumentList();
+        return list != null ? list.getArguments() : Collections.<KtValueArgument>emptyList();
+    }
+
+    /** Always empty: an annotation entry cannot have trailing lambda arguments. */
+    @NotNull
+    @Override
+    public List<KtLambdaArgument> getLambdaArguments() {
+        return Collections.emptyList();
+    }
+
+    @NotNull
+    @Override
+    public List<KtTypeProjection> getTypeArguments() {
+        KtTypeArgumentList typeArgumentList = getTypeArgumentList();
+        if (typeArgumentList == null) {
+            return Collections.emptyList();
+        }
+        return typeArgumentList.getArguments();
+    }
+
+    @Override
+    public KtTypeArgumentList getTypeArgumentList() {
+        KtTypeReference typeReference = getTypeReference();
+        if (typeReference == null) {
+            return null;
+        }
+        KtTypeElement typeElement = typeReference.getTypeElement();
+        if (typeElement instanceof KtUserType) {
+            KtUserType userType = (KtUserType) typeElement;
+            return userType.getTypeArgumentList();
+        }
+        return null;
+    }
+
+    /**
+     * Returns the {@code @} symbol of the annotation, or {@code null} if it is omitted (for example, in an annotation grouped under a
+     * shared use-site target, or in an array of annotation arguments).
+     */
+    @Nullable
+    public PsiElement getAtSymbol() {
+        return findChildByType(KtTokens.AT);
+    }
+
+    /**
+     * Returns the use-site target of this annotation ({@code @get:}, {@code @field:}, and so on), taken from the entry itself or inherited
+     * from an enclosing {@link KtAnnotation} group, or {@code null} if there is none.
+     */
+    @Nullable
+    public KtAnnotationUseSiteTarget getUseSiteTarget() {
+        KtAnnotationUseSiteTarget target = getStubOrPsiChild(KtNodeTypes.ANNOTATION_TARGET, KtAnnotationUseSiteTarget.class);
+
+        if (target == null) {
+            PsiElement parent = getParentByStub();
+            if (parent instanceof KtAnnotation) {
+                return ((KtAnnotation) parent).getUseSiteTarget();
+            }
+        }
+
+        return target;
+    }
+
+    /** Returns the short (unqualified) name of the annotation class, or {@code null} if it cannot be determined. */
+    @Nullable
+    public Name getShortName() {
+        KotlinAnnotationEntryStub stub = getGreenStub();
+        if (stub != null) {
+            String shortName = stub.getShortName();
+            if (shortName != null) {
+                return Name.identifier(shortName);
+            }
+            return null;
+        }
+
+        KtTypeReference typeReference = getTypeReference();
+        assert typeReference != null : "Annotation entry hasn't typeReference " + getText();
+        KtTypeElement typeElement = typeReference.getTypeElement();
+        if (typeElement instanceof KtUserType) {
+            KtUserType userType = (KtUserType) typeElement;
+            String shortName = userType.getReferencedName();
+            if (shortName != null) {
+                return Name.identifier(shortName);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public ItemPresentation getPresentation() {
+        return ItemPresentationProviders.getItemPresentation(this);
+    }
+}

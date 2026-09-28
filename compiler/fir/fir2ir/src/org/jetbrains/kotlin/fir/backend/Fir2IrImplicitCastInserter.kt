@@ -1,0 +1,231 @@
+/*
+ * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.fir.backend
+
+import org.jetbrains.kotlin.DeprecatedCompilerApi
+import org.jetbrains.kotlin.fir.backend.utils.ConversionTypeOrigin
+import org.jetbrains.kotlin.fir.backend.utils.implicitCast
+import org.jetbrains.kotlin.fir.expressions.FirExpression
+import org.jetbrains.kotlin.fir.expressions.FirSmartCastExpression
+import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
+import org.jetbrains.kotlin.fir.types.*
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.impl.IrTypeOperatorCallImpl
+import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
+import org.jetbrains.kotlin.ir.types.*
+import org.jetbrains.kotlin.ir.util.classId
+import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.types.model.isDynamic
+import org.jetbrains.kotlin.utils.addToStdlib.applyIf
+
+class Fir2IrImplicitCastInserter(c: Fir2IrComponents, private val conversionScope: Fir2IrConversionScope) : Fir2IrComponents by c {
+
+    /**
+     * This functions processes the following casts:
+     * - coercion to Unit
+     * - nullability casts based on nullability annotations
+     * - casts for dynamic types
+     *
+     * This function doesn't apply conversion operations, for which one might use
+     * [org.jetbrains.kotlin.fir.backend.utils.prepareExpressionForGivenExpectedType]
+     */
+    internal fun IrExpression.insertSpecialCast(
+        expression: FirExpression,
+        unsubstitutedExpectedType: ConeKotlinType,
+        substitutedExpectedType: ConeKotlinType,
+    ): IrExpression {
+        if (this is IrTypeOperatorCall) {
+            return this
+        }
+
+        if (this is IrContainerExpression) {
+            coerceStatementsToUnit(coerceLastExpressionToUnit = type.isUnit())
+        }
+
+        val expandedValueType = expression.resolvedType.fullyExpandedType()
+        val expandedExpectedType = substitutedExpectedType.fullyExpandedType()
+
+        return when {
+            expandedExpectedType.isUnit -> {
+                coerceToUnitIfNeeded(this)
+            }
+            expandedValueType is ConeDynamicType -> {
+                // No fall through because `isEnhancedOrFlexibleMarkedNullable` returns true for `dynamic`.
+                if (expandedExpectedType !is ConeDynamicType && !expandedExpectedType.isNullableAny) {
+                    generateImplicitCast(this, expandedExpectedType.toIrType(conversionScope.defaultConversionTypeOrigin()))
+                } else {
+                    this
+                }
+            }
+            // If the value has a flexible or enhanced type, it could contain null (Java nullability isn't checked).
+            expandedValueType.isEnhancedOrFlexibleMarkedNullable() && !unsubstitutedExpectedType.fullyExpandedType().acceptsNullValues() &&
+                    // [TypeOperatorLowering] will retrieve the source (from start offset to end offset) as an assertion message.
+                    // Avoid type casting if we can't determine the source for some reasons, e.g., implicit `this` receiver.
+                    expression.source != null && this !is IrGetEnumValue -> {
+                implicitNotNullCast(this)
+            }
+            else -> this
+        }
+    }
+
+    private fun ConeKotlinType.isEnhancedOrFlexibleMarkedNullable(): Boolean {
+        return hasEnhancedNullability || hasFlexibleMarkedNullability
+    }
+
+    private fun ConeKotlinType.acceptsNullValues(): Boolean {
+        // For Captured(in Type) it only accepts nulls if `Type` does
+        if (this is ConeCapturedType && this.constructor.projection.kind == ProjectionKind.IN) {
+            // But `Captured(in Type)?` does accepts nulls independently of `Type`
+            if (isMarkedNullable) return true
+            return constructor.projection.type!!.canBeNull()
+        }
+        return canBeNull() || hasEnhancedNullability
+    }
+
+    fun IrStatementContainer.coerceStatementsToUnit(coerceLastExpressionToUnit: Boolean): IrStatementContainer {
+        if (statements.isEmpty()) return this
+
+        val lastIndex = statements.lastIndex
+        statements.forEachIndexed { i, irStatement ->
+            if (irStatement !is IrErrorCallExpression && irStatement is IrExpression) {
+                if (i != lastIndex || coerceLastExpressionToUnit) {
+                    statements[i] = coerceToUnitIfNeeded(irStatement)
+                }
+            }
+        }
+
+        return this
+    }
+
+    fun handleSmartCastExpression(smartCastExpression: FirSmartCastExpression, expression: IrExpression): IrExpression {
+        // We don't want an implicit cast to Nothing?. This expression just encompasses nullability after null check.
+        return if (smartCastExpression.isStable && smartCastExpression.smartcastTypeWithoutNullableNothing == null) {
+            val smartcastedType = smartCastExpression.resolvedType
+            val approximatedType = smartcastedType.approximateForIrOrNull()
+            if (approximatedType != null) {
+                val originalType = smartCastExpression.originalExpression.resolvedType
+                val originalNotNullType = originalType.withNullability(nullable = false, session.typeContext)
+                if (originalNotNullType.isSubtypeOf(approximatedType, session)) {
+                    return expression
+                }
+            }
+            implicitCastOrExpression(expression, approximatedType ?: smartcastedType)
+        } else {
+            expression
+        }
+    }
+
+    internal fun IrExpression.insertCastForIntersectionTypeOrSelf(
+        expression: FirExpression,
+        expectedType: ConeKotlinType,
+        forReceiver: Boolean = false,
+    ): IrExpression {
+        val expandedExpressionType = expression.resolvedType.fullyExpandedType()
+        if (expandedExpressionType is ConeDynamicType) return this
+
+        val argumentTypeLowerBound = expandedExpressionType.lowerBoundIfFlexible()
+        if (argumentTypeLowerBound !is ConeIntersectionType) {
+            return insertCastToNullableNothingOrSelf(expression, expectedType, argumentTypeLowerBound)
+        }
+
+        val approximatedExpectedType = expectedType.approximateForIrOrSelf()
+
+        // An intersection type like `Foo<Any?> & Foo<Bar>` is approximated to `Foo<out Any?>`.
+        // However, atomic-fu relies on the fact that receivers don't have projections in their type arguments.
+        // See plugins/atomicfu/atomicfu-compiler/testData/box/atomics_basic/UncheckedCastTest.kt
+        // TODO(KT-77692) Remove if fixed on the plugin side.
+        if (!forReceiver) {
+            val approximatedArgumentType = argumentTypeLowerBound.approximateForIrOrNull() ?: argumentTypeLowerBound
+            if (approximatedArgumentType.isSubtypeOf(approximatedExpectedType, session)) return this
+        }
+
+        return argumentTypeLowerBound.intersectedTypes
+            .firstOrNull { it.isSubtypeOf(approximatedExpectedType, session) }
+            ?.let { generateImplicitCast(this, it.toIrType(conversionScope.defaultConversionTypeOrigin())) }
+            ?: this
+    }
+
+    private fun IrExpression.insertCastToNullableNothingOrSelf(
+        expression: FirExpression,
+        expectedType: ConeKotlinType,
+        argumentTypeLowerBound: ConeRigidType,
+    ): IrExpression {
+        // See compiler/testData/codegen/box/smartCasts/nullSmartCast.kt
+        // where an expression of type Int? is smart-casted to Nothing? and then used for the expected type String?.
+        // Not inserting a cast, makes Wasm fail.
+        val argumentTypeWithoutNullableNothing = (expression as? FirSmartCastExpression)?.smartcastTypeWithoutNullableNothing?.coneType
+            ?: return this
+
+        return applyIf(!argumentTypeWithoutNullableNothing.isSubtypeOf(expectedType.approximateForIrOrSelf(), session)) {
+            check(argumentTypeLowerBound.isNothingOrNullableNothing) { "Expected argument type to be Nothing or Nothing?" }
+            generateImplicitCast(this, argumentTypeLowerBound.toIrType(conversionScope.defaultConversionTypeOrigin()))
+        }
+    }
+
+    fun implicitCastOrExpression(
+        original: IrExpression, castType: ConeKotlinType, typeOrigin: ConversionTypeOrigin = ConversionTypeOrigin.DEFAULT
+    ): IrExpression {
+        return implicitCastOrExpression(original, castType.toIrType(typeOrigin))
+    }
+
+    companion object {
+        fun implicitCastOrExpression(original: IrExpression, castType: IrType): IrExpression {
+            if (original.type == castType) return original
+            return generateImplicitCast(original, castType)
+        }
+
+        private fun generateImplicitCast(original: IrExpression, castType: IrType): IrExpression {
+            val typeOperator = if (original.type is IrDynamicType) {
+                IrTypeOperator.IMPLICIT_DYNAMIC_CAST
+            } else {
+                IrTypeOperator.IMPLICIT_CAST
+            }
+
+            return implicitCast(original, castType, typeOperator)
+        }
+
+        context(c: Fir2IrComponents)
+        internal fun coerceToUnitIfNeeded(original: IrExpression): IrExpression {
+            val valueType = original.type
+            return if (valueType.isUnit() || valueType.isNothing())
+                original
+            else
+                IrTypeOperatorCallImpl(
+                    original.startOffset, original.endOffset,
+                    c.builtins.unitType,
+                    IrTypeOperator.IMPLICIT_COERCION_TO_UNIT,
+                    c.builtins.unitType,
+                    original
+                )
+        }
+
+        fun implicitNotNullCast(original: IrExpression): IrTypeOperatorCall {
+            // Cast type massage 1. Remove @EnhancedNullability
+            // Cast type massage 2. Convert it to a non-null variant (in case of @FlexibleNullability)
+            val castType = original.type.removeAnnotations { annotationCall ->
+                @OptIn(DeprecatedCompilerApi::class)
+                if (!annotationCall.symbol.isBound) return@removeAnnotations false
+                /*
+                 * @EnhancedNullability and @FlexibleNullability are symbols from builtins and should be already
+                 *   bound at the time of body conversion, so it's safe to take the owner for them
+                 * If symbol is unbound then this annotation can not be neither @EnhancedNullability or @FlexibleNullability
+                 */
+                @OptIn(UnsafeDuringIrConstructionAPI::class)
+                val classId = annotationCall.classId
+                classId == StandardClassIds.Annotations.EnhancedNullability ||
+                        classId == StandardClassIds.Annotations.FlexibleNullability
+            }.makeNotNull()
+            return IrTypeOperatorCallImpl(
+                original.startOffset,
+                original.endOffset,
+                castType,
+                IrTypeOperator.IMPLICIT_NOTNULL,
+                castType,
+                original
+            )
+        }
+    }
+}

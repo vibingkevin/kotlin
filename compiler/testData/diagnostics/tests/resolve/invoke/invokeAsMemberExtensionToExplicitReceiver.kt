@@ -1,0 +1,16 @@
+// RUN_PIPELINE_TILL: FRONTEND
+interface A
+interface Foo {
+    operator fun A.invoke()
+}
+
+fun test(a: A, foo: Foo) {
+    a.<!UNRESOLVED_REFERENCE!>foo<!>()
+}
+
+fun test(a: Int, foo: Int.()->Unit) {
+    a.foo()
+}
+
+/* GENERATED_FIR_TAGS: funWithExtensionReceiver, functionDeclaration, functionalType, interfaceDeclaration, operator,
+typeWithExtension */

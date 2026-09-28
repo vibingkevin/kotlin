@@ -1,0 +1,16 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+description "Dokka Plugin to filter version for stdlib"
+
+dependencies {
+    implementation libs.dokka.base
+    compileOnly libs.dokka.core
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'}
+
+kotlin {
+    jvmToolchain(8)
+}
+test {
+    useJUnitPlatform()
+}

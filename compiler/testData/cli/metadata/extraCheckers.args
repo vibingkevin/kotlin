@@ -1,0 +1,7 @@
+$TESTDATA_DIR$/extraCheckers.kt
+-Wextra
+-d
+$TEMP_DIR$
+-Xtarget-platform=JVM,JS,WasmJs,WasmWasi,Native
+-cp
+$STDLIB_COMMON_PATH$

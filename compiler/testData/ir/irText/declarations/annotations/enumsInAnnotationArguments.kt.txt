@@ -1,0 +1,41 @@
+open annotation class TestAnn : Annotation {
+  val x: En
+    field = x
+    get
+
+  constructor(x: En) /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+}
+
+enum class En : Enum<En> {
+  A = En()
+
+  B = En()
+
+  C = En()
+
+  D = En()
+
+  private constructor() /* primary */ {
+    super/*Enum*/<En>()
+    /* <init>() */
+
+  }
+
+  companion fun valueOf(value: String): En /* Synthetic body for ENUM_VALUEOF */
+
+  companion fun values(): Array<En> /* Synthetic body for ENUM_VALUES */
+
+  companion val entries: EnumEntries<En>
+    companion get(): EnumEntries<En> /* Synthetic body for ENUM_ENTRIES */
+
+}
+
+@TestAnn(x = En.A)
+fun test1() {
+}
+

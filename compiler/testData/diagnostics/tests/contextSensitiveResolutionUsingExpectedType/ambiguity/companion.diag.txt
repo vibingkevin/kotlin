@@ -1,0 +1,11 @@
+/companion.kt:16:21: error: Ambiguity with context-sensitive resolution:
+val A: Any, defined in foo.Test.Companion
+enum entry A: MyEnum, defined in foo.MyEnum
+
+/companion.kt:27:38: error: 'when' expression must be exhaustive. Add the 'A' branch or an 'else' branch.
+
+/companion.kt:28:9: error: Ambiguity with context-sensitive resolution:
+val A: Any, defined in foo.Test.Companion
+enum entry A: MyEnum, defined in foo.MyEnum
+
+/companion.kt:37:42: error: 'when' expression must be exhaustive. Add the 'A' branch or an 'else' branch.

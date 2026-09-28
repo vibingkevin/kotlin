@@ -1,0 +1,376 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.gradle
+
+import org.gradle.api.logging.LogLevel
+import org.gradle.util.GradleVersion
+import org.jetbrains.kotlin.cli.common.arguments.*
+import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.gradle.util.parseCompilerArguments
+import org.jetbrains.kotlin.gradle.util.parseCompilerArgumentsFromBuildOutput
+import org.jetbrains.kotlin.testFederation.MustRunAlways
+import org.junit.jupiter.api.DisplayName
+import kotlin.io.path.appendText
+import kotlin.test.assertEquals
+import kotlin.test.fail
+
+@MustRunAlways
+internal class CompilerOptionsIT : KGPBaseTest() {
+
+    @DisplayName("Allow to suppress kotlinOptions.freeCompilerArgs on task execution modification warning")
+    @JvmGradlePluginTests
+    @GradleTest
+    internal fun suppressFreeArgsModification(gradleVersion: GradleVersion) {
+        project("simpleProject", gradleVersion) {
+            buildGradle.appendText(
+                """
+                |
+                |tasks.named("compileKotlin") {
+                |    doFirst {
+                |        kotlinOptions.freeCompilerArgs += ["-module-name=java"]
+                |    }
+                |}
+                """.trimMargin()
+            )
+
+            gradleProperties.appendText(
+                """
+                |
+                |kotlin.options.suppressFreeCompilerArgsModificationWarning=true
+                """.trimMargin()
+            )
+
+            build("assemble") {
+                assertOutputDoesNotContain("kotlinOptions.freeCompilerArgs were changed on task")
+            }
+        }
+    }
+
+    @DisplayName("compiler plugin arguments set via kotlinOptions.freeCompilerArgs on task execution applied properly")
+    @JvmGradlePluginTests
+    @GradleTest
+    internal fun freeArgsModifiedAtExecutionTimeCorrectly(gradleVersion: GradleVersion) {
+        project("simpleProject", gradleVersion) {
+            buildGradle.appendText(
+                //language=Gradle
+                """
+                |
+                |tasks.named("compileKotlin") {
+                |    kotlinOptions.freeCompilerArgs += ["-P", "plugin:blah-blah:blah-blah1=1"]
+                |    doFirst {
+                |        kotlinOptions.freeCompilerArgs += ["-P", "plugin:blah-blah:blah-blah2=1", "-P", "plugin:blah-blah:blah-blah3=1"]
+                |    }
+                |}
+                """.trimMargin()
+            )
+
+            gradleProperties.appendText(
+                //language=properties
+                """
+                |
+                |kotlin.options.suppressFreeCompilerArgsModificationWarning=true
+                """.trimMargin()
+            )
+
+            build("assemble") {
+                assertOutputContainsAny(
+                    "-P plugin:blah-blah:blah-blah1=1 -P plugin:blah-blah:blah-blah2=1 -P plugin:blah-blah:blah-blah3=1",
+                    "-P plugin:blah-blah:blah-blah1=1,plugin:blah-blah:blah-blah2=1,plugin:blah-blah:blah-blah3=1"
+                )
+            }
+        }
+    }
+
+    @DisplayName("compiler plugin arguments set via kotlinOptions.freeCompilerArgs on task execution applied properly in MPP")
+    @MppGradlePluginTests
+    @GradleTest
+    internal fun freeArgsModifiedAtExecutionTimeCorrectlyMpp(gradleVersion: GradleVersion) {
+        project(
+            "new-mpp-lib-with-tests",
+            gradleVersion,
+            // KT-75899 Support Gradle Project Isolation in KGP JS & Wasm
+            buildOptions = defaultBuildOptions.disableIsolatedProjectsBecauseOfJsAndWasmKT75899(),
+        ) {
+            buildGradle.appendText(
+                //language=Gradle
+                """
+                |
+                |tasks.withType(org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile).configureEach {
+                |    kotlinOptions.freeCompilerArgs += ["-P", "plugin:blah-blah:blah-blah1=1"]
+                |    doFirst {
+                |        kotlinOptions.freeCompilerArgs += ["-P", "plugin:blah-blah:blah-blah2=1", "-P", "plugin:blah-blah:blah-blah3=1"]
+                |    }
+                |}
+                """.trimMargin()
+            )
+
+            gradleProperties.appendText(
+                //language=properties
+                """
+                |
+                |kotlin.options.suppressFreeCompilerArgsModificationWarning=true
+                """.trimMargin()
+            )
+
+            val compileTasks = listOf(
+                "compileCommonMainKotlinMetadata",
+                "compileKotlinJvmWithoutJava",
+                "compileKotlinJs",
+                // we do not allow modifying free args for K/N at execution time
+            )
+            build(*compileTasks.toTypedArray()) {
+                if (output.contains("-P plugin:blah-blah:blah-blah1=1,plugin:blah-blah:blah-blah2=1,plugin:blah-blah:blah-blah3=1")) {
+                    // output from BTA * 3
+                    assertOutputContainsExactlyTimes(
+                        "-P plugin:blah-blah:blah-blah1=1,plugin:blah-blah:blah-blah2=1,plugin:blah-blah:blah-blah3=1",
+                        compileTasks.size
+                    )
+                } else {
+                    assertOutputContainsExactlyTimes("-P plugin:blah-blah:", 3 * compileTasks.size) // 3 times per task
+                }
+            }
+        }
+    }
+
+    @DisplayName("Should combine -opt-in arguments from languageSettings DSL for Native")
+    @MppGradlePluginTests
+    @GradleTest
+    fun combinesOptInFromLanguageSettingsNative(gradleVersion: GradleVersion) {
+        project(
+            projectName = "new-mpp-lib-and-app/sample-lib",
+            gradleVersion = gradleVersion,
+            // KT-75899 Support Gradle Project Isolation in KGP JS & Wasm
+            buildOptions = defaultBuildOptions.disableIsolatedProjectsBecauseOfJsAndWasmKT75899(),
+        ) {
+            buildGradle.appendText(
+                //language=Groovy
+                """
+                |
+                |kotlin {
+                |    sourceSets {
+                |        nativeMain {
+                |            languageSettings.optIn("my.custom.OptInAnnotation")
+                |        }
+                |        linux64Main {
+                |            languageSettings.optIn("my.custom.OptInAnnotation")
+                |        }
+                |        macos64Main {
+                |            languageSettings.optIn("my.custom.OptInAnnotation")
+                |        }
+                |        macosArm64Main {
+                |            languageSettings.optIn("my.custom.OptInAnnotation")
+                |        }
+                |    }
+                |}
+                |
+                |tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask.class).configureEach {
+                |    compilerOptions.optIn.add("another.custom.UnderOptIn")
+                |}
+                """.trimMargin()
+            )
+
+            build("compileNativeMainKotlinMetadata") {
+                assertTasksExecuted(":compileNativeMainKotlinMetadata")
+                val taskOutput = getOutputForTask(":compileNativeMainKotlinMetadata", logLevel = LogLevel.INFO)
+                @Suppress("DEPRECATION")
+                val arguments = parseCompilerArgumentsFromBuildOutput(K2NativeCompilerArguments::class, taskOutput)
+                assertEquals(
+                    setOf("another.custom.UnderOptIn", "my.custom.OptInAnnotation"), arguments.optIn?.toSet(),
+                    "Arguments optIn does not match '-opt-in=another.custom.UnderOptIn, -opt-in=my.custom.OptInAnnotation'"
+                )
+            }
+
+            build("compileKotlinLinux64") {
+                assertTasksExecuted(":compileKotlinLinux64")
+                val taskOutput = getOutputForTask(":compileKotlinLinux64", logLevel = LogLevel.INFO)
+                @Suppress("DEPRECATION")
+                val arguments = parseCompilerArgumentsFromBuildOutput(K2NativeCompilerArguments::class, taskOutput)
+                assertEquals(
+                    setOf("another.custom.UnderOptIn", "my.custom.OptInAnnotation"), arguments.optIn?.toSet(),
+                    "Arguments optIn does not match '-opt-in=another.custom.UnderOptIn, -opt-in=my.custom.OptInAnnotation'"
+                )
+            }
+        }
+    }
+
+    @DisplayName("Should pass -opt-in from compiler options DSL in native project")
+    @NativeGradlePluginTests
+    @GradleTest
+    fun passesOptInAnnotationNative(gradleVersion: GradleVersion) {
+        nativeProject(
+            projectName = "native-link-simple",
+            gradleVersion = gradleVersion,
+        ) {
+            buildGradle.appendText(
+                """
+                |
+                |tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask.class).configureEach {
+                |    compilerOptions.optIn.addAll("kotlin.RequiresOptIn", "my.CustomOptIn")
+                |}
+                """.trimMargin()
+            )
+
+            build("compileKotlinHost") {
+                val expectedOptIn = listOf("kotlin.RequiresOptIn", "my.CustomOptIn")
+                @Suppress("DEPRECATION")
+                val arguments = parseCompilerArguments<K2NativeCompilerArguments>()
+                if (arguments.optIn?.toList() != listOf("kotlin.RequiresOptIn", "my.CustomOptIn")) {
+                    fail(
+                        "compiler arguments does not contain expected optIns'${expectedOptIn.joinToString()}': ${arguments.optIn}"
+                    )
+                }
+            }
+        }
+    }
+
+    @DisplayName("Should pass -progressive from compiler options DSL")
+    @JvmGradlePluginTests
+    @GradleTest
+    fun passesProgressive(gradleVersion: GradleVersion) {
+        project(
+            projectName = "simpleProject",
+            gradleVersion = gradleVersion,
+        ) {
+            buildGradle.appendText(
+                //language=Groovy
+                """
+                |
+                |tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask.class).configureEach {
+                |    compilerOptions.progressiveMode.set(true)
+                |}
+                """.trimMargin()
+            )
+
+            build("compileKotlin") {
+                assertCompilerArgument(":compileKotlin", "-progressive", logLevel = LogLevel.INFO)
+            }
+        }
+    }
+
+    @DisplayName("Should not pass -progressive by default from compiler options DSL")
+    @JvmGradlePluginTests
+    @GradleTest
+    fun notPassesDefaultProgressive(gradleVersion: GradleVersion) {
+        project(
+            projectName = "simpleProject",
+            gradleVersion = gradleVersion,
+        ) {
+            build("compileKotlin") {
+                assertNoCompilerArgument(":compileKotlin", "-progressive", logLevel = LogLevel.INFO)
+            }
+        }
+    }
+
+    @DisplayName("Should pass -progressive from compiler options DSL in native project")
+    @NativeGradlePluginTests
+    @GradleTest
+    fun passesProgressiveModeNative(gradleVersion: GradleVersion) {
+        nativeProject(
+            projectName = "native-link-simple",
+            gradleVersion = gradleVersion,
+        ) {
+            buildGradle.appendText(
+                //language=Groovy
+                """
+                |
+                |tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask.class).configureEach {
+                |    compilerOptions.progressiveMode.set(true)
+                |}
+                """.trimMargin()
+            )
+
+            build("compileKotlinHost") {
+                val expectedArg = "-progressive"
+                val compilerArgs = output
+                    .substringAfter("Arguments = [")
+                    .substringBefore("]")
+                    .lines()
+                val progressiveArg = compilerArgs.find { it.trim() == expectedArg }
+
+                assert(progressiveArg != null) {
+                    printBuildOutput()
+                    "compiler arguments does not contain '$expectedArg': ${compilerArgs.joinToString()}"
+                }
+            }
+        }
+    }
+
+    @DisplayName("KT-57823: should be possible to configure native module name via compilation")
+    @NativeGradlePluginTests
+    @GradleTest
+    fun passesModuleNameFromNativeCompilation(gradleVersion: GradleVersion) {
+        project(
+            projectName = "new-mpp-lib-and-app/sample-lib",
+            gradleVersion = gradleVersion,
+            // KT-75899 Support Gradle Project Isolation in KGP JS & Wasm
+            buildOptions = defaultBuildOptions.disableIsolatedProjectsBecauseOfJsAndWasmKT75899(),
+        ) {
+            buildGradle.appendText(
+                //language=Groovy
+                """
+                |
+                |kotlin {
+                |    targets {
+                |        named("linux64", org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget.class) {
+                |            compilations.all {
+                |                compilerOptions.options.moduleName.set("i-am-your-module-name")
+                |            }
+                |        }
+                |    }
+                |}
+                |
+                """.trimMargin()
+            )
+
+            build(":compileNativeMainKotlinMetadata") {
+                assertTasksExecuted(":compileNativeMainKotlinMetadata")
+
+                extractNativeTasksCommandLineArgumentsFromOutput(":compileNativeMainKotlinMetadata") {
+                    assertCommandLineArgumentsContain("-module-name", "com.example:sample-lib_nativeMain")
+                }
+            }
+
+            build(":compileKotlinLinux64") {
+                assertTasksExecuted(":compileKotlinLinux64")
+
+                extractNativeTasksCommandLineArgumentsFromOutput(":compileKotlinLinux64") {
+                    assertCommandLineArgumentsContain("-module-name", "i-am-your-module-name")
+                }
+            }
+        }
+    }
+
+    @DisplayName("KT-57823: uses archivesName value for native compilation module name convention")
+    @NativeGradlePluginTests
+    @GradleTest
+    fun nativeCompilationModuleNameConvention(gradleVersion: GradleVersion) {
+        project(
+            projectName = "new-mpp-lib-and-app/sample-lib",
+            gradleVersion = gradleVersion,
+            // KT-75899 Support Gradle Project Isolation in KGP JS & Wasm
+            buildOptions = defaultBuildOptions.disableIsolatedProjectsBecauseOfJsAndWasmKT75899(),
+        ) {
+            buildGradle.append("base.archivesName.set(\"myNativeLib\")")
+
+            build(":compileNativeMainKotlinMetadata") {
+                assertTasksExecuted(":compileNativeMainKotlinMetadata")
+
+                extractNativeTasksCommandLineArgumentsFromOutput(":compileNativeMainKotlinMetadata") {
+                    assertCommandLineArgumentsContain("-module-name", "com.example:myNativeLib_nativeMain")
+                }
+            }
+
+            build(":compileKotlinLinux64") {
+                assertTasksExecuted(":compileKotlinLinux64")
+
+                extractNativeTasksCommandLineArgumentsFromOutput(":compileKotlinLinux64") {
+                    assertCommandLineArgumentsContain("-module-name", "com.example:myNativeLib")
+                }
+            }
+        }
+    }
+
+}

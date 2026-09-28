@@ -1,0 +1,50 @@
+FILE: [ResolvedTo(BODY_RESOLVE)] delegatedFieldNestedName.kt
+    @R|kotlin/annotation/Target|[Types](allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|) [evaluated = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|)]) public final [ResolvedTo(BODY_RESOLVE)] annotation class Anno : R|kotlin/Annotation| {
+        public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=second/Anno.i] i: R|kotlin/Int|): R|second/Anno| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final [ResolvedTo(BODY_RESOLVE)] [IsFromPrimaryConstructor=true] val i: R|kotlin/Int| = R|<local>/i|
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] get(): R|kotlin/Int|
+
+    }
+    public abstract [ResolvedTo(BODY_RESOLVE)] interface Base<[ResolvedTo(BODY_RESOLVE)] A> : R|kotlin/Any| {
+        public open [ResolvedTo(ANNOTATION_ARGUMENTS)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+
+    }
+    public abstract [ResolvedTo(BODY_RESOLVE)] interface Second<[ResolvedTo(BODY_RESOLVE)] T> : R|kotlin/Any| {
+    }
+    public final const [ResolvedTo(BODY_RESOLVE)] [EvaluatedValue=Int(0)] val outer: R|kotlin/Int| = Int(0)
+        public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/Int|
+    public final const [ResolvedTo(BODY_RESOLVE)] [EvaluatedValue=String()] val inner: R|kotlin/String| = String()
+        public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/String|
+    public final [ResolvedTo(ANNOTATION_ARGUMENTS)] [DelegateFieldsMapKey={0=second/MyClass.$$delegate_0, 1=second/MyClass.$$delegate_1}] class MyClass : R|@R|second/Anno|(i = Int(0).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(0)])  second/Base<@R|second/Anno|(i = Int(1).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(1)])  second/Base<@R|second/Anno|(i = Int(2).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(2)])  kotlin/Int>>|, R|@R|second/Anno|(i = Int(4).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(4)])  second/Second<@R|second/Anno|(i = Int(5).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(5)])  kotlin/String>| {
+        public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=MyClass] constructor(): R|second/MyClass| {
+            super<R|kotlin/Any|>()
+        }
+
+        private final [ResolvedTo(ANNOTATION_ARGUMENTS)] field $$delegate_0: R|@R|second/Anno|(i = Int(0).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(0)])  second/Base<@R|second/Anno|(i = Int(1).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(1)])  second/Base<@R|second/Anno|(i = Int(2).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(2)])  kotlin/Int>>| = LAZY_EXPRESSION
+
+        private final [ResolvedTo(ANNOTATION_ARGUMENTS)] field $$delegate_1: R|@R|second/Anno|(i = Int(4).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(4)])  second/Second<@R|second/Anno|(i = Int(5).R|kotlin/Int.plus|(R|second/outer|) [evaluated = Int(5)])  kotlin/String>| = LAZY_EXPRESSION
+
+        public final companion [ResolvedTo(BODY_RESOLVE)] object Companion : R|@R|second/Anno|(i = IntegerLiteral(6).<Ambiguity: plus, [kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus]>#(R|second/inner|) [evaluated = IntegerLiteral(6).<Ambiguity: plus, [kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus]>#(R|second/inner|)])  second/Base<@R|second/Anno|(i = IntegerLiteral(7).<Ambiguity: plus, [kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus]>#(R|second/inner|) [evaluated = IntegerLiteral(7).<Ambiguity: plus, [kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus]>#(R|second/inner|)])  second/Base<@R|second/Anno|(i = IntegerLiteral(8).<Ambiguity: plus, [kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus]>#(R|second/inner|) [evaluated = IntegerLiteral(8).<Ambiguity: plus, [kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus, kotlin/Int.plus]>#(R|second/inner|)])  kotlin/Int>>| {
+            private [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Companion] constructor(): R|second/MyClass.Companion| {
+                super<R|kotlin/Any|>()
+            }
+
+            public final const [ResolvedTo(BODY_RESOLVE)] [EvaluatedValue=String()] val outer: R|kotlin/String| = String()
+                public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Companion] get(): R|kotlin/String|
+
+            public final const [ResolvedTo(BODY_RESOLVE)] [EvaluatedValue=Int(0)] val inner: R|kotlin/Int| = Int(0)
+                public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Companion] get(): R|kotlin/Int|
+
+        }
+
+        public final [ResolvedTo(BODY_RESOLVE)] object NestedObject : R|@R|second/Anno|(i = Int(9).R|kotlin/Int.plus|(this@R|second/MyClass.Companion|.R|second/MyClass.Companion.inner|) [evaluated = Int(9)])  second/Second<@R|second/Anno|(i = Int(10).R|kotlin/Int.plus|(this@R|second/MyClass.Companion|.R|second/MyClass.Companion.inner|) [evaluated = Int(10)])  kotlin/String>| {
+            private [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=NestedObject] constructor(): R|second/MyClass.NestedObject| {
+                super<R|kotlin/Any|>()
+            }
+
+        }
+
+    }

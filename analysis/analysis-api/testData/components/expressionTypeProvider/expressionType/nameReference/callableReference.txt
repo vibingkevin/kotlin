@@ -1,0 +1,3 @@
+expression: myFun
+expression PSI: KtNameReferenceExpression
+type: null

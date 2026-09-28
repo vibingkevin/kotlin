@@ -1,0 +1,26 @@
+#include <Foundation/Foundation.h>
+#include <stdint.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+void * org_kotlin_foo_Clazz_init_allocate();
+
+_Bool org_kotlin_foo_Clazz_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+int32_t org_kotlin_foo_constant_get();
+
+int32_t org_kotlin_foo_fun_with_keywoards__TypesOfArguments__Swift_Int32__(int32_t repeat);
+
+int32_t org_kotlin_foo_function__TypesOfArguments__Swift_Int32__(int32_t arg);
+
+_Bool org_kotlin_foo_renamedParameter__TypesOfArguments__Swift_String__(NSString * input);
+
+int32_t org_kotlin_foo_variable_get();
+
+_Bool org_kotlin_foo_variable_set__TypesOfArguments__Swift_Int32__(int32_t newValue);
+
+NSString * org_kotlin_foo_x_get__TypesOfArgumentsE__Swift_Int32__(int32_t receiver);
+
+int32_t org_kotlin_foo_y__TypesOfArgumentsE__Swift_String__(NSString * receiver);
+
+NS_ASSUME_NONNULL_END

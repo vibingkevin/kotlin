@@ -1,0 +1,208 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.gradle.targets.js.yarn
+
+import org.gradle.api.Project
+import org.gradle.api.plugins.ExtensionContainer
+import org.jetbrains.kotlin.gradle.targets.js.internal.checkIsJsToolingProject
+import org.jetbrains.kotlin.gradle.targets.js.internal.jsToolingProject
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin
+import org.jetbrains.kotlin.gradle.targets.js.npm.LockCopyTask
+import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin.Companion.RESTORE_YARN_LOCK_BASE_NAME
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin.Companion.STORE_YARN_LOCK_BASE_NAME
+import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin.Companion.UPGRADE_YARN_LOCK_BASE_NAME
+import org.jetbrains.kotlin.gradle.targets.web.HasPlatformDisambiguator
+import org.jetbrains.kotlin.gradle.targets.web.nodejs.BaseNodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.web.nodejs.BaseNodeJsRootExtension
+import org.jetbrains.kotlin.gradle.targets.web.yarn.BaseYarnRootEnvSpec
+import org.jetbrains.kotlin.gradle.targets.web.yarn.BaseYarnRootExtension
+import org.jetbrains.kotlin.gradle.tasks.registerTask
+import org.jetbrains.kotlin.gradle.utils.detachedResolvable
+import org.jetbrains.kotlin.gradle.utils.getExecOperations
+import java.io.File
+import kotlin.reflect.KClass
+
+/**
+ * A class responsible for applying the Yarn plugin to a Gradle project, specifically targeting
+ * root-level projects. This class initializes and configures the necessary extensions,
+ * tasks, and environment specifications for managing Yarn as a package manager within Node.js projects.
+ * Better to use composition overt than inheritance, that's why it is necessary.
+ *
+ * @property platformDisambiguate An instance that provides platform-specific disambiguation logic.
+ * @property yarnRootKlass The KClass of the root Yarn extension to be created and registered.
+ * @property yarnRootName The name used for the root Yarn extension.
+ * @property yarnEnvSpecKlass The KClass of the Yarn environment specification extension.
+ * @property yarnEnvSpecName The name of the Yarn environment specification extension.
+ * @property nodeJsRootApply A lambda function that applies Node.js root extension to the project.
+ * @property nodeJsRootExtension A lambda function to retrieve the Node.js root extension from the project.
+ * @property nodeJsEnvSpec A lambda function to retrieve Node.js environment specifications from the project.
+ * @property lockFileDirectory A function to determine the directory where lock files should be stored.
+ */
+internal class YarnPluginApplier(
+    private val platformDisambiguate: HasPlatformDisambiguator,
+    private val yarnRootKlass: KClass<out BaseYarnRootExtension>,
+    private val yarnRootName: String,
+    private val yarnEnvSpecKlass: KClass<out BaseYarnRootEnvSpec>,
+    private val yarnEnvSpecName: String,
+    private val nodeJsRootApply: (project: Project) -> Unit,
+    private val nodeJsRootExtension: (project: Project) -> BaseNodeJsRootExtension,
+    private val nodeJsEnvSpec: (project: Project) -> BaseNodeJsEnvSpec,
+    private val lockFileDirectory: (projectDirectory: File) -> File,
+) {
+
+    fun apply(project: Project) {
+        checkIsJsToolingProject(project) {
+            "Cannot register ${YarnPluginApplier::class.simpleName} in ${project.displayName}. It can only be registered in ${project.jsToolingProject().displayName}."
+        }
+
+        nodeJsRootApply(project)
+
+        val nodeJsRoot = nodeJsRootExtension(project)
+        val nodeJs = nodeJsEnvSpec(project)
+
+        val yarnSpec = project.extensions.createYarnEnvSpec(
+            yarnEnvSpecKlass,
+            yarnEnvSpecName
+        )
+
+        val yarnRootExtension = project.extensions.create(
+            yarnRootName,
+            yarnRootKlass.java,
+            project,
+            nodeJsRoot,
+            yarnSpec,
+            project.objects,
+            project.getExecOperations(),
+        )
+
+        yarnSpec.initializeYarnEnvSpec(yarnRootExtension)
+
+        yarnRootExtension.platform.value(nodeJs.platform)
+            .disallowChanges()
+
+        nodeJsRoot.packageManagerExtension.set(
+            yarnRootExtension
+        )
+
+        val setupTask = project.registerTask<YarnSetupTask>(platformDisambiguate.extensionName(YarnSetupTask.BASE_NAME), listOf(yarnSpec)) {
+            with(nodeJs) {
+                it.dependsOn(project.nodeJsSetupTaskProvider)
+            }
+
+            it.group = NodeJsRootPlugin.TASKS_GROUP_NAME
+            it.description = "Download and install a local yarn version"
+
+            it.configuration = it.ivyDependencyProvider.map { ivyDependency ->
+                project.configurations.detachedResolvable(project.dependencies.create(ivyDependency))
+                    .also { conf -> conf.isTransitive = false }
+            }
+        }
+
+        val upgradeLockTaskName = platformDisambiguate.extensionName(UPGRADE_YARN_LOCK_BASE_NAME)
+
+        val kotlinNpmInstall = project.tasks.named(platformDisambiguate.extensionName(KotlinNpmInstallTask.BASE_NAME))
+        kotlinNpmInstall.configure { task ->
+            task.dependsOn(setupTask)
+            task.inputs.property("yarnIgnoreScripts", yarnRootExtension.ignoreScriptsProperty)
+
+            if (task is KotlinNpmInstallTask) {
+                // This works around the problem when yarn upgrade changes lock file format, but not the content.
+                // And the same yarn version, package.json and package.lock files can produce different results:
+                // 1. old lock file + provisioned node_modules + yarn install -> lock remained untouched
+                // 2. old lock file + empty node_modules + yarn install -> lock file format changed
+                // So when `kotlinUpgradeYarnLock` is requested we should yarn install with --force to have a consistent lock file
+                // FIXME: This property should be removed during KT-84782 (Improve KGP JS UX)
+                task.withForce.set(project.provider { project.gradle.taskGraph.hasTask(":$upgradeLockTaskName") })
+            }
+        }
+
+        yarnRootExtension.nodeJsEnvironment.value(
+            nodeJs.env
+        ).disallowChanges()
+
+        yarnRootExtension.lockFileDirectoryProperty.convention(
+            project.objects.directoryProperty().fileValue(lockFileDirectory(project.rootDir))
+        )
+
+        val upgradeYarnLock =
+            project.tasks.register(
+                upgradeLockTaskName,
+                YarnLockUpgradeTask::class.java
+            ) { task ->
+                task.dependsOn(kotlinNpmInstall)
+                task.inputFile.set(nodeJsRoot.rootPackageDirectory.map { it.file(LockCopyTask.YARN_LOCK) })
+                task.outputDirectory.set(yarnRootExtension.lockFileDirectoryProperty)
+                task.fileName.set(yarnRootExtension.lockFileNameProperty)
+            }
+
+        project.tasks.register(platformDisambiguate.extensionName(STORE_YARN_LOCK_BASE_NAME), YarnLockStoreTask::class.java) { task ->
+            task.dependsOn(kotlinNpmInstall)
+            task.inputFile.set(nodeJsRoot.rootPackageDirectory.map { it.file(LockCopyTask.YARN_LOCK) })
+            task.outputDirectory.set(yarnRootExtension.lockFileDirectoryProperty)
+            task.fileName.set(yarnRootExtension.lockFileNameProperty)
+
+            task.lockFileMismatchReport.value(
+                project.provider { yarnRootExtension.requireConfigured().yarnLockMismatchReport.toLockFileMismatchReport() }
+            ).disallowChanges()
+            task.reportNewLockFile.value(
+                project.provider { yarnRootExtension.requireConfigured().reportNewYarnLock }
+            ).disallowChanges()
+            task.lockFileAutoReplace.value(
+                project.provider { yarnRootExtension.requireConfigured().yarnLockAutoReplace }
+            ).disallowChanges()
+            task.mismatchMessage.value(
+                YarnPlugin.yarnLockMismatchMessage(upgradeYarnLock.name)
+            )
+        }
+
+        project.tasks.register(platformDisambiguate.extensionName(RESTORE_YARN_LOCK_BASE_NAME), YarnLockCopyTask::class.java) {
+            val lockFile = yarnRootExtension.lockFileDirectoryProperty.file(yarnRootExtension.lockFileNameProperty)
+            it.inputFile.set(yarnRootExtension.lockFileDirectoryProperty.file(yarnRootExtension.lockFileNameProperty))
+            it.outputDirectory.set(nodeJsRoot.rootPackageDirectory)
+            it.fileName.set(LockCopyTask.YARN_LOCK)
+            it.onlyIf {
+                lockFile.orNull?.asFile?.exists() == true
+            }
+        }
+
+        yarnRootExtension.preInstallTasks.value(
+            listOf(yarnRootExtension.restoreYarnLockTaskProvider)
+        ).disallowChanges()
+
+        yarnRootExtension.postInstallTasks.value(
+            listOf(yarnRootExtension.storeYarnLockTaskProvider)
+        ).disallowChanges()
+    }
+
+    private fun ExtensionContainer.createYarnEnvSpec(
+        yarnEnvSpecKlass: KClass<out BaseYarnRootEnvSpec>,
+        yarnEnvSpecName: String,
+    ): BaseYarnRootEnvSpec {
+        return create(
+            yarnEnvSpecName,
+            yarnEnvSpecKlass.java
+        )
+    }
+
+    private fun BaseYarnRootEnvSpec.initializeYarnEnvSpec(
+        yarnRootExtension: BaseYarnRootExtension,
+    ) {
+        download.convention(yarnRootExtension.downloadProperty)
+        // set instead of convention because it is possible to have null value https://github.com/gradle/gradle/issues/14768
+        downloadBaseUrl.set(yarnRootExtension.downloadBaseUrlProperty)
+        allowInsecureProtocol.convention(false)
+        installationDirectory.convention(yarnRootExtension.installationDirectory)
+        version.convention(yarnRootExtension.versionProperty)
+        command.convention(yarnRootExtension.commandProperty)
+        platform.convention(yarnRootExtension.platform)
+        ignoreScripts.convention(yarnRootExtension.ignoreScriptsProperty)
+        yarnLockMismatchReport.convention(yarnRootExtension.yarnLockMismatchReportProperty)
+        reportNewYarnLock.convention(yarnRootExtension.reportNewYarnLockProperty)
+        yarnLockAutoReplace.convention(yarnRootExtension.yarnLockAutoReplaceProperty)
+        resolutions.convention(yarnRootExtension.resolutionsProperty)
+    }
+}

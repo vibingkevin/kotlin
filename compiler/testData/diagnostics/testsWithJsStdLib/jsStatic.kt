@@ -1,0 +1,71 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// OPT_IN: kotlin.js.ExperimentalJsStatic
+// DIAGNOSTICS: -UNUSED_VARIABLE
+class A {
+    companion object {
+        @JsStatic val a = 1;
+
+        <!JS_STATIC_ON_CONST!>@JsStatic const val b<!> = 1;
+
+        @JsStatic fun a1() {
+
+        }
+
+        <!JS_STATIC_ON_NON_PUBLIC_MEMBER!>@JsStatic private fun a2()<!> {
+
+        }
+
+        <!JS_STATIC_ON_NON_PUBLIC_MEMBER!>@JsStatic internal fun a3()<!> {
+
+        }
+
+        @JsStatic override fun toString(): String = "TEST"
+    }
+
+    object A {
+        @JsStatic fun a2() {
+
+        }
+    }
+
+    fun test() {
+        val s = object {
+            <!JS_STATIC_NOT_IN_OBJECT!>@JsStatic fun a3()<!> {
+
+            }
+        }
+    }
+
+    <!JS_STATIC_NOT_IN_OBJECT!>@JsStatic fun a4()<!> {
+
+    }
+}
+
+interface B {
+    companion object {
+        @JsStatic fun a1() {
+
+        }
+    }
+
+    object A {
+        @JsStatic fun a2() {
+
+        }
+    }
+
+    fun test() {
+        val s = object {
+            <!JS_STATIC_NOT_IN_OBJECT!>@JsStatic fun a3()<!> {
+
+            }
+        }
+    }
+
+    <!JS_STATIC_NOT_IN_OBJECT!>@JsStatic fun a4()<!> {
+
+    }
+}
+
+<!JS_STATIC_NOT_IN_OBJECT!>@JsStatic
+fun A.Companion.bar()<!> {}

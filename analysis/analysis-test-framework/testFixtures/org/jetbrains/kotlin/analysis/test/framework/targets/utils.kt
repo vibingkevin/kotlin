@@ -1,0 +1,45 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.analysis.test.framework.targets
+
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.impl.base.symbols.findSyntheticJavaPropertyAccessor
+import org.jetbrains.kotlin.analysis.api.scopes.combinedDeclaredMemberScope
+import org.jetbrains.kotlin.analysis.api.scopes.combinedMemberScope
+import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.containingDeclaration
+import org.jetbrains.kotlin.name.CallableId
+
+context(_: KaSession)
+internal fun findMatchingCallableSymbols(callableId: CallableId, classSymbol: KaClassSymbol): List<KaCallableSymbol> {
+    val declaredSymbols = classSymbol.combinedDeclaredMemberScope
+        .callables(callableId.callableName)
+        .toList()
+
+    if (declaredSymbols.isNotEmpty()) {
+        return declaredSymbols
+    }
+
+    // For Java getter/setter methods that are synthesized as Kotlin properties,
+    // look up the synthetic property and return the corresponding accessor's underlying function.
+    classSymbol.combinedDeclaredMemberScope
+        .findSyntheticJavaPropertyAccessor(callableId.callableName) { propertySymbol, accessorKind, _ ->
+            val javaMethodSymbol = accessorKind.getJavaAccessorSymbol(propertySymbol)
+            if (javaMethodSymbol?.name == callableId.callableName) {
+                javaMethodSymbol
+            } else {
+                null
+            }
+        }
+        ?.let { return listOf(it) }
+
+    // Fake overrides are absent in the declared member scope.
+    return classSymbol.combinedMemberScope
+        .callables(callableId.callableName)
+        .filter { it.containingDeclaration == classSymbol }
+        .toList()
+}

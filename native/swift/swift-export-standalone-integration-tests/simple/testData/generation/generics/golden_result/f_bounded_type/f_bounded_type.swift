@@ -1,0 +1,86 @@
+@_implementationOnly import KotlinBridges_f_bounded_type
+import KotlinRuntime
+import KotlinRuntimeSupport
+
+public protocol MyComparable: KotlinRuntime.KotlinBase, f_bounded_type._MyComparable {
+    func compareTo(
+        other: (any KotlinRuntimeSupport._KotlinBridgeable)?
+    ) -> Swift.Int32
+}
+@objc(_f_bounded_type_MyComparable)
+public protocol _MyComparable {
+}
+public protocol __MyComparable: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public final class BaseClass: KotlinRuntime.KotlinBase {
+    public var v: any f_bounded_type.MyComparable {
+        get {
+            return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: BaseClass_v_get(self.__externalRCRef()), conformsTo: f_bounded_type.MyComparable.Type.self) as! any f_bounded_type.MyComparable
+        }
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public final class ConcreteSelfReferencing: f_bounded_type.SelfReferencing {
+    public init() {
+        let __kt = __root___ConcreteSelfReferencing_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { __root___ConcreteSelfReferencing_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+open class SelfReferencing: KotlinRuntime.KotlinBase {
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+    open func compareTo(
+        other: f_bounded_type.SelfReferencing
+    ) -> Swift.Int32 {
+        if Self.self == f_bounded_type.SelfReferencing.self {
+            return SelfReferencing_compareTo__TypesOfArguments__f_bounded_type_SelfReferencing__(self.__externalRCRef(), other.__externalRCRef())
+        } else {
+            return SelfReferencing_compareTo__TypesOfArguments__f_bounded_type_SelfReferencing___direct(self.__externalRCRef(), other.__externalRCRef())
+        }
+    }
+}
+@_documentation(visibility: internal)
+extension f_bounded_type.MyComparable where Self : f_bounded_type.__MyComparable {
+    public func compareTo(
+        other: (any KotlinRuntimeSupport._KotlinBridgeable)?
+    ) -> Swift.Int32 {
+        return MyComparable_compareTo__TypesOfArguments__Swift_Optional_anyU20KotlinRuntimeSupport__KotlinBridgeable___(self.__externalRCRef(), other.map { it in it.__externalRCRef() } ?? nil)
+    }
+}
+extension f_bounded_type.MyComparable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: f_bounded_type.MyComparable, f_bounded_type.__MyComparable where Wrapped : f_bounded_type._MyComparable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: f_bounded_type._MyComparable {
+}
+@_cdecl("MyComparable_compareTo__TypesOfArguments__Swift_Optional_anyU20KotlinRuntimeSupport__KotlinBridgeable_____reverse_swift")
+package func MyComparable_compareTo__TypesOfArguments__Swift_Optional_anyU20KotlinRuntimeSupport__KotlinBridgeable_____reverse_swift(_ `self`: Swift.UnsafeMutableRawPointer, _ other: Swift.UnsafeMutableRawPointer?) -> Swift.Int32 {
+    let _self = KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: `self`, conformsTo: f_bounded_type.MyComparable.Type.self) as! any f_bounded_type.MyComparable
+    let _result: Swift.Int32 = _self.compareTo(other: { switch other { case nil: .none; case let res?: KotlinRuntime.KotlinBase.__createBridgeable(externalRCRef: res); } }())
+    return _result
+}
+
+@_cdecl("SelfReferencing_compareTo__TypesOfArguments__f_bounded_type_SelfReferencing____reverse_swift")
+package func SelfReferencing_compareTo__TypesOfArguments__f_bounded_type_SelfReferencing____reverse_swift(_ `self`: Swift.UnsafeMutableRawPointer, _ other: Swift.UnsafeMutableRawPointer) -> Swift.Int32 {
+    let _self = KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: `self`, conformsTo: f_bounded_type.MyComparable.Type.self) as! any f_bounded_type.MyComparable
+    let _result: Swift.Int32 = _self.compareTo(other: f_bounded_type.SelfReferencing.__createClassWrapper(externalRCRef: other))
+    return _result
+}

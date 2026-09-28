@@ -1,0 +1,80 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.assignment.plugin
+
+import org.jetbrains.kotlin.assignment.plugin.AssignmentDirectives.ENABLE_ASSIGNMENT
+import org.jetbrains.kotlin.assignment.plugin.k2.FirAssignmentPluginExtensionRegistrar
+import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
+import org.jetbrains.kotlin.compiler.plugin.registerExtension
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
+import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
+import org.jetbrains.kotlin.test.directives.DiagnosticsDirectives.RENDER_DIAGNOSTICS_FULL_TEXT
+import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
+import org.jetbrains.kotlin.test.directives.model.SimpleDirectivesContainer
+import org.jetbrains.kotlin.test.model.TestModule
+import org.jetbrains.kotlin.test.runners.AbstractFirPsiDiagnosticTest
+import org.jetbrains.kotlin.test.runners.codegen.AbstractFirLightTreeBlackBoxCodegenTest
+import org.jetbrains.kotlin.test.services.EnvironmentConfigurator
+import org.jetbrains.kotlin.test.services.TestServices
+
+// ------------------------ diagnostics ------------------------
+
+abstract class AbstractFirPsiAssignmentPluginDiagnosticTest : AbstractFirPsiDiagnosticTest() {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.configurePlugin()
+        builder.configureDiagnostics()
+    }
+}
+
+// ------------------------ codegen ------------------------
+
+open class AbstractFirLightTreeBlackBoxCodegenTestForAssignmentPlugin : AbstractFirLightTreeBlackBoxCodegenTest() {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.configurePlugin()
+    }
+}
+
+// ------------------------ configuration ------------------------
+
+fun TestConfigurationBuilder.configurePlugin() {
+    defaultDirectives {
+        +ENABLE_ASSIGNMENT
+    }
+    useConfigurators(::AssignmentPluginEnvironmentConfigurator)
+}
+
+fun TestConfigurationBuilder.configureDiagnostics() {
+    defaultDirectives {
+        +RENDER_DIAGNOSTICS_FULL_TEXT
+    }
+}
+
+class AssignmentPluginEnvironmentConfigurator(testServices: TestServices) : EnvironmentConfigurator(testServices) {
+    companion object {
+        private val TEST_ANNOTATIONS = listOf(
+            "ValueContainer",
+            "qualified.ValueContainer",
+        )
+    }
+
+    override val directiveContainers: List<DirectivesContainer>
+        get() = listOf(AssignmentDirectives)
+
+    override fun CompilerPluginRegistrar.ExtensionStorage.registerCompilerExtensions(
+        module: TestModule,
+        configuration: CompilerConfiguration
+    ) {
+        if (ENABLE_ASSIGNMENT !in module.directives) return
+        FirExtensionRegistrar.registerExtension(FirAssignmentPluginExtensionRegistrar(TEST_ANNOTATIONS))
+    }
+}
+
+object AssignmentDirectives : SimpleDirectivesContainer() {
+    val ENABLE_ASSIGNMENT by directive("Enables assignment plugin")
+}

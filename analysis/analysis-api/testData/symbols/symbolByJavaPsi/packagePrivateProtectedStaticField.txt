@@ -1,0 +1,31 @@
+KaJavaFieldSymbol:
+  anchorPsi: PsiFieldImpl
+  annotations: []
+  callableId: /JavaClass.count
+  contextParameters: []
+  contextReceivers: []
+  isActual: false
+  isCompanion: true
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isStatic: true
+  isVal: false
+  location: CLASS
+  modality: FINAL
+  name: count
+  origin: JAVA_SOURCE
+  psi: PsiFieldImpl
+  realPsi: PsiFieldImpl
+  receiverParameter: null
+  returnType: KaFlexibleType:
+    annotations: []
+    type: kotlin/Int!
+  typeParameters: []
+  visibility: PACKAGE_PROTECTED
+  getContainingFileSymbol: null
+  getContainingJvmClassName: JavaClass
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: JavaClass.count

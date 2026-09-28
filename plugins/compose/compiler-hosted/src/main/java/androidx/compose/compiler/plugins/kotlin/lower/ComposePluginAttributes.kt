@@ -1,0 +1,45 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package androidx.compose.compiler.plugins.kotlin.lower
+
+import androidx.compose.compiler.plugins.kotlin.FunctionMetrics
+import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
+import org.jetbrains.kotlin.ir.irAttribute
+import org.jetbrains.kotlin.ir.irFlag
+
+internal var IrDeclaration.isDefaultParamStub: Boolean by irFlag(copyByDefault = true)
+
+internal var IrDeclaration.isBodyProcessedDefaultParamStub: Boolean by irFlag(copyByDefault = true)  // TODO unify with `isDefaultParamStub` and move all stub generation to before `ComposerParamTransfomer` or in it
+
+internal var IrFunctionAccessExpression.associatedComposableSingletonStub: IrCall? by irAttribute(copyByDefault = true)
+
+internal var IrSimpleFunction.isVirtualFunctionWithDefaultParam: Boolean? by irAttribute(copyByDefault = true)
+
+internal var IrFunction.functionMetrics: FunctionMetrics? by irAttribute(copyByDefault = true)
+
+internal var IrFunction.isComposableReferenceAdapter: Boolean by irFlag(copyByDefault = true)
+
+internal var IrFunction.isComposableReferenceInvoke: Boolean by irFlag(copyByDefault = true)
+
+internal var IrExpression.isStaticFunctionExpression: Boolean by irFlag(copyByDefault = true)
+
+internal var IrExpression.isStaticExpression: Boolean by irFlag(copyByDefault = true)
+
+internal var IrElement.isComposableSingleton: Boolean by irFlag(copyByDefault = true)
+
+internal var IrElement.isComposableSingletonClass: Boolean by irFlag(copyByDefault = true)
+
+internal var IrElement.durableFunctionKey: KeyInfo? by irAttribute(copyByDefault = true)
+
+internal var IrElement.hasTransformedLambda: Boolean by irFlag(copyByDefault = true)
+
+internal var IrElement.isTransformedLambda: Boolean by irFlag(copyByDefault = true)

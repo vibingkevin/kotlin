@@ -1,0 +1,131 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.incremental
+
+import org.jetbrains.kotlin.generators.dsl.TestGroup
+import org.jetbrains.kotlin.generators.dsl.junit5.generateTestGroupSuiteWithJUnit5
+import org.jetbrains.kotlin.incremental.IncrementalTestsGeneratorUtil.IcTestTypes.*
+import org.jetbrains.kotlin.incremental.IncrementalTestsGeneratorUtil.incrementalJvmTestData
+
+fun main(args: Array<String>) {
+    generateTestGroupSuiteWithJUnit5(args) {
+        testGroup("compiler/incremental-compilation-impl/tests-gen", "jps/jps-plugin/testData") {
+            // K2
+            testClass<AbstractIncrementalJvmCompilerRunnerTest>(
+                init = incrementalJvmTestData(
+                    folderToExcludePatternMap = mapOf(
+                        PURE_KOTLIN to ExcludePattern.forK2
+                    )
+                )
+            )
+
+            testClass<AbstractIncrementalFirICJvmCompilerRunnerTest>(
+                init = incrementalJvmTestData(
+                    folderToExcludePatternMap = mapOf(
+                        PURE_KOTLIN to ExcludePattern.forK2,
+                        WITH_JAVA to "^classToPackageFacade" // KT-56698
+                    )
+                )
+            )
+
+            testClass<AbstractIncrementalJsKlibMultiModuleCompilerRunnerTest> {
+                modelForDirectoryBasedTest("incremental/multiModule", "common", extension = null, excludeParentDirs = true)
+            }
+
+            // TODO: https://youtrack.jetbrains.com/issue/KT-61602/JS-K2-ICL-Fix-muted-tests
+            testClass<AbstractIncrementalJsKlibCompilerWithScopeExpansionRunnerTest> {
+                // IC of sealed interfaces are not supported in JS
+                modelForDirectoryBasedTest(
+                    "incremental", "pureKotlin", extension = null, recursive = false,
+                    // TODO: 'fileWithConstantRemoved' should be fixed in https://youtrack.jetbrains.com/issue/KT-58824
+                    excludedPattern = "^(sealed.*|fileWithConstantRemoved|propertyRedeclaration|funRedeclaration|funVsConstructorOverloadConflict)"
+                )
+                modelForDirectoryBasedTest(
+                    "incremental", "classHierarchyAffected", extension = null, recursive = false,
+                    excludedPattern = "secondaryConstructorAdded"
+                )
+                modelForDirectoryBasedTest("incremental", "js", extension = null, excludeParentDirs = true)
+            }
+            //TODO: write a proper k2 multiplatform test runner KT-63183
+        }
+    }
+}
+
+private object IncrementalTestsGeneratorUtil {
+    enum class IcTestTypes(val folderName: String) {
+        ALL("all"),
+        PURE_KOTLIN("pureKotlin"),
+        CLASS_HIERARCHY_AFFECTED("classHierarchyAffected"),
+        INLINE_FUN_CALL_SITE("inlineFunCallSite"),
+        WITH_JAVA("withJava"),
+        INCREMENTAL_JVM_COMPILER_ONLY("incrementalJvmCompilerOnly")
+    }
+
+    private fun buildExcludePattern(excludePatterns: List<String>): String? =
+        excludePatterns.joinToString("|") { "($it)" }.ifBlank { null }
+
+    fun incrementalJvmTestData(
+        folderToExcludePatternMap: Map<IcTestTypes, String>? = null
+    ): TestGroup.TestClass.() -> Unit = {
+        val excludeForAllTestData = folderToExcludePatternMap?.get(ALL)
+        modelForDirectoryBasedTest(
+            "incremental", PURE_KOTLIN.folderName,
+            extension = null,
+            recursive = false,
+            excludedPattern = buildExcludePattern(listOfNotNull(folderToExcludePatternMap?.get(PURE_KOTLIN), excludeForAllTestData))
+        )
+        modelForDirectoryBasedTest(
+            "incremental", CLASS_HIERARCHY_AFFECTED.folderName,
+            extension = null,
+            recursive = false,
+            excludedPattern = buildExcludePattern(
+                listOfNotNull(
+                    folderToExcludePatternMap?.get(CLASS_HIERARCHY_AFFECTED),
+                    excludeForAllTestData
+                )
+            )
+        )
+        modelForDirectoryBasedTest(
+            "incremental", INLINE_FUN_CALL_SITE.folderName,
+            extension = null,
+            excludeParentDirs = true,
+            excludedPattern = buildExcludePattern(
+                listOfNotNull(
+                    folderToExcludePatternMap?.get(INLINE_FUN_CALL_SITE),
+                    excludeForAllTestData
+                )
+            )
+        )
+        modelForDirectoryBasedTest(
+            "incremental", WITH_JAVA.folderName,
+            extension = null,
+            excludeParentDirs = true,
+            excludedPattern = buildExcludePattern(listOfNotNull(folderToExcludePatternMap?.get(WITH_JAVA), excludeForAllTestData))
+        )
+        modelForDirectoryBasedTest(
+            "incremental", INCREMENTAL_JVM_COMPILER_ONLY.folderName,
+            extension = null,
+            excludeParentDirs = true,
+            excludedPattern = buildExcludePattern(
+                listOfNotNull(
+                    folderToExcludePatternMap?.get(INCREMENTAL_JVM_COMPILER_ONLY),
+                    excludeForAllTestData
+                )
+            )
+        )
+    }
+}
+
+private object ExcludePattern {
+    private const val MEMBER_ALIAS = "(^removeMemberTypeAlias)|(^addMemberTypeAlias)"
+
+    private const val ALL_EXPECT = "(^.*Expect.*)"
+
+    val forK2 = listOf(
+        ALL_EXPECT, // KT-63125 - Partially related to single-module expect-actual tests, but regexp is really wide
+        MEMBER_ALIAS, // KT-55195 - Invalid for K2
+    ).joinToString("|")
+}

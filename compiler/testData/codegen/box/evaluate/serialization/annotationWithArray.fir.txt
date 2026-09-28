@@ -1,0 +1,37 @@
+Module: lib
+FILE: lib.kt
+    @R|kotlin/annotation/Target|(allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.CLASS|) [evaluated = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.CLASS|)]) @R|kotlin/annotation/Retention|(value = Q|kotlin/annotation/AnnotationRetention|.R|kotlin/annotation/AnnotationRetention.BINARY| [evaluated = Q|kotlin/annotation/AnnotationRetention|.R|kotlin/annotation/AnnotationRetention.BINARY|]) public final annotation class AnnotationWithVararg : R|kotlin/Annotation| {
+        public constructor(vararg array: R|kotlin/Array<out kotlin/String>|): R|AnnotationWithVararg| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val array: R|kotlin/Array<out kotlin/String>| = R|<local>/array|
+            public get(): R|kotlin/Array<out kotlin/String>|
+
+    }
+    @R|kotlin/annotation/Target|(allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.CLASS|) [evaluated = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.CLASS|)]) @R|kotlin/annotation/Retention|(value = Q|kotlin/annotation/AnnotationRetention|.R|kotlin/annotation/AnnotationRetention.BINARY| [evaluated = Q|kotlin/annotation/AnnotationRetention|.R|kotlin/annotation/AnnotationRetention.BINARY|]) public final annotation class AnnotationWithArray : R|kotlin/Annotation| {
+        public constructor(array: R|kotlin/Array<kotlin/String>|): R|AnnotationWithArray| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val array: R|kotlin/Array<kotlin/String>| = R|<local>/array|
+            public get(): R|kotlin/Array<kotlin/String>|
+
+    }
+    @R|AnnotationWithVararg|(array = vararg(<strcat>(String(Str), String(ing)), String(String2), <strcat>(String(String), Int(3))) [evaluated = vararg(String(String), String(String2), String(String3))]) public final class A : R|kotlin/Any| {
+        public constructor(): R|A| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    @R|AnnotationWithArray|(array = <collectionLiteralCall>(<strcat>(String(Str), String(ing)), String(String2), <strcat>(String(String), Int(3))) [evaluated = <collectionLiteralCall>(String(String), String(String2), String(String3))]) public final class B : R|kotlin/Any| {
+        public constructor(): R|B| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+Module: main
+FILE: main.kt
+    public final fun box(): R|kotlin/String| {
+        ^box String(OK)
+    }

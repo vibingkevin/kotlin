@@ -1,0 +1,317 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin
+
+import com.intellij.psi.impl.source.tree.ICodeFragmentElementType
+import com.intellij.psi.tree.IElementType
+import com.intellij.psi.tree.IFileElementType
+import org.jetbrains.kotlin.psi.KtExperimentalApi
+import org.jetbrains.kotlin.psi.KtImplementationDetail
+
+@OptIn(KtImplementationDetail::class)
+internal object KtStubBasedElementTypes {
+    private val provider = KotlinElementTypeProvider.instance
+
+    @JvmField
+    val FILE: IFileElementType =
+        provider.fileType
+
+
+    // Classifiers
+
+    @JvmField
+    val CLASS: KtNodeType = provider.classType
+
+    @JvmField
+    val OBJECT_DECLARATION: KtNodeType = provider.objectType
+
+    @JvmField
+    val TYPEALIAS: KtNodeType = provider.typeAliasType
+
+    @JvmField
+    val CLASS_BODY: KtNodeType = provider.classBodyType
+
+    @JvmField
+    @KtExperimentalApi
+    val COMPANION_BLOCK: KtNodeType = provider.companionBlockType
+
+
+    // Initializers
+
+    @JvmField
+    val CLASS_INITIALIZER: KtNodeType = provider.classInitializerType
+
+    @JvmField
+    val SCRIPT_INITIALIZER: KtNodeType = provider.scriptInitializerType
+
+
+    // Callables
+
+    @JvmField
+    val FUNCTION: KtNodeType = provider.functionType
+
+    @JvmField
+    val PROPERTY: KtNodeType = provider.propertyType
+
+    @JvmField
+    val ENUM_ENTRY: KtNodeType = provider.enumEntryType
+
+    @JvmField
+    val PRIMARY_CONSTRUCTOR: KtNodeType = provider.primaryConstructorType
+
+    @JvmField
+    val SECONDARY_CONSTRUCTOR: KtNodeType = provider.secondaryConstructorType
+
+    @JvmField
+    val CONSTRUCTOR_CALLEE: KtNodeType = provider.constructorCalleeType
+
+    @JvmField
+    val PROPERTY_ACCESSOR: KtNodeType = provider.propertyAccessorType
+
+    @JvmField
+    val BACKING_FIELD: KtNodeType = provider.backingFieldType
+
+    @JvmField
+    val DESTRUCTURING_DECLARATION: KtNodeType = provider.destructuringDeclarationType
+
+    @JvmField
+    val INITIALIZER_LIST: KtNodeType = provider.initializerListType
+
+
+    // Value parameters
+
+    @JvmField
+    val VALUE_PARAMETER_LIST: KtNodeType = provider.valueParameterListType
+
+    @JvmField
+    val VALUE_PARAMETER: KtNodeType = provider.valueParameterType
+
+    @JvmField
+    val CONTEXT_PARAMETER_LIST: KtNodeType = provider.contextParameterListType
+
+    @JvmField
+    val CONTEXT_RECEIVER: KtNodeType = provider.contextReceiverType
+
+
+    // Type parameters
+
+    @JvmField
+    val TYPE_PARAMETER_LIST: KtNodeType = provider.typeParameterListType
+
+    @JvmField
+    val TYPE_PARAMETER: KtNodeType = provider.typeParameterType
+
+    @JvmField
+    val TYPE_CONSTRAINT_LIST: KtNodeType = provider.typeConstraintListType
+
+    @JvmField
+    val TYPE_CONSTRAINT: KtNodeType = provider.typeConstraintType
+
+
+    // Supertypes
+
+    @JvmField
+    val SUPER_TYPE_LIST: KtNodeType = provider.superTypeListType
+
+    @JvmField
+    val DELEGATED_SUPER_TYPE_ENTRY: KtNodeType = provider.delegatedSuperTypeEntryType
+
+    @JvmField
+    val SUPER_TYPE_CALL_ENTRY: KtNodeType = provider.superTypeCallEntryType
+
+    @JvmField
+    val SUPER_TYPE_ENTRY: KtNodeType = provider.superTypeEntryType
+
+
+    // Modifiers and annotations
+
+    @JvmField
+    val MODIFIER_LIST: KtNodeType = provider.modifierListType
+
+    @JvmField
+    val ANNOTATION: KtNodeType = provider.annotationType
+
+    @JvmField
+    val ANNOTATION_ENTRY: KtNodeType = provider.annotationEntryType
+
+    @JvmField
+    val ANNOTATION_TARGET: KtNodeType = provider.annotationTargetType
+
+
+    // Type references
+
+    @JvmField
+    val TYPE_REFERENCE: KtNodeType = provider.typeReferenceType
+
+    @JvmField
+    val USER_TYPE: KtNodeType = provider.userTypeType
+
+    @JvmField
+    val DYNAMIC_TYPE: KtNodeType = provider.dynamicTypeType
+
+    @JvmField
+    val FUNCTION_TYPE: KtNodeType = provider.functionTypeType
+
+    @JvmField
+    val FUNCTION_TYPE_RECEIVER: KtNodeType = provider.functionTypeReceiverType
+
+    @JvmField
+    val NULLABLE_TYPE: KtNodeType = provider.nullableTypeType
+
+    @JvmField
+    val INTERSECTION_TYPE: KtNodeType = provider.intersectionTypeType
+
+    @JvmField
+    val UNION_TYPE: KtNodeType = provider.unionTypeType
+
+    @JvmField
+    val TYPE_PROJECTION: KtNodeType = provider.typeProjectionType
+
+
+    // Constants
+
+    @JvmField
+    val NULL: KtNodeType = provider.nullType
+
+    @JvmField
+    val BOOLEAN_CONSTANT: KtNodeType = provider.booleanConstantType
+
+    @JvmField
+    val FLOAT_CONSTANT: KtNodeType = provider.floatConstantType
+
+    @JvmField
+    val CHARACTER_CONSTANT: KtNodeType = provider.characterConstantType
+
+    @JvmField
+    val INTEGER_CONSTANT: KtNodeType = provider.integerConstantType
+
+
+    // String templates
+
+    @JvmField
+    val STRING_TEMPLATE: KtNodeType = provider.stringTemplateType
+
+    @JvmField
+    val LONG_STRING_TEMPLATE_ENTRY: KtNodeType = provider.longStringTemplateEntryType
+
+    @JvmField
+    val SHORT_STRING_TEMPLATE_ENTRY: KtNodeType = provider.shortStringTemplateEntryType
+
+    @JvmField
+    val LITERAL_STRING_TEMPLATE_ENTRY: KtNodeType = provider.literalStringTemplateEntryType
+
+    @JvmField
+    val ESCAPE_STRING_TEMPLATE_ENTRY: KtNodeType = provider.escapeStringTemplateEntryType
+
+    @JvmField
+    val STRING_INTERPOLATION_PREFIX: KtNodeType = provider.stringInterpolationPrefixType
+
+
+    // Expressions
+
+    @JvmField
+    val BLOCK: IElementType =
+        provider.blockExpressionType
+
+    @JvmField
+    val LAMBDA_EXPRESSION: IElementType =
+        provider.lambdaExpressionType
+
+    @JvmField
+    val REFERENCE_EXPRESSION: KtNodeType = provider.referenceExpressionType
+
+    @JvmField
+    val ENUM_ENTRY_SUPERCLASS_REFERENCE_EXPRESSION: KtNodeType = provider.enumEntrySuperclassReferenceExpressionType
+
+    @JvmField
+    val OPERATION_REFERENCE: KtNodeType = provider.operationReferenceType
+
+    @JvmField
+    val DOT_QUALIFIED_EXPRESSION: KtNodeType = provider.dotQualifiedExpressionType
+
+    @JvmField
+    val CALL_EXPRESSION: KtNodeType = provider.callExpressionType
+
+    @JvmField
+    val PREFIX_EXPRESSION: KtNodeType = provider.prefixExpressionType
+
+    @JvmField
+    val POSTFIX_EXPRESSION: KtNodeType = provider.postfixExpressionType
+
+    @JvmField
+    val BINARY_EXPRESSION: KtNodeType = provider.binaryExpressionType
+
+    @JvmField
+    val PARENTHESIZED: KtNodeType = provider.parenthesizedExpressionType
+
+    @JvmField
+    val CLASS_LITERAL_EXPRESSION: KtNodeType = provider.classLiteralExpressionType
+
+    @JvmField
+    val COLLECTION_LITERAL_EXPRESSION: KtNodeType = provider.collectionLiteralExpressionType
+
+    @JvmField
+    val OBJECT_LITERAL: KtNodeType = provider.objectLiteralType
+
+    // Arguments
+
+    @JvmField
+    val TYPE_ARGUMENT_LIST: KtNodeType = provider.typeArgumentListType
+
+    @JvmField
+    val VALUE_ARGUMENT_LIST: KtNodeType = provider.valueArgumentListType
+
+    @JvmField
+    val VALUE_ARGUMENT: KtNodeType = provider.valueArgumentType
+
+    @JvmField
+    val CONTRACT_EFFECT_LIST: KtNodeType = provider.contractEffectListType
+
+    @JvmField
+    val CONTRACT_EFFECT: KtNodeType = provider.contractEffectType
+
+    @JvmField
+    val LAMBDA_ARGUMENT: KtNodeType = provider.lambdaArgumentType
+
+    @JvmField
+    val VALUE_ARGUMENT_NAME: KtNodeType = provider.valueArgumentNameType
+
+
+    // Special
+
+    @JvmField
+    val PACKAGE_DIRECTIVE: KtNodeType = provider.packageDirectiveType
+
+    @JvmField
+    val FILE_ANNOTATION_LIST: KtNodeType = provider.fileAnnotationListType
+
+    @JvmField
+    val IMPORT_LIST: KtNodeType = provider.importListType
+
+    @JvmField
+    val IMPORT_DIRECTIVE: KtNodeType = provider.importDirectiveType
+
+    @JvmField
+    val IMPORT_ALIAS: KtNodeType = provider.importAliasType
+
+    @JvmField
+    val SCRIPT: KtNodeType = provider.scriptType
+
+
+    // Code fragments
+
+    @JvmField
+    val EXPRESSION_CODE_FRAGMENT: ICodeFragmentElementType =
+        provider.expressionCodeFragmentType
+
+    @JvmField
+    val BLOCK_CODE_FRAGMENT: ICodeFragmentElementType =
+        provider.blockCodeFragmentType
+
+    @JvmField
+    val TYPE_CODE_FRAGMENT: ICodeFragmentElementType =
+        provider.typeCodeFragmentType
+}

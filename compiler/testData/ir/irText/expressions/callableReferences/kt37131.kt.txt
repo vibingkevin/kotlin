@@ -1,0 +1,41 @@
+class C {
+  val x: String
+    field = x
+    get
+
+  constructor(x: String = "") /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+}
+
+fun foo(x: String = ""): String {
+  return x
+}
+
+fun testCtor(): Any {
+  return use(fn = Function0<C>(
+    /* bound = */ [],
+    /* invoke = */    local fun(): C {
+      return C()
+    }
+  )
+)
+}
+
+fun testFn(): Any {
+  return use(fn = Function0<String>(
+    /* bound = */ [],
+    /* invoke = */    local fun(): String {
+      return foo()
+    }
+  )
+)
+}
+
+fun use(fn: Function0<Any>): Any {
+  return fn.invoke()
+}
+

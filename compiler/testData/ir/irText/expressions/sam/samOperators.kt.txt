@@ -1,0 +1,78 @@
+fun f() {
+}
+
+fun J.test1() {
+  <this>.get(k = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */)
+  <this>.get(k = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */, m = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */)
+}
+
+fun J.test2() {
+  <this>.set(k = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */, v = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */)
+  <this>.set(k = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */, m = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */, v = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */)
+}
+
+fun J.test3() {
+  <this>.plusAssign(i = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */)
+  <this>.minusAssign(i = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return f()
+    }
+  )
+ /*-> Runnable */)
+}
+

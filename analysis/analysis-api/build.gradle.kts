@@ -1,0 +1,80 @@
+import org.jetbrains.kotlin.build.foreign.registerForeignClassUsageTasks
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+    id("kotlin-git.gradle-build-conventions.foreign-class-usage-checker")
+    id("test-inputs-check")
+}
+
+kotlin {
+    explicitApiWarning()
+}
+
+dependencies {
+    compileOnly(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
+
+    compileOnly(project(":core:language.model"))
+    compileOnly(project(":core:language.targets"))
+    compileOnly(project(":core:language.version-settings"))
+    compileOnly(project(":compiler:psi:psi-api"))
+    compileOnly(project(":core:compiler.common"))
+    compileOnly(project(":core:compiler.common.jvm"))
+    implementation(kotlinxCollectionsImmutable())
+
+    api(intellijCore())
+    implementation(libs.intellij.asm)
+
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+
+    testImplementation(testFixtures(project(":compiler:psi:psi-api")))
+    testImplementation(testFixtures(project(":compiler:tests-common")))
+    testImplementation(project(":analysis:analysis-internal-utils"))
+}
+
+private val unstableNonPublicMarkers = listOf(
+    "org.jetbrains.kotlin.analysis.api.KaImplementationDetail",
+    "org.jetbrains.kotlin.analysis.api.KaNonPublicApi",
+    "org.jetbrains.kotlin.analysis.api.KaIdeApi",
+)
+
+private val stableNonPublicMarkers = unstableNonPublicMarkers + listOf(
+    "org.jetbrains.kotlin.analysis.api.KaExperimentalApi",
+    "org.jetbrains.kotlin.analysis.api.KaPlatformInterface", // Platform interface is not stable yet
+    "org.jetbrains.kotlin.analysis.api.KaContextParameterApi",
+)
+
+kotlin {
+    explicitApi()
+
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation {
+        filters {
+            exclude.annotatedWith.addAll(stableNonPublicMarkers)
+        }
+    }
+}
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" { none() }
+}
+
+projectTests {
+    testCodebaseTask()
+}
+
+registerForeignClassUsageTasks {
+    outputFile = file("api/analysis-api.foreign")
+    nonPublicMarkers.addAll(stableNonPublicMarkers)
+}
+
+registerForeignClassUsageTasks(nameSuffix = "Unstable") {
+    outputFile = file("api-unstable/analysis-api.foreign")
+    nonPublicMarkers.addAll(unstableNonPublicMarkers)
+}

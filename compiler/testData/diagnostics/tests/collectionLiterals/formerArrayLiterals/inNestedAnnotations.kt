@@ -1,0 +1,20 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// ISSUE: KT-79330
+
+annotation class Foo(val arr: Array<Bar> = [])
+annotation class Bar(val arr: Array<Foo>)
+annotation class Baz(val bar: Bar = Bar([]))
+annotation class Bad(val bar: Bar = <!ANNOTATION_PARAMETER_DEFAULT_VALUE_MUST_BE_CONSTANT!>Bar([<!UNRESOLVED_COLLECTION_LITERAL!>[]<!>])<!>)
+
+@Foo
+@Bar([])
+@Baz(Bar([<!ANNOTATION_ARGUMENT_MUST_BE_CONST, UNRESOLVED_COLLECTION_LITERAL!>[]<!>]))
+fun target() = Unit
+
+@Foo([Bar([])])
+@Bar([Foo([Bar([Foo()])])])
+@Baz(Bar([Foo([Bar([])])]))
+fun secondTarget() = Unit
+
+/* GENERATED_FIR_TAGS: annotationDeclaration, collectionLiteral, functionDeclaration, primaryConstructor,
+propertyDeclaration */

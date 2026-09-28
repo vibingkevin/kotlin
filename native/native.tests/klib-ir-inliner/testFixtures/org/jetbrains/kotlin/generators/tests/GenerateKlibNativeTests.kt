@@ -1,0 +1,229 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.generators.tests
+
+import org.jetbrains.kotlin.generators.dsl.junit5.generateTestGroupSuiteWithJUnit5
+import org.jetbrains.kotlin.generators.model.annotation
+import org.jetbrains.kotlin.konan.test.abi.AbstractNativeLibraryAbiReaderTest
+import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeCodegenBoxTest
+import org.jetbrains.kotlin.konan.test.blackbox.support.ClassLevelProperty
+import org.jetbrains.kotlin.konan.test.blackbox.support.EnforcedProperty
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestKind
+import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseExtTestCaseGroupProvider
+import org.jetbrains.kotlin.konan.test.blackbox.support.group.UseDummyTestCaseGroupProvider
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.CacheMode
+import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeCodegenBoxCoreTest
+import org.jetbrains.kotlin.konan.test.diagnostics.*
+import org.jetbrains.kotlin.konan.test.dump.AbstractNativeKlibDumpSignaturesTest
+import org.jetbrains.kotlin.konan.test.dump.AbstractNativeKlibDumpIrTest
+import org.jetbrains.kotlin.konan.test.dump.AbstractNativeKlibDumpMetadataSerializationTest
+import org.jetbrains.kotlin.konan.test.dump.AbstractNativeKlibDumpMetadataTest
+import org.jetbrains.kotlin.konan.test.headerklib.AbstractNativeHeaderKlibComparisonTest
+import org.jetbrains.kotlin.konan.test.headerklib.AbstractNativeHeaderKlibCompilationTest
+import org.jetbrains.kotlin.konan.test.irText.AbstractLightTreeNativeIrTextTest
+import org.jetbrains.kotlin.konan.test.irText.AbstractPsiNativeIrTextTest
+import org.jetbrains.kotlin.konan.test.klib.AbstractKlibCrossCompilationIdentityTest
+import org.jetbrains.kotlin.konan.test.serialization.AbstractNativeIrDeserializationTest
+import org.jetbrains.kotlin.konan.test.syntheticAccessors.AbstractNativeKlibSyntheticAccessorTest
+import org.jetbrains.kotlin.konan.test.dump.AbstractNativeLoadCompiledKotlinTest
+import org.jetbrains.kotlin.konan.test.headerMode.AbstractNativeCodegenBoxCoreHeaderModeTest
+import org.jetbrains.kotlin.test.utils.CUSTOM_TEST_DATA_EXTENSION_PATTERN
+import org.junit.jupiter.api.Tag
+
+fun main(args: Array<String>) {
+    System.setProperty("java.awt.headless", "true")
+    val k1BoxTestDir = listOf("multiplatform/k1")
+    val testsRoot = args[0]
+    val excludedCustomTestdataPattern = CUSTOM_TEST_DATA_EXTENSION_PATTERN
+
+    generateTestGroupSuiteWithJUnit5(args) {
+        // irText tests
+        testGroup(testsRoot, "compiler/testData/ir/irText") {
+            testClass<AbstractLightTreeNativeIrTextTest> {
+                model()
+            }
+            testClass<AbstractPsiNativeIrTextTest> {
+                model()
+            }
+        }
+
+        // New frontend test infrastructure tests
+        testGroup(testsRoot = testsRoot, testDataRoot = "compiler/testData/diagnostics") {
+            testClass<AbstractPsiNativeDiagnosticsWithBackendTestBase>(
+                suiteTestClassName = "PsiNativeKlibDiagnosticsTestGenerated",
+                annotations = listOf(klib())
+            ) {
+                model("klibSerializationTests", excludedPattern = excludedCustomTestdataPattern)
+                // KT-67300: TODO: extract specialBackendChecks into own test runner, invoking Native backend facade at the end
+                model("nativeTests", excludedPattern = excludedCustomTestdataPattern)
+            }
+
+            testClass<AbstractLightTreeNativeDiagnosticsWithBackendTestBase>(
+                suiteTestClassName = "LightTreeNativeKlibDiagnosticsTestGenerated",
+                annotations = listOf(klib())
+            ) {
+                model("klibSerializationTests", excludedPattern = excludedCustomTestdataPattern)
+                // KT-67300: TODO: extract specialBackendChecks into own test runner, invoking Native backend facade at the end
+                model("nativeTests", excludedPattern = excludedCustomTestdataPattern)
+                model("testsWithAnyBackend", excludedPattern = excludedCustomTestdataPattern)
+            }
+        }
+
+        // Dump KLIB metadata tests
+        testGroup(testsRoot, "native/native.tests/testData/klib/dump-metadata") {
+            testClass<AbstractNativeKlibDumpMetadataTest>(
+                annotations = listOf(
+                    provider<UseDummyTestCaseGroupProvider>(),
+                )
+            ) {
+                model(pattern = "^([^_](.+)).kt$", recursive = true)
+            }
+        }
+
+        testGroup(testsRoot, "compiler/testData/serialization") {
+            testClass<AbstractNativeKlibDumpMetadataSerializationTest>(
+                annotations = listOf(
+                    provider<UseDummyTestCaseGroupProvider>(),
+                )
+            ) {
+                model(pattern = "^([^_](.+)).kt$", recursive = true)
+            }
+        }
+
+        // Dump KLIB IR tests
+        testGroup(testsRoot, "native/native.tests/testData/klib/dump-ir") {
+            testClass<AbstractNativeKlibDumpIrTest>(
+                annotations = listOf(
+                    provider<UseDummyTestCaseGroupProvider>(),
+                )
+            ) {
+                model(pattern = "^([^_](.+)).kt$", recursive = true)
+            }
+        }
+
+        // Dump KLIB signatures tests
+        testGroup(testsRoot, "native/native.tests/testData/klib/dump-signatures") {
+            testClass<AbstractNativeKlibDumpSignaturesTest>(
+                annotations = listOf(
+                    provider<UseDummyTestCaseGroupProvider>(),
+                )
+            ) {
+                model(pattern = "^([^_](.+)).(kt|def)$", recursive = true)
+            }
+        }
+
+        // Header klib comparison tests
+        testGroup(testsRoot, "native/native.tests/testData/klib/header-klibs/comparison") {
+            testClass<AbstractNativeHeaderKlibComparisonTest> {
+                model(extension = null, recursive = false)
+            }
+        }
+
+        // Header klib compilation tests
+        testGroup(testsRoot, "native/native.tests/testData/klib/header-klibs/compilation") {
+            testClass<AbstractNativeHeaderKlibCompilationTest> {
+                model(extension = null, recursive = false)
+            }
+        }
+
+        testGroup(testsRoot, "compiler/testData/codegen") {
+            testClass<AbstractNativeIrDeserializationTest> {
+                model("box", excludeDirs = k1BoxTestDir)
+                model("boxInline")
+            }
+            // Codegen/box tests based on Compiler Core testinfra
+            testClass<AbstractNativeCodegenBoxCoreTest>(
+                suiteTestClassName = "NativeCodegenBoxTestGenerated",
+                annotations = listOf(
+                    provider<UseDummyTestCaseGroupProvider>(),
+                )
+            ) {
+                model("box", excludeDirs = k1BoxTestDir)
+                model("boxInline")
+            }
+            // Codegen/box tests based on Compiler Core testinfra
+            testClass<AbstractNativeCodegenBoxCoreHeaderModeTest>(
+                suiteTestClassName = "NativeCodegenBoxHeaderModeTestGenerated",
+                annotations = listOf(
+                    provider<UseDummyTestCaseGroupProvider>(),
+                )
+            ) {
+                model("box", excludeDirs = k1BoxTestDir)
+                model("boxInline")
+            }
+        }
+        // Native-specific codegen/box tests based on Compiler Core testinfra
+        testGroup(testsRoot, "native/native.tests/testData/codegen") {
+            testClass<AbstractNativeCodegenBoxCoreTest>(
+                suiteTestClassName = "NativeSpecificCodegenBoxTestGenerated",
+                annotations = listOf(
+                    provider<UseDummyTestCaseGroupProvider>(),
+                )
+            ) {
+                model()
+            }
+        }
+
+        // Codegen/box tests for synthetic accessor tests
+        testGroup(testsRoot, "compiler/testData/klib/syntheticAccessors") {
+            testClass<AbstractNativeCodegenBoxTest>(
+                suiteTestClassName = "NativeKlibSyntheticAccessorsBoxTestGenerated",
+                annotations = listOf(
+                    provider<UseExtTestCaseGroupProvider>(),
+                )
+            ) {
+                model()
+            }
+        }
+
+        // KLIB synthetic accessor tests.
+        testGroup(testsRoot, "compiler/testData/klib/syntheticAccessors") {
+            testClass<AbstractNativeKlibSyntheticAccessorTest>(
+                annotations = listOf(
+                    *klibSyntheticAccessors(),
+                )
+            ) {
+                model()
+            }
+        }
+
+        // KLIB cross-compilation tests.
+        testGroup(testsRoot, "native/native.tests/testData/klib/cross-compilation/identity") {
+            testClass<AbstractKlibCrossCompilationIdentityTest> {
+                model()
+            }
+        }
+
+        testGroup(testsRoot, "compiler/testData/klib/dump-abi/content") {
+            testClass<AbstractNativeLibraryAbiReaderTest> {
+                model()
+            }
+        }
+
+        testGroup(testsRoot, "compiler/testData/loadJava", testRunnerMethodName = "runTest0") {
+            testClass<AbstractNativeLoadCompiledKotlinTest> {
+                model("compiledKotlin", extension = "kt")
+                model("compiledKotlinWithStdlib", extension = "kt")
+            }
+        }
+    }
+}
+
+private fun klib() = annotation(Tag::class.java, "klib")
+
+fun klibSyntheticAccessors() = arrayOf(
+    annotation(
+        EnforcedProperty::class.java,
+        "property" to ClassLevelProperty.TEST_KIND,
+        "propertyValue" to TestKind.STANDALONE.name
+    ),
+    annotation(
+        EnforcedProperty::class.java,
+        "property" to ClassLevelProperty.CACHE_MODE,
+        "propertyValue" to CacheMode.Alias.NO.name
+    ),
+    provider<UseExtTestCaseGroupProvider>(),
+)

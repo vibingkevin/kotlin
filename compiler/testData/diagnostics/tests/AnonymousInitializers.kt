@@ -1,0 +1,30 @@
+// RUN_PIPELINE_TILL: FRONTEND
+interface NoC {
+  <!ANONYMOUS_INITIALIZER_IN_INTERFACE!>init<!> {
+
+  }
+
+  val a : Int get() = 1
+
+  <!ANONYMOUS_INITIALIZER_IN_INTERFACE!>init<!> {
+
+  }
+}
+
+class WithC() {
+  val x : Int = 1
+  init {
+    val b = x
+
+  }
+
+  val a : Int get() = 1
+
+  init {
+    val z = <!UNRESOLVED_REFERENCE!>b<!>
+    val zz = x
+  }
+}
+
+/* GENERATED_FIR_TAGS: classDeclaration, getter, init, integerLiteral, interfaceDeclaration, localProperty,
+primaryConstructor, propertyDeclaration */

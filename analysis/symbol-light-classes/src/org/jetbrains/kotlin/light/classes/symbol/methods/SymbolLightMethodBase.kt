@@ -1,0 +1,158 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.light.classes.symbol.methods
+
+import com.intellij.psi.*
+import com.intellij.psi.impl.PsiImplUtil
+import com.intellij.psi.impl.PsiSuperMethodImplUtil
+import com.intellij.psi.impl.light.LightReferenceListBuilder
+import com.intellij.psi.scope.PsiScopeProcessor
+import com.intellij.psi.util.MethodSignature
+import com.intellij.psi.util.MethodSignatureBackedByPsiMethod
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.javaInterop.isPrimitiveBacked
+import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.asJava.builder.LightMemberOrigin
+import org.jetbrains.kotlin.asJava.checkIsMangled
+import org.jetbrains.kotlin.asJava.classes.KotlinLightReferenceListBuilder
+import org.jetbrains.kotlin.asJava.classes.cannotModify
+import org.jetbrains.kotlin.asJava.classes.lazyPub
+import org.jetbrains.kotlin.asJava.elements.KtLightMethod
+import org.jetbrains.kotlin.light.classes.symbol.SymbolLightMemberBase
+import org.jetbrains.kotlin.light.classes.symbol.annotations.AnnotationFilter
+import org.jetbrains.kotlin.light.classes.symbol.annotations.ExcludeAnnotationFilter
+import org.jetbrains.kotlin.light.classes.symbol.annotations.getJvmExposeBoxedNameFromAnnotation
+import org.jetbrains.kotlin.light.classes.symbol.classes.SymbolLightClassBase
+import org.jetbrains.kotlin.light.classes.symbol.classes.computeJavaMethodName
+import org.jetbrains.kotlin.light.classes.symbol.classes.typeForValueClass
+
+internal abstract class SymbolLightMethodBase(
+    lightMemberOrigin: LightMemberOrigin?,
+    containingClass: SymbolLightClassBase,
+    protected val methodIndex: Int,
+    val isJvmExposedBoxed: Boolean,
+) : SymbolLightMemberBase<PsiMethod>(lightMemberOrigin, containingClass), KtLightMethod {
+    override fun getBody(): PsiCodeBlock? = null
+
+    override fun getReturnTypeElement(): PsiTypeElement? = null
+
+    override fun setName(name: String): PsiElement = cannotModify()
+
+    override fun isVarArgs() = PsiImplUtil.isVarArgs(this)
+
+    override fun getHierarchicalMethodSignature() = PsiSuperMethodImplUtil.getHierarchicalMethodSignature(this)
+
+    override fun findSuperMethodSignaturesIncludingStatic(checkAccess: Boolean): List<MethodSignatureBackedByPsiMethod> =
+        PsiSuperMethodImplUtil.findSuperMethodSignaturesIncludingStatic(this, checkAccess)
+
+    @Deprecated("Deprecated in Java")
+    override fun findDeepestSuperMethod(): PsiMethod? = PsiSuperMethodImplUtil.findDeepestSuperMethod(this)
+
+    override fun findDeepestSuperMethods(): Array<out PsiMethod> = PsiSuperMethodImplUtil.findDeepestSuperMethods(this)
+
+    override fun findSuperMethods(): Array<out PsiMethod> = PsiSuperMethodImplUtil.findSuperMethods(this)
+
+    override fun findSuperMethods(checkAccess: Boolean): Array<out PsiMethod> =
+        PsiSuperMethodImplUtil.findSuperMethods(this, checkAccess)
+
+    override fun findSuperMethods(parentClass: PsiClass?): Array<out PsiMethod> =
+        PsiSuperMethodImplUtil.findSuperMethods(this, parentClass)
+
+    override fun getSignature(substitutor: PsiSubstitutor): MethodSignature =
+        MethodSignatureBackedByPsiMethod.create(this, substitutor)
+
+    override fun processDeclarations(
+        processor: PsiScopeProcessor,
+        state: ResolveState,
+        lastParent: PsiElement?,
+        place: PsiElement,
+    ): Boolean {
+        return PsiImplUtil.processDeclarationsInMethod(this, processor, state, lastParent, place)
+    }
+
+    abstract override fun equals(other: Any?): Boolean
+
+    abstract override fun hashCode(): Int
+
+    override fun accept(visitor: PsiElementVisitor) {
+        if (visitor is JavaElementVisitor) {
+            visitor.visitMethod(this)
+        } else {
+            visitor.visitElement(this)
+        }
+    }
+
+    override val isMangled: Boolean get() = checkIsMangled()
+
+    abstract override fun getTypeParameters(): Array<PsiTypeParameter>
+    abstract override fun hasTypeParameters(): Boolean
+    abstract override fun getTypeParameterList(): PsiTypeParameterList?
+
+    private class SymbolLightThrowsReferencesListBuilder(
+        private val parentMethod: PsiMethod
+    ) : KotlinLightReferenceListBuilder(parentMethod.manager, parentMethod.language, PsiReferenceList.Role.THROWS_LIST) {
+        override fun getParent(): PsiElement = parentMethod
+
+        override fun getContainingFile(): PsiFile = parentMethod.containingFile
+    }
+
+    private val _throwsList by lazyPub {
+        val builder = SymbolLightThrowsReferencesListBuilder(this)
+        computeThrowsList(builder)
+        builder
+    }
+
+    protected open fun computeThrowsList(builder: LightReferenceListBuilder) {}
+
+    override fun getThrowsList(): PsiReferenceList = _throwsList
+
+    override fun getDefaultValue(): PsiAnnotationMemberValue? = null
+
+    context(_: KaSession)
+    protected fun computeJvmExposeBoxedMethodName(symbol: KaCallableSymbol, defaultName: String): String {
+        return symbol.getJvmExposeBoxedNameFromAnnotation()
+            ?: computeJavaMethodName(symbol, defaultName, ignoreValueClassMangling = true)
+            ?: defaultName
+    }
+
+    abstract fun isOverride(): Boolean
+
+    internal open fun suppressWildcards(): Boolean? = null
+
+    protected val jvmExposeBoxedAwareAnnotationFilter: AnnotationFilter
+        get() = if (isJvmExposedBoxed) ExcludeAnnotationFilter.JvmName else ExcludeAnnotationFilter.JvmExposeBoxed
+
+    // Inspired by KotlinTypeMapper#forceBoxedReturnType
+    context(session: KaSession)
+    protected fun shouldEnforceBoxedReturnType(symbol: KaCallableSymbol): Boolean {
+        val returnType = symbol.returnType
+        return when {
+            // 'invoke' methods for lambdas, function literals, and callable references
+            // implicitly override generic 'invoke' from a corresponding base class.
+            symbol is KaNamedFunctionSymbol && symbol.isBuiltinFunctionInvoke && isInlineClassType(returnType) -> true
+
+            isJvmExposedBoxed && typeForValueClass(returnType) -> true
+
+            returnType.isPrimitiveBacked -> {
+                if (symbol.origin == KaSymbolOrigin.DELEGATED) {
+                    !symbol.fakeOverrideOriginal.returnType.isPrimitiveBacked
+                } else {
+                    symbol.allOverriddenSymbols.any { overriddenSymbol ->
+                        !overriddenSymbol.returnType.isPrimitiveBacked
+                    }
+                }
+            }
+
+            else -> false
+        }
+    }
+
+    private fun isInlineClassType(type: KaType): Boolean {
+        return ((type as? KaClassType)?.symbol as? KaNamedClassSymbol)?.isInline == true
+    }
+}

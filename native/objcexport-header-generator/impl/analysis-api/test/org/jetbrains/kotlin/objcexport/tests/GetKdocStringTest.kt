@@ -1,0 +1,69 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.objcexport.tests
+
+import org.jetbrains.kotlin.analysis.api.export.utilities.getKDocString
+import org.jetbrains.kotlin.analysis.api.session.analyze
+import org.jetbrains.kotlin.analysis.api.session.useSiteSession
+import org.jetbrains.kotlin.export.test.InlineSourceCodeAnalysis
+import org.jetbrains.kotlin.export.test.getClassOrFail
+import org.jetbrains.kotlin.export.test.getFunctionOrFail
+import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+
+class GetKdocStringTest(
+    private val inlineSourceCodeAnalysis: InlineSourceCodeAnalysis,
+) {
+    @Test
+    fun `test - simple class`() {
+        val ktFile = inlineSourceCodeAnalysis.createKtFile(
+            """
+            /**
+            * Kdoc for 'Foo'
+            */
+            class Foo
+        """.trimIndent()
+        )
+
+        analyze(ktFile) {
+            val session = useSiteSession
+            val foo = ktFile.getClassOrFail("Foo", session)
+            assertEquals(
+                """
+                    /**
+                    * Kdoc for 'Foo'
+                    */
+                """.trimIndent(),
+                foo.getKDocString()
+            )
+        }
+    }
+
+    @Test
+    fun `test - simple function`() {
+        val ktFile = inlineSourceCodeAnalysis.createKtFile(
+            """
+            /**
+            * Kdoc for 'foo'
+            */
+            fun foo() = Unit
+        """.trimIndent()
+        )
+
+        analyze(ktFile) {
+            val session = useSiteSession
+            val foo = ktFile.getFunctionOrFail("foo", session)
+            assertEquals(
+                """
+                    /**
+                    * Kdoc for 'foo'
+                    */
+                """.trimIndent(),
+                foo.getKDocString()
+            )
+        }
+    }
+}

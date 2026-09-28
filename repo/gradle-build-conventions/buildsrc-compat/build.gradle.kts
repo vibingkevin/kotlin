@@ -1,0 +1,140 @@
+import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
+
+buildscript {
+    // workaround for KGP build metrics reports: https://github.com/gradle/gradle/issues/20001
+    project.extensions.extraProperties["kotlin.build.report.output"] = null
+}
+
+logger.info("buildSrcKotlinVersion: " + project.getKotlinPluginVersion())
+
+configurations {
+    fun NamedDomainObjectProvider<Configuration>.printResolvedDependencyVersion(formatString: String, group: String, name: String) {
+        configure {
+            incoming.afterResolve {
+                val dependency = resolutionResult.allDependencies
+                    .filterIsInstance<ResolvedDependencyResult>()
+                    .map { it.selected.id }
+                    .filterIsInstance<ModuleComponentIdentifier>()
+                    .find { it.group == group && it.module == name }
+                if (dependency != null) {
+                    logger.info(formatString, dependency.version)
+                }
+            }
+        }
+    }
+    kotlinCompilerClasspath.printResolvedDependencyVersion(
+        "buildSrc kotlin compiler version: {}",
+        "org.jetbrains.kotlin",
+        "kotlin-compiler-embeddable"
+    )
+    compileClasspath.printResolvedDependencyVersion(
+        "buildSrc stdlib version: {}",
+        "org.jetbrains.kotlin",
+        "kotlin-stdlib"
+    )
+}
+
+plugins {
+    `kotlin-dsl`
+    `java-gradle-plugin`
+    id("org.jetbrains.kotlin.jvm")
+}
+
+kotlin {
+    @OptIn(ExperimentalKotlinGradlePluginApi::class, ExperimentalBuildToolsApi::class)
+    compilerVersion = embeddedKotlinVersion
+    coreLibrariesVersion = embeddedKotlinVersion
+    jvmToolchain(17)
+
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+        optIn.add("kotlin.ExperimentalStdlibApi")
+        optIn.add("org.jetbrains.kotlin.gradle.swiftexport.ExperimentalSwiftExportDsl")
+    }
+}
+
+tasks.validatePlugins.configure {
+    enabled = false
+}
+
+java {
+    disableAutoTargetJvm()
+}
+
+dependencies {
+    api(project(":gradle-plugins-common"))
+
+    implementation(kotlinBuildHelpers())
+    implementation(libs.gradle.pluginPublish.gradlePlugin)
+    implementation(libs.dokka.gradlePlugin)
+    implementation(libs.spdx.gradlePlugin)
+    implementation(libs.dexMemberList)
+    compileOnly(libs.node.gradlePlugin)
+
+    implementation(libs.shadow.gradlePlugin)
+    implementation(libs.proguard.gradlePlugin)
+
+    implementation(libs.jetbrains.ideaExt.gradlePlugin)
+
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+
+    implementation(libs.org.tukaani.xz)
+
+    compileOnly(libs.develocity.gradlePlugin)
+    compileOnly(libs.ant) // for accessing the zip-related classes that are present in Gradle's runtime
+    compileOnly(gradleApi())
+    compileOnly(project(":android-sdk-provisioner"))
+
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$bootstrapKotlinVersion")
+    implementation("org.jetbrains.kotlin:kotlin-metadata-jvm:$bootstrapKotlinVersion") {
+        isTransitive = false
+    }
+    implementation(libs.gson)
+    implementation(project(":d8-configuration"))
+    implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
+
+    implementation(project(":test-federation-convention")) {
+        isTransitive = false
+    }
+    implementation(project(":jvm-toolchains-convention")) {
+        isTransitive = false
+    }
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+}
+
+tasks.register("checkBuild") {
+    dependsOn("test")
+}
+
+listOf(
+    org.jetbrains.kotlin.gradle.plugin.PLUGIN_CLASSPATH_CONFIGURATION_NAME + "Main",
+    "compilePluginsBlocksPluginClasspathElements",
+).forEach { confName ->
+    project.configurations.named(confName) {
+        resolutionStrategy {
+            eachDependency {
+                if (this.requested.group == "org.jetbrains.kotlin") useVersion(embeddedKotlinVersion)
+            }
+        }
+    }
+}
+
+project.configurations.named(org.jetbrains.kotlin.gradle.plugin.PLUGIN_CLASSPATH_CONFIGURATION_NAME + "Test") {
+    resolutionStrategy {
+        eachDependency {
+            if (this.requested.group == "org.jetbrains.kotlin") useVersion(embeddedKotlinVersion)
+        }
+    }
+}
+

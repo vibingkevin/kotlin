@@ -1,0 +1,8 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase Foundation Security darwin posix
+language = Objective-C
+package = platform.LocalAuthentication
+
+modules = LocalAuthentication
+apiNotesSwiftName = true
+compilerOpts = -framework LocalAuthentication
+linkerOpts = -framework LocalAuthentication

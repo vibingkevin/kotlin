@@ -1,0 +1,15 @@
+common - Common.kt:
+
+
+jvm - Jvm.kt:
+  <caret_return>:
+    KtNameReferenceExpression(182,204): 'ExpectClassCommonAlias'
+      NO_CANDIDATES
+
+  <caret_instanceCheck>:
+    KtNameReferenceExpression(225,247): 'ExpectClassCommonAlias'
+      NO_CANDIDATES
+
+  <caret_typeArg>:
+    KtNameReferenceExpression(272,294): 'ExpectClassCommonAlias'
+      NO_CANDIDATES

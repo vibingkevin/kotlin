@@ -1,0 +1,76 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.psiUtil.KtPsiUtilKt;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Represents a list of type arguments in angle brackets.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * val pair: Pair<String, Int> = "str" to 1
+ * //            ^___________^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtTypeArgumentList extends KtElementImplStub<KotlinPlaceHolderStub<KtTypeArgumentList>> {
+    @KtImplementationDetail
+    public KtTypeArgumentList(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtTypeArgumentList(@NotNull KotlinPlaceHolderStub<KtTypeArgumentList> stub) {
+        super(stub, KtNodeTypes.TYPE_ARGUMENT_LIST);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitTypeArgumentList(this, data);
+    }
+
+    /** Returns the type arguments (as projections), in source order; empty if there are none. */
+    @NotNull
+    public List<KtTypeProjection> getArguments() {
+        return Arrays.asList(getStubOrPsiChildren(KtNodeTypes.TYPE_PROJECTION, KtTypeProjection.EMPTY_ARRAY));
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.appendTypeArgument(this, typeArgument)}
+     * instead.
+     */
+    @NotNull
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.appendTypeArgument(this, typeArgument)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.appendTypeArgument(typeArgument)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.appendTypeArgument"
+            )
+    )
+    @Deprecated
+    public KtTypeProjection addArgument(@NotNull KtTypeProjection typeArgument) {
+        return KtPsiMutationService.getInstance().appendTypeArgument(this, typeArgument);
+    }
+
+    /** Returns the trailing comma after the last type argument, or {@code null} if there is none. */
+    @Nullable
+    public PsiElement getTrailingComma() {
+        return KtPsiUtilKt.getTrailingCommaByClosingElement(findChildByType(KtTokens.GT));
+    }
+}

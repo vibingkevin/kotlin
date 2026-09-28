@@ -1,0 +1,21 @@
+FILE: [ResolvedTo(BODY_RESOLVE)] danglingContextParameter.kt
+    @R|kotlin/annotation/Target|[Types](allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|, Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.VALUE_PARAMETER|) [evaluated = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.TYPE|, Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.VALUE_PARAMETER|)]) public final [ResolvedTo(BODY_RESOLVE)] annotation class Anno : R|kotlin/Annotation| {
+        public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/Anno.position] position: R|kotlin/String|): R|Anno| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final [ResolvedTo(BODY_RESOLVE)] [IsFromPrimaryConstructor=true] val position: R|kotlin/String| = R|<local>/position|
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Anno] get(): R|kotlin/String|
+
+    }
+    public final [ResolvedTo(BODY_RESOLVE)] class Foo : R|kotlin/Any| {
+        public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Foo] constructor(): R|Foo| {
+            super<R|kotlin/Any|>()
+        }
+
+        [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Foo] context([ResolvedTo(BODY_RESOLVE)] @R|Anno|[Types](position = String(param) [evaluated = String(param)]) parameter1: @R|Anno|[Types](position = <strcat>(String(1), String(2)) [evaluated = String(12)]) <ERROR TYPE REF: Symbol not found for Unresolved>, [ResolvedTo(BODY_RESOLVE)] parameter2: R|kotlin/collections/List<@R|Anno|(position = String(str) [evaluated = String(str)])  ERROR CLASS: Symbol not found for Unresolved>|)
+        <DANGLING MODIFIER: Top level declaration expected>
+    }
+    public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun foo(): R|kotlin/Unit| { LAZY_BLOCK }
+    [ResolvedTo(BODY_RESOLVE)] context([ResolvedTo(BODY_RESOLVE)] @R|Anno|[Types](position = String(param) [evaluated = String(param)]) parameter1: @R|Anno|[Types](position = <strcat>(String(1), String(2)) [evaluated = String(12)]) <ERROR TYPE REF: Symbol not found for Unresolved>, [ResolvedTo(BODY_RESOLVE)] parameter2: R|kotlin/collections/List<@R|Anno|(position = String(str) [evaluated = String(str)])  ERROR CLASS: Symbol not found for Unresolved>|)
+    <DANGLING MODIFIER: Top level declaration expected>

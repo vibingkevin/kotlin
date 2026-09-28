@@ -1,0 +1,37 @@
+KaValueParameterSymbol:
+  anchorPsi: KtParameter
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasDeclaredDefaultValue: false
+  hasDefaultValue: false
+  isActual: false
+  isCompanion: false
+  isCrossinline: false
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isImplicitLambdaParameter: false
+  isNoinline: false
+  isVal: true
+  isVararg: true
+  location: LOCAL
+  modality: FINAL
+  name: parameter
+  origin: SOURCE
+  primaryConstructorProperty: null
+  psi: KtParameter
+  realPsi: KtParameter
+  receiverParameter: null
+  returnType: KaErrorType:
+    annotations: []
+    type: ERROR_TYPE
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(valKeywordOnVarargFunctionValueParameter.kt)
+  getContainingJvmClassName: ValKeywordOnVarargFunctionValueParameterKt
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null

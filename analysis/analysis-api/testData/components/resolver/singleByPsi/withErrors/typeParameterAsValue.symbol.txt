@@ -1,0 +1,9 @@
+KtNameReferenceExpression(35,36): 'T'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = [
+      T
+    ]
+    diagnostic = ERROR<OTHER_ERROR: Type parameter T in qualified access>

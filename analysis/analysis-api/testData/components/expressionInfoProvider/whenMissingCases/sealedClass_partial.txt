@@ -1,0 +1,1 @@
+TypeCase(/Foo.B)

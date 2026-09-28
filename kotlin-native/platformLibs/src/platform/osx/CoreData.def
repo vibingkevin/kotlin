@@ -1,0 +1,8 @@
+depends = CFCGTypes CFNetwork CloudKit CoreFoundation CoreFoundationBase CoreGraphics CoreLocation CoreServices DiskArbitration Foundation IOKit Security _LocationEssentials darwin libkern osx posix
+language = Objective-C
+package = platform.CoreData
+modules = CoreData
+apiNotesSwiftName = true
+
+compilerOpts = -framework CoreData
+linkerOpts = -framework CoreData

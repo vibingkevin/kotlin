@@ -1,0 +1,14 @@
+// WITH_STDLIB
+fun <T> T.id() = this
+
+const val code = '1'.code
+const val floorDiv = 10.floorDiv(2)
+const val mod = 5.mod(3)
+
+fun box(): String {
+    if (code.id() != 49) return "Fail 1"
+    if (floorDiv.id() != 5) return "Fail 2"
+    if (mod.id() != 2) return "Fail 3"
+
+    return "OK"
+}

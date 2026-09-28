@@ -1,0 +1,8 @@
+depends = CFCGTypes CloudKit CoreFoundation CoreFoundationBase CoreLocation Foundation Security _LocationEssentials darwin posix
+language = Objective-C
+package = platform.CoreData
+modules = CoreData
+apiNotesSwiftName = true
+
+compilerOpts = -framework CoreData
+linkerOpts = -framework CoreData

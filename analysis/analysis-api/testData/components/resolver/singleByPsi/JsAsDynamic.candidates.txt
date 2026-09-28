@@ -1,0 +1,20 @@
+KtNameReferenceExpression(85,94): 'asDynamic'
+  KaApplicableCallCandidate:
+    candidate = KaSimpleFunctionCall:
+      contextArgumentMapping = {}
+      contextArguments = []
+      dispatchReceiver = null
+      extensionReceiver = KaExplicitReceiverValue:
+        expression = "some"
+        isSafeNavigation = false
+        type = kotlin.String
+      signature = KaFunctionSignature:
+        receiverType = kotlin.Any?
+        returnType = dynamic
+        symbol = kotlin/js/asDynamic(<extension receiver>: kotlin.Any?): dynamic
+        valueParameters = []
+        contextParameters = []
+        callableId = kotlin/js/asDynamic
+      typeArgumentsMapping = {}
+      valueArgumentMapping = {}
+    isInBestCandidates = true

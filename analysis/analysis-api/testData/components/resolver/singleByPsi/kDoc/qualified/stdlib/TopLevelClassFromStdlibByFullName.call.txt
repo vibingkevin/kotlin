@@ -1,0 +1,2 @@
+KDocName(8,45): 'kotlin.collections.AbstractCollection'
+  null

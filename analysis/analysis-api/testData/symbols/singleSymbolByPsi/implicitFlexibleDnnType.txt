@@ -1,0 +1,130 @@
+KaKotlinPropertySymbol:
+  anchorPsi: KtProperty
+  annotations: []
+  backingFieldSymbol: KaBackingFieldSymbol:
+    anchorPsi: KtProperty
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isNotDefault: false
+    isVal: true
+    location: PROPERTY
+    modality: FINAL
+    name: field
+    origin: PROPERTY_BACKING_FIELD
+    owningProperty: KaKotlinPropertySymbol(/KotlinClass.propertyWithFlexibleDnnImplicitType)
+    psi: null
+    realPsi: null
+    receiverParameter: null
+    returnType: KaFlexibleType:
+      annotations: []
+      type: java/util/function/Function<kotlin/String!, ft<T & Any, T?>>!
+    typeParameters: []
+    visibility: PRIVATE
+    getDispatchReceiver(): KaUsualClassType:
+      annotations: []
+      typeArguments: [
+        KaTypeParameterType:
+          annotations: []
+          type: T
+      ]
+      type: KotlinClass<T>
+    getContainingFileSymbol: KaFileSymbol(KotlinClass.kt)
+    getContainingJvmClassName: KotlinClass
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  callableId: /KotlinClass.propertyWithFlexibleDnnImplicitType
+  contextParameters: []
+  contextReceivers: []
+  getter: KaPropertyGetterSymbol:
+    anchorPsi: KtProperty
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    hasStableParameterNames: true
+    isActual: false
+    isCompanion: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isInline: false
+    isNotDefault: false
+    isOverride: false
+    location: PROPERTY
+    modality: FINAL
+    origin: SOURCE
+    psi: null
+    realPsi: null
+    receiverParameter: null
+    returnType: KaFlexibleType:
+      annotations: []
+      type: java/util/function/Function<kotlin/String!, ft<T & Any, T?>>!
+    typeParameters: []
+    valueParameters: []
+    visibility: PUBLIC
+    getDispatchReceiver(): KaUsualClassType:
+      annotations: []
+      typeArguments: [
+        KaTypeParameterType:
+          annotations: []
+          type: T
+      ]
+      type: KotlinClass<T>
+    getContainingFileSymbol: KaFileSymbol(KotlinClass.kt)
+    getContainingJvmClassName: KotlinClass
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    javaMethodName: getPropertyWithFlexibleDnnImplicitType
+    importableFqName: null
+  hasBackingField: true
+  hasGetter: true
+  hasSetter: false
+  initializer: KaNonConstantInitializerValue(JavaClass.wrap(JavaClass.wrap<String, T> { _ -> block.invoke() }))
+  isActual: false
+  isCompanion: false
+  isConst: false
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isLateInit: false
+  isOverride: false
+  isStatic: false
+  isVal: true
+  location: CLASS
+  modality: FINAL
+  name: propertyWithFlexibleDnnImplicitType
+  origin: SOURCE
+  primaryConstructorParameter: null
+  psi: KtProperty
+  realPsi: KtProperty
+  receiverParameter: null
+  returnType: KaFlexibleType:
+    annotations: []
+    type: java/util/function/Function<kotlin/String!, ft<T & Any, T?>>!
+  setter: null
+  typeParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaTypeParameterType:
+        annotations: []
+        type: T
+    ]
+    type: KotlinClass<T>
+  getContainingFileSymbol: KaFileSymbol(KotlinClass.kt)
+  getContainingJvmClassName: KotlinClass
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  isInline: false
+  importableFqName: null

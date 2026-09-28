@@ -1,0 +1,92 @@
+/*
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.test.backend.handlers
+
+import org.jetbrains.kotlin.ir.util.FakeOverridesStrategy
+import org.jetbrains.kotlin.ir.util.KotlinLikeDumpOptions
+import org.jetbrains.kotlin.ir.util.dumpKotlinLike
+import org.jetbrains.kotlin.test.backend.handlers.IrTextDumpHandler.Companion.groupWithTestFiles
+import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.DUMP_KT_IR
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.EXTERNAL_FILE
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.SKIP_KT_DUMP
+import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
+import org.jetbrains.kotlin.test.directives.TestDumpDirectives
+import org.jetbrains.kotlin.test.directives.assertEqualsToDump
+import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
+import org.jetbrains.kotlin.test.model.BackendKind
+import org.jetbrains.kotlin.test.model.TestModule
+import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.services.moduleStructure
+import org.jetbrains.kotlin.test.utils.MultiModuleInfoDumper
+
+/**
+ * Uses [dumpKotlinLike] to compare the human-readable representation of an IR tree with
+ * an expected output in a `*.kt.txt` file located next to the test file.
+ *
+ * This handler can be enabled by specifying the [DUMP_KT_IR] test directive,
+ * or disabled with the [SKIP_KT_DUMP] directive.
+ */
+class IrPrettyKotlinDumpHandler(
+    testServices: TestServices,
+    artifactKind: BackendKind<IrBackendInput>,
+) : AbstractIrHandler(testServices, artifactKind) {
+    companion object {
+        const val DUMP_EXTENSION = "kt.txt"
+    }
+
+    private val dumper = MultiModuleInfoDumper("// MODULE: %s")
+
+    override val directiveContainers: List<DirectivesContainer>
+        get() = listOf(TestDumpDirectives, CodegenTestDirectives, FirDiagnosticsDirectives)
+
+    override fun processModule(module: TestModule, info: IrBackendInput) {
+        if (DUMP_KT_IR !in module.directives || SKIP_KT_DUMP in module.directives) return
+        dumpModuleKotlinLike(
+            module, testServices.moduleStructure.modules, info, dumper,
+            KotlinLikeDumpOptions(
+                printFilePath = false,
+                printFakeOverridesStrategy = FakeOverridesStrategy.NONE,
+                normalizeNames = true, // KT-61983: K1 and K2 kotlin-like dumps are closer to each other when tempvar names are normalized
+                stableOrder = true,
+                // Expect declarations exist in K1 IR just before serialization, but won't be serialized. Though, dumps should be same before and after
+                printExpectDeclarations = module.languageVersionSettings.languageVersion.usesK2,
+                inferElseBranches = true,
+            ),
+            testServices,
+        )
+    }
+
+    override fun processAfterAllModules(someAssertionWasFailed: Boolean) {
+        // When target backend is specified in DUMP_IR_DIFFERENCE test directive, the actual KT-like dump is expected to differ from the golden data
+        // KT-like dumps are not that very useful, so it's simpler just to skip this handler to not create unnecessary `*.kt.<backend>.patch` files
+        if (testServices.getMatchedBackendFromDirective(CodegenTestDirectives.DUMP_IR_DIFFERENCE) != null)
+            return
+        val actualDump = if (dumper.isEmpty()) null else dumper.generateResultingDump()
+        assertEqualsToDump(DUMP_EXTENSION, actualDump)
+    }
+}
+
+internal fun dumpModuleKotlinLike(
+    module: TestModule,
+    allModules: List<TestModule>,
+    info: IrBackendInput,
+    multiModuleInfoDumper: MultiModuleInfoDumper,
+    options: KotlinLikeDumpOptions,
+    testServices: TestServices
+) {
+    val irFiles = info.irModuleFragment.files
+    val builder = multiModuleInfoDumper.builderForModule(module.name)
+    val filteredIrFiles = irFiles.groupWithTestFiles(testServices, ordered = true).filterNot { [moduleAndFile, _] ->
+        moduleAndFile?.second?.let { EXTERNAL_FILE in it.directives || it.isAdditional } ?: false
+    }.map { it.second }
+    val printFileName = filteredIrFiles.size > 1 || allModules.size > 1
+    val modifiedOptions = options.copy(printFileName = printFileName)
+    for (irFile in filteredIrFiles) {
+        builder.append(irFile.dumpKotlinLike(modifiedOptions))
+    }
+}

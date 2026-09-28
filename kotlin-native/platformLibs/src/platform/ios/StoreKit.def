@@ -1,0 +1,8 @@
+depends = BackgroundAssets CFCGTypes CFNetwork CoreFoundation CoreFoundationBase CoreGraphics CoreImage CoreText CoreVideo EAGL FileProvider Foundation IOSurface ImageIO Metal OpenGLESCommon QuartzCore Security Symbols UIKit UIUtilities UserNotifications darwin posix
+language = Objective-C
+package = platform.StoreKit
+modules = StoreKit
+apiNotesSwiftName = true
+
+compilerOpts = -framework StoreKit
+linkerOpts = -framework StoreKit

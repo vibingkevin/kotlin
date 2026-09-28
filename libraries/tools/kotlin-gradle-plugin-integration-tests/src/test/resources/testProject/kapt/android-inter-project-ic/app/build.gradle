@@ -1,0 +1,31 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "org.jetbrains.kotlin.kapt"
+}
+
+android {
+    namespace = "org.example.inter.project.ic"
+
+    compileSdkVersion = 23
+
+    defaultConfig {
+        applicationId = "org.example.inter.project.ic"
+        minSdkVersion = 15
+        targetSdkVersion = 23
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    kotlin {
+        jvmToolchain(8)
+    }
+}
+
+dependencies {
+    implementation 'com.android.support:appcompat-v7:23.3.0'
+    implementation project(':lib-android')
+    implementation project(':lib-jvm')
+    implementation "org.jetbrains.kotlin:annotation-processor-example:$kotlin_version"
+    kapt "org.jetbrains.kotlin:annotation-processor-example:$kotlin_version"
+}

@@ -1,0 +1,10 @@
+FILE: [ResolvedTo(BODY_RESOLVE)] danglingAnnotationOnTopLevelProperty.kt
+    public final [ResolvedTo(BODY_RESOLVE)] annotation class Ann : R|kotlin/Annotation| {
+        @R|Ann|[Types]() public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Ann] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/Ann.x, EvaluatedValue=Int(42)] x: R|kotlin/Int| = Int(42)): R|Ann| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final [ResolvedTo(BODY_RESOLVE)] [IsFromPrimaryConstructor=true] val x: R|kotlin/Int| = R|<local>/x|
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Ann] get(): R|kotlin/Int|
+
+    }

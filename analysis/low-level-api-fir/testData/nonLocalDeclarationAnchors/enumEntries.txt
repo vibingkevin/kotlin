@@ -1,0 +1,23 @@
+/* anchor (KtClass) --> */enum class Base {
+    /* anchor (KtEnumEntry) --> */Entry {
+        init {
+
+        }
+
+        class Afdf {
+            class Another
+        }
+
+        inner class Two {
+            inner class Boo {
+                init {
+
+                }
+
+                fun fu(i: Int) {
+
+                }
+            }
+        }
+    }/* <-- */
+}/* <-- */

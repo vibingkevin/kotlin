@@ -1,0 +1,93 @@
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: [
+    org/jetbrains/kotlin/plugin/sandbox/MyInlineable()
+      psi: KtAnnotationEntry
+  ]
+  callableId: test/Foo
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: Foo
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: text
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaFunctionType:
+        annotations: [
+          org/jetbrains/kotlin/plugin/sandbox/MyInlineable()
+            psi: KtAnnotationEntry
+        ]
+        typeArguments: [
+          KaUsualClassType:
+            annotations: []
+            typeArguments: []
+            type: kotlin/Unit
+        ]
+        type: @R|org/jetbrains/kotlin/plugin/sandbox/MyInlineable|()  some/MyInlineableFunction0<kotlin/Unit>
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(Common.kt)
+      getContainingJvmClassName: test.CommonKt
+      getContainingModule: KaSourceModule "Sources of common"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(Common.kt)
+  getContainingJvmClassName: test.CommonKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of common"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: Foo
+  importableFqName: test.Foo

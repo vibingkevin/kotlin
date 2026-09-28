@@ -1,0 +1,3 @@
+expression: B()
+expression PSI: KtCallExpression
+type: kotlin.Any

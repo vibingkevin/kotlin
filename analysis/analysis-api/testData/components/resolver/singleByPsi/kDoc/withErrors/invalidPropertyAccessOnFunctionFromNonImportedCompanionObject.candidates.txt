@@ -1,0 +1,2 @@
+KDocName(47,59): 'bar.A.toName'
+  NO_CANDIDATES

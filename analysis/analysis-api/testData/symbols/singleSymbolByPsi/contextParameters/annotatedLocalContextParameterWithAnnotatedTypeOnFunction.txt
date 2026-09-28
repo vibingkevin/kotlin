@@ -1,0 +1,37 @@
+KaContextParameterSymbol:
+  anchorPsi: KtParameter
+  annotations: [
+    Anno(s = "par")
+      psi: KtAnnotationEntry
+  ]
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  isActual: false
+  isCompanion: false
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isVal: true
+  location: LOCAL
+  modality: FINAL
+  name: par
+  origin: SOURCE
+  psi: KtParameter
+  realPsi: KtParameter
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: [
+      Anno(s = "foo")
+        psi: KtAnnotationEntry
+    ]
+    typeArguments: []
+    type: @R|Anno|(s = String(foo) [evaluated = String(foo)])  kotlin/String
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(annotatedLocalContextParameterWithAnnotatedTypeOnFunction.kt)
+  getContainingJvmClassName: null
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null

@@ -1,0 +1,214 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.ir
+
+import org.jetbrains.kotlin.AbstractKtSourceElement
+import org.jetbrains.kotlin.KtIoFileSourceFile
+import org.jetbrains.kotlin.KtSourceFile
+import org.jetbrains.kotlin.*
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
+import org.jetbrains.kotlin.config.LanguageVersionSettings
+import org.jetbrains.kotlin.diagnostics.*
+import org.jetbrains.kotlin.diagnostics.impl.deduplicating
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.util.isAnnotationWithEqualFqName
+import org.jetbrains.kotlin.ir.util.sourceElement
+import org.jetbrains.kotlin.ir.visitors.IrVisitor
+import org.jetbrains.kotlin.name.FqName
+import java.io.File
+import java.util.*
+
+class KtDiagnosticReporterWithImplicitIrBasedContext(
+    diagnosticReporter: DiagnosticReporter,
+    val languageVersionSettings: LanguageVersionSettings
+) : DiagnosticReporter(), IrDiagnosticReporter {
+    val diagnosticReporter: DiagnosticReporter = diagnosticReporter.deduplicating()
+
+    override val hasErrors: Boolean get() = diagnosticReporter.hasErrors
+    override val hasWarningsForWError: Boolean get() = diagnosticReporter.hasWarningsForWError
+
+    override fun report(diagnostic: KtDiagnostic?, context: DiagnosticContext) {
+        diagnosticReporter.report(diagnostic, context)
+    }
+
+    private val suppressCache = IrBasedSuppressCache()
+
+    private fun IrElement.toSourceElement(): AbstractKtSourceElement? {
+        (this as? IrMetadataSourceOwner)?.metadata?.source?.let { return it }
+        (this as? IrFunction)?.defaultArgumentsOriginalFunction?.metadata?.source?.let { return it }
+        return sourceElement()
+    }
+
+    override fun at(irElement: IrElement, containingIrFile: IrFile): IrDiagnosticReporter.IrDiagnosticContext {
+        return DiagnosticContextWithSuppressionImpl(
+            irElement.toSourceElement(),
+            irElement,
+            containingIrFile
+        )
+    }
+
+    override fun atPotentiallyNonSource(irElement: IrElement, containingIrFile: IrFile?): IrDiagnosticReporter.IrDiagnosticContext {
+        return DiagnosticContextWithSuppressionImpl(
+            irElement.toSourceElement() ?: KtMissingSourceElement,
+            irElement,
+            containingIrFile
+        )
+    }
+
+    override fun report(factory: KtSourcelessDiagnosticFactory, message: String, location: CompilerMessageSourceLocation?) {
+        val context = object : DiagnosticContext {
+            override val containingFile: KtSourceFile?
+                get() = null
+
+            override fun isDiagnosticSuppressed(diagnostic: KtDiagnostic): Boolean = false
+            override val languageVersionSettings: LanguageVersionSettings
+                get() = this@KtDiagnosticReporterWithImplicitIrBasedContext.languageVersionSettings
+        }
+        val diagnostic = factory.create(message, location, context) ?: return
+        report(diagnostic, context)
+    }
+
+    internal inner class DiagnosticContextWithSuppressionImpl(
+        override val sourceElement: AbstractKtSourceElement?,
+        private val irElement: IrElement,
+        private val containingIrFile: IrFile?
+    ) : IrDiagnosticReporter.IrDiagnosticContext {
+        override val containingFile: KtSourceFile? = containingIrFile?.let {
+            KtIoFileSourceFile(File(it.path)) // TODO: (KT-85141) consider implementing IrFile-based "source" file, if needed
+        }
+
+        override val languageVersionSettings: LanguageVersionSettings
+            get() = this@KtDiagnosticReporterWithImplicitIrBasedContext.languageVersionSettings
+
+
+        override fun isDiagnosticSuppressed(diagnostic: KtDiagnostic): Boolean {
+            if (containingIrFile == null) return false
+            return suppressCache.isSuppressed(
+                irElement, containingIrFile, diagnostic.factory.name.lowercase(), diagnostic.severity
+            )
+        }
+
+        override fun report(factory: KtDiagnosticFactory0) {
+            sourceElement?.let {
+                reportOn(it, factory)
+            }
+        }
+
+        override fun <A : Any> report(factory: KtDiagnosticFactory1<A>, a: A) {
+            sourceElement?.let {
+                reportOn(it, factory, a)
+            }
+        }
+
+        override fun <A : Any, B : Any> report(factory: KtDiagnosticFactory2<A, B>, a: A, b: B) {
+            sourceElement?.let {
+                reportOn(it, factory, a, b)
+            }
+        }
+
+        override fun <A : Any, B : Any, C : Any> report(factory: KtDiagnosticFactory3<A, B, C>, a: A, b: B, c: C) {
+            sourceElement?.let {
+                reportOn(it, factory, a, b, c)
+            }
+        }
+
+        override fun <A : Any, B : Any, C : Any, D : Any> report(factory: KtDiagnosticFactory4<A, B, C, D>, a: A, b: B, c: C, d: D) {
+            sourceElement?.let {
+                reportOn(it, factory, a, b, c, d)
+            }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is IrDiagnosticReporter.IrDiagnosticContext) return false
+
+            if (sourceElement != other.sourceElement) return false
+            if (containingFile != other.containingFile) return false
+            if (languageVersionSettings != other.languageVersionSettings) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = sourceElement.hashCode()
+            result = 31 * result + containingFile.hashCode()
+            result = 31 * result + languageVersionSettings.hashCode()
+            return result
+        }
+    }
+}
+
+internal class IrBasedSuppressCache : AbstractKotlinSuppressCache<IrElement>() {
+
+    private val annotatedAncestorsPerRoot = mutableMapOf<IrElement, MutableMap<IrElement, IrElement>>()
+
+    private val annotationKeys = mutableMapOf<IrElement, Set<String>>()
+
+    @Synchronized
+    private fun ensureRootProcessed(rootElement: IrElement) =
+        annotatedAncestorsPerRoot.getOrPut(rootElement) {
+            val visitor = AnnotatedTreeVisitor()
+            rootElement.accept(visitor, Stack())
+            visitor.annotatedAncestors
+        }
+
+    private inner class AnnotatedTreeVisitor : IrVisitor<Unit, Stack<IrElement>>() {
+
+        val annotatedAncestors = mutableMapOf<IrElement, IrElement>()
+
+        override fun visitElement(element: IrElement, data: Stack<IrElement>) {
+            if (data.isNotEmpty()) {
+                annotatedAncestors[element] = data.peek()
+            }
+            val isAnnotated = collectSuppressAnnotationKeys(element)
+            if (isAnnotated) {
+                data.push(element)
+            }
+            element.acceptChildren(this, data)
+            if (isAnnotated) {
+                data.pop()
+            }
+        }
+
+        private fun collectSuppressAnnotationKeys(element: IrElement): Boolean =
+            (element as? IrAnnotationContainer)?.annotations?.filter {
+                it.isAnnotationWithEqualFqName(SUPPRESS)
+            }?.flatMap {
+                buildList {
+                    fun addIfStringConst(irConst: IrConst) {
+                        if (irConst.kind == IrConstKind.String) {
+                            add((irConst.value as String).lowercase())
+                        }
+                    }
+
+                    for (arg in it.argumentMapping.values) {
+                        when (arg) {
+                            is IrConst -> addIfStringConst(arg)
+                            is IrConstantArray -> arg.elements.filterIsInstance<IrConstantPrimitive>().forEach {
+                                addIfStringConst(it.value)
+                            }
+                            // TODO: consider leaving only this branch
+                            is IrVararg -> arg.elements.filterIsInstance<IrConst>().forEach {
+                                addIfStringConst(it)
+                            }
+                        }
+                    }
+                }
+            }?.takeIf { it.isNotEmpty() }?.also {
+                annotationKeys[element] = it.toSet()
+            } != null
+    }
+
+    override fun getClosestAnnotatedAncestorElement(element: IrElement, rootElement: IrElement, excludeSelf: Boolean): IrElement? {
+        val annotatedAncestors = ensureRootProcessed(rootElement)
+        return if (!excludeSelf && annotationKeys.containsKey(element)) element else annotatedAncestors[element]
+    }
+
+    override fun getSuppressingStrings(annotated: IrElement): Set<String> = annotationKeys[annotated].orEmpty()
+}
+
+private val SUPPRESS = FqName("kotlin.Suppress")

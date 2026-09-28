@@ -1,0 +1,67 @@
+val qux: Int
+  field = 1
+  get
+
+val test1: KClass<A>
+  field = A::class
+  get
+
+val test2: KClass<out Int>
+  field = <get-qux>()::class
+  get
+
+val test3: KFunction1<A, Unit>
+  field = KFunction1<A, Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun(p0: A) {
+      return p0.foo()
+    }
+  )
+
+  get
+
+val test4: KFunction0<A>
+  field = KFunction0<A>(
+    /* bound = */ [],
+    /* invoke = */    local fun(): A {
+      return A()
+    }
+  )
+
+  get
+
+val test5: KFunction0<Unit>
+  field = KFunction0<Unit>(
+    /* bound = */ [A()],
+    /* invoke = */    local fun(receiver: A) {
+      return receiver.foo()
+    }
+  )
+
+  get
+
+val test6: KFunction0<Unit>
+  field = KFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local fun() {
+      return bar()
+    }
+  )
+
+  get
+
+class A {
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+  fun foo() {
+  }
+
+}
+
+fun bar() {
+}
+

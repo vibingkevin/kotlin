@@ -1,0 +1,57 @@
+FILE: kt57313.kt
+    public abstract class AsyncJob : R|kotlin/Any| {
+        public constructor(): R|AsyncJob| {
+            super<R|kotlin/Any|>()
+        }
+
+        public abstract suspend fun execute(lifetime: R|AsyncLifetime|, attempt: R|kotlin/Int|, due: R|DateTime|, context: R|JobContext|): R|JobContext|
+
+    }
+    public final class OrgBootstrapRequest : R|kotlin/Any| {
+        public constructor(): R|OrgBootstrapRequest| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class AsyncLifetime : R|kotlin/Any| {
+        public constructor(): R|AsyncLifetime| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class DateTime : R|kotlin/Any| {
+        public constructor(): R|DateTime| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class JobContext : R|kotlin/Any| {
+        public constructor(): R|JobContext| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final class OrgBootstrapTriggerJob : R|AsyncJob| {
+        public constructor(orgId: R|kotlin/Long|, bootstrap: R|OrgBootstrapRequest|, jetSalesSync: R|kotlin/Boolean?|): R|OrgBootstrapTriggerJob| {
+            super<R|AsyncJob|>()
+        }
+
+        public final val orgId: R|kotlin/Long| = R|<local>/orgId|
+            public get(): R|kotlin/Long|
+
+        public final val bootstrap: R|OrgBootstrapRequest| = R|<local>/bootstrap|
+            public get(): R|OrgBootstrapRequest|
+
+        public final val jetSalesSync: R|kotlin/Boolean?| = R|<local>/jetSalesSync|
+            public get(): R|kotlin/Boolean?|
+
+        public open override suspend fun execute(lifetime: R|AsyncLifetime|, attempt: R|kotlin/Int|, due: R|DateTime|, context: R|JobContext|): R|JobContext| {
+            ^execute R|/JobContext.JobContext|()
+        }
+
+    }
+    public final val name: R|kotlin/String| = <strcat>(<getClass>(Q|OrgBootstrapTriggerJob|).R|SubstitutionOverride<kotlin/reflect/KClass.simpleName: R|kotlin/String?|>|, String(.), Q|OrgBootstrapTriggerJob|::R|/OrgBootstrapTriggerJob.execute|.R|SubstitutionOverride<kotlin/reflect/KSuspendFunction5.name: R|kotlin/String|>|)
+        public get(): R|kotlin/String|
+    public final fun box(): R|kotlin/String| {
+        ^box String(OK)
+    }

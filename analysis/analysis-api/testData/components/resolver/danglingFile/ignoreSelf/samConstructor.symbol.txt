@@ -1,0 +1,10 @@
+KtNameReferenceExpression(69,79): 'MyRunnable'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = [
+      /MyRunnable(function: () -> kotlin.Unit): MyRunnable
+    ]
+    diagnostic = ERROR<INVISIBLE_REFERENCE: Cannot access 'fun fun MyRunnable(function: () -> Unit): MyRunnable': it is private in file.>
+  additional: [samConstructor.kt]

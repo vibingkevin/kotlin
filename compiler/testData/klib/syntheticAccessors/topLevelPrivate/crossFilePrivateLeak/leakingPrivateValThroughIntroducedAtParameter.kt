@@ -1,0 +1,10 @@
+// FILE: A.kt
+private val ok = "OK"
+
+internal inline fun internalInlineFun(
+    @IntroducedAt("1") ok1: String = ok,
+    @IntroducedAt("2") ok2: String = ok1
+) = ok2
+
+// FILE: B.kt
+fun box(): String = internalInlineFun()

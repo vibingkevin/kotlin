@@ -1,0 +1,117 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.tree.IElementType;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.psi.stubs.KotlinStubWithFqName;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Base implementation of {@link KtTypeParameterListOwner} that may be backed either by the AST tree or by a stub.
+ *
+ * <p>This is an internal implementation base class of the Kotlin PSI, not intended for direct use or subclassing outside of the PSI
+ * implementation. See {@link KtElementImplStub} for details on stub backing.
+ *
+ * @param <T> the type of stub backing this declaration, carrying its fully qualified name
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public abstract class KtTypeParameterListOwnerStub<T extends KotlinStubWithFqName<?>>
+        extends KtNamedDeclarationStub<T> implements KtTypeParameterListOwner {
+    @KtImplementationDetail
+    public KtTypeParameterListOwnerStub(@NotNull T stub, @NotNull IElementType nodeType) {
+        super(stub, nodeType);
+    }
+
+    @KtImplementationDetail
+    public KtTypeParameterListOwnerStub(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @Override
+    @Nullable
+    public KtTypeParameterList getTypeParameterList() {
+        return getStubOrPsiChild(KtNodeTypes.TYPE_PARAMETER_LIST, KtTypeParameterList.class);
+    }
+
+    @Override
+    @Nullable
+    public KtTypeConstraintList getTypeConstraintList() {
+        return getStubOrPsiChild(KtNodeTypes.TYPE_CONSTRAINT_LIST, KtTypeConstraintList.class);
+    }
+
+    @Override
+    @NotNull
+    public List<KtTypeConstraint> getTypeConstraints() {
+        KtTypeConstraintList typeConstraintList = getTypeConstraintList();
+        if (typeConstraintList == null) {
+            return Collections.emptyList();
+        }
+        return typeConstraintList.getConstraints();
+    }
+
+    @Override
+    @NotNull
+    public List<KtTypeParameter> getTypeParameters() {
+        KtTypeParameterList list = getTypeParameterList();
+        if (list == null) return Collections.emptyList();
+
+        return list.getParameters();
+    }
+
+    /**
+     * @deprecated Use {@link KtModifierList#getContextParameterList()} (via {@link #getModifierList()}) instead. This method is obsolete and exists for compatibility reasons only.
+     */
+    @kotlin.Deprecated(
+            message = "Use 'KtModifierList.getContextParameterList()' (via 'getModifierList()') instead. This method is obsolete and exists for compatibility reasons only.",
+            replaceWith = @ReplaceWith(
+                    expression = "modifierList?.contextParameterList",
+                    imports = {}
+            )
+    )
+    @Deprecated
+    @Nullable
+    public KtContextReceiverList getContextReceiverList() {
+        KtModifierList modifierList = getModifierList();
+        return modifierList == null ? null : (KtContextReceiverList) modifierList.getContextParameterList();
+    }
+
+    /**
+     * Retrieves a list of context receiver lists associated with the current element.
+     * If the element does not have a modifier list, an empty list is returned.
+     * <p>
+     * Valid code may have only either empty or one {@link KtContextReceiverList},
+     * so {@link #getContextReceiverList } is preferable.
+     *
+     * @deprecated Use {@link KtModifierList#getContextParameterLists()} (via {@link #getModifierList()}) instead. This method is obsolete and exists for compatibility reasons only.
+     *
+     * @return a non-null list of {@link KtContextReceiverList} defined in the associated modifier list.
+     * Returns an empty list if no context receiver lists are present.
+     */
+    @kotlin.Deprecated(
+            message = "Use 'KtModifierList.getContextParameterLists()' (via 'getModifierList()') instead. This method is obsolete and exists for compatibility reasons only.",
+            replaceWith = @ReplaceWith(
+                    expression = "modifierList?.contextParameterLists.orEmpty()",
+                    imports = {}
+            )
+    )
+    @Deprecated
+    @SuppressWarnings("unchecked")
+    @NotNull
+    public List<KtContextReceiverList> getContextReceiverLists() {
+        KtModifierList modifierList = getModifierList();
+        return modifierList == null
+               ? Collections.emptyList()
+               : (List<KtContextReceiverList>) (List<?>) modifierList.getContextParameterLists();
+    }
+}

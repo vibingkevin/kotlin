@@ -1,0 +1,8 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase Foundation Security darwin posix
+language = Objective-C
+package = platform.StoreKit
+modules = StoreKit
+apiNotesSwiftName = true
+
+compilerOpts = -framework StoreKit
+linkerOpts = -framework StoreKit

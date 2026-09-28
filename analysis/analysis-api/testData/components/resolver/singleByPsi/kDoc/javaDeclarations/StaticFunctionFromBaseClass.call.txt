@@ -1,0 +1,2 @@
+KDocName(94,103): 'staticFun'
+  null

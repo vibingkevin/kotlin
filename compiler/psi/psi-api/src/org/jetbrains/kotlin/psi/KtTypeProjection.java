@@ -1,0 +1,93 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.tree.IElementType;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.stubs.KotlinTypeProjectionStub;
+
+/**
+ * Represents a type projection in a type argument, including variance modifiers or star projection.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * val list: MutableList<out Number> = mutableListOf()
+ * //                    ^________^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtTypeProjection extends KtModifierListOwnerStub<KotlinTypeProjectionStub> {
+    /** A shared empty array, which can be reused to avoid unnecessary allocations. */
+    public static final KtTypeProjection[] EMPTY_ARRAY = new KtTypeProjection[0];
+
+    @KtImplementationDetail
+    public KtTypeProjection(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtTypeProjection(@NotNull KotlinTypeProjectionStub stub) {
+        super(stub, KtNodeTypes.TYPE_PROJECTION);
+    }
+
+    /**
+     * Returns the variance projection of this type argument: {@link KtProjectionKind#IN}, {@link KtProjectionKind#OUT},
+     * {@link KtProjectionKind#STAR}, or {@link KtProjectionKind#NONE} for an invariant argument.
+     */
+    @NotNull
+    public KtProjectionKind getProjectionKind() {
+        KotlinTypeProjectionStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.getProjectionKind();
+        }
+
+        PsiElement projectionToken = getProjectionToken();
+        IElementType token = projectionToken != null ? projectionToken.getNode().getElementType() : null;
+        for (KtProjectionKind projectionKind : KtProjectionKind.values()) {
+            if (projectionKind.getToken() == token) {
+                return projectionKind;
+            }
+        }
+        throw new IllegalStateException(projectionToken.getText());
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitTypeProjection(this, data);
+    }
+
+    /** Returns the projected type reference, or {@code null} for a star projection ({@code *}) or when it is absent in incomplete code. */
+    @Nullable
+    public KtTypeReference getTypeReference() {
+        return getStubOrPsiChild(KtNodeTypes.TYPE_REFERENCE, KtTypeReference.class);
+    }
+
+    /** Returns the projection token ({@code *}, {@code in}, or {@code out}), or {@code null} for an invariant argument. */
+    @Nullable
+    public PsiElement getProjectionToken() {
+        PsiElement star = findChildByType(KtTokens.MUL);
+        if (star != null) {
+            return star;
+        }
+
+        KtModifierList modifierList = getModifierList();
+        if (modifierList != null) {
+            PsiElement element = modifierList.getModifier(KtTokens.IN_KEYWORD);
+            if (element != null) return element;
+
+            element = modifierList.getModifier(KtTokens.OUT_KEYWORD);
+            if (element != null) return element;
+        }
+
+        return null;
+    }
+}

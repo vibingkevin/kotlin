@@ -1,0 +1,5 @@
+KtCallableReferenceExpression(79,87): 'Foo::foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val foo: kotlin.String
+    ]

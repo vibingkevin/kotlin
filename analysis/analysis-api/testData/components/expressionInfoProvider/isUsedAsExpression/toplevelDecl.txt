@@ -1,0 +1,6 @@
+expression: FUNCTION
+text: fun function() {
+
+}
+isUsedAsExpression: false
+isUsedAsResultOfLambda: false

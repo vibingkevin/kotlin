@@ -1,0 +1,1003 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.analysis.api.components
+
+import org.jetbrains.kotlin.analysis.api.*
+import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeOwner
+import org.jetbrains.kotlin.analysis.api.lifetime.KaLifetimeToken
+import org.jetbrains.kotlin.analysis.api.lifetime.withValidityAssertion
+import org.jetbrains.kotlin.analysis.api.scopes.KaScope
+import org.jetbrains.kotlin.analysis.api.scopes.KaTypeScope
+import org.jetbrains.kotlin.analysis.api.symbols.KaContextParameterSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaFileSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaPackageSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.markers.KaDeclarationContainerSymbol
+import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtFile
+import java.util.*
+
+@KaSessionComponentImplementationDetail
+@SubclassOptInRequired(KaSessionComponentImplementationDetail::class)
+public interface KaScopeProvider : KaSessionComponent {
+    /**
+     * A [KaScope] containing *non-static* callable members (functions, properties, and constructors) and all classifier members
+     * (classes and objects) of the given [KaDeclarationContainerSymbol]. The scope includes members inherited from the symbol's supertypes,
+     * in addition to members which are declared explicitly inside the symbol's body.
+     *
+     * The member scope doesn't include [synthetic Java properties](https://kotlinlang.org/docs/java-interop.html#getters-and-setters). For
+     * a scope which contains synthetic properties, please refer to [syntheticJavaPropertiesScope].
+     *
+     * @see staticMemberScope
+     */
+    public val KaDeclarationContainerSymbol.memberScope: KaScope
+
+    /**
+     * A [KaScope] containing the *static* members of the given [KaDeclarationContainerSymbol].
+     *
+     * The behavior of the scope differs based on whether the given [KaDeclarationContainerSymbol] is a Kotlin or Java class:
+     *
+     * - **Kotlin class:** The scope contains static callables (functions and properties) and classifiers (classes and objects) declared
+     *   directly in the [KaDeclarationContainerSymbol]. Hence, the static member scope for Kotlin classes is equivalent to
+     *   [staticDeclaredMemberScope].
+     * - **Java class:** The scope contains static callables (functions and properties) declared in the [KaDeclarationContainerSymbol] or
+     *   any of its superclasses (excluding static callables from super-interfaces), and classes declared directly in the
+     *   [KaDeclarationContainerSymbol]. This follows Kotlin's rules about static inheritance in Java classes, where static callables are
+     *   propagated from superclasses, but nested classes are not.
+     *
+     * #### Kotlin Example
+     *
+     * ```kotlin
+     * abstract class A {
+     *     class C1
+     *     inner class D1
+     *     object O1
+     *
+     *     // There is no way to declare a static callable in an abstract class, as only enum classes define additional static callables.
+     * }
+     *
+     * class B : A() {
+     *     class C2
+     *     inner class D2
+     *     object O2
+     *     companion object {
+     *         val baz: String = ""
+     *     }
+     * }
+     * ```
+     *
+     * The static member scope of `B` contains the following symbols:
+     *
+     * ```
+     * class C2
+     * inner class D2
+     * object O2
+     * companion object
+     * ```
+     *
+     * #### Java Example
+     *
+     * ```java
+     * // SuperInterface.java
+     * public interface SuperInterface {
+     *     public static void fromSuperInterface() { }
+     * }
+     *
+     * // SuperClass.java
+     * public abstract class SuperClass implements SuperInterface {
+     *     static class NestedSuperClass { }
+     *     class InnerSuperClass { }
+     *     public static void fromSuperClass() { }
+     * }
+     *
+     * // FILE: JavaClass.java
+     * public class JavaClass extends SuperClass {
+     *     static class NestedClass { }
+     *     class InnerClass { }
+     *     public static void fromJavaClass() { }
+     * }
+     * ```
+     *
+     * The static member scope of `JavaClass` contains the following symbols:
+     *
+     * ```
+     * public static void fromSuperClass()
+     * public static void fromJavaClass()
+     * static class NestedClass
+     * class InnerClass
+     * ```
+     *
+     * @see memberScope
+     */
+    public val KaDeclarationContainerSymbol.staticMemberScope: KaScope
+
+    /**
+     * A [KaScope] containing *all* members from [memberScope] and [staticMemberScope].
+     */
+    public val KaDeclarationContainerSymbol.combinedMemberScope: KaScope
+        get() = withValidityAssertion {
+            return listOf(memberScope, staticMemberScope).asCompositeScope()
+        }
+
+    /**
+     * A [KaScope] containing the *non-static* callables (functions, properties, and constructors) and inner classes explicitly
+     * declared in the given [KaDeclarationContainerSymbol].
+     *
+     * The declared member scope does not contain classifiers (including the companion object) except for inner classes. To retrieve the
+     * classifiers declared in this [KaDeclarationContainerSymbol], please use the *static* declared member scope provided by
+     * [staticDeclaredMemberScope].
+     *
+     * @see staticDeclaredMemberScope
+     */
+    public val KaDeclarationContainerSymbol.declaredMemberScope: KaScope
+
+    /**
+     * A [KaScope] containing the *static* callables (functions and properties) and all classifiers (classes and objects) explicitly
+     * declared in the given [KaDeclarationContainerSymbol].
+     *
+     * It is worth noting that, while Java classes may contain declarations of static callables freely, in Kotlin only enum classes define
+     * static callables. Hence, for non-enum Kotlin classes, it is not expected that the static declared member scope will contain any
+     * callables.
+     *
+     * @see declaredMemberScope
+     */
+    public val KaDeclarationContainerSymbol.staticDeclaredMemberScope: KaScope
+
+    /**
+     * A [KaScope] containing *all* members explicitly declared in the given [KaDeclarationContainerSymbol].
+     *
+     * In contrast to [declaredMemberScope] and [staticDeclaredMemberScope], this scope contains both static and non-static members.
+     */
+    public val KaDeclarationContainerSymbol.combinedDeclaredMemberScope: KaScope
+
+    /**
+     * A [KaScope] containing synthetic callables (functions and properties) created by interface delegation.
+     *
+     * #### Example
+     *
+     * ```kotlin
+     * interface I {
+     *     val foo: Int get() = 2
+     *     fun bar(): String
+     * }
+     *
+     * class A(
+     *     private val p: I
+     * ) : I by p {
+     *     val regularProperty: Int = 5
+     * }
+     * ```
+     *
+     * The delegated member scope for `A` has the following entries:
+     *
+     * ```
+     * override val foo: kotlin.Int
+     *   get()
+     *
+     * override fun bar(): kotlin.String
+     * ```
+     *
+     * `regularProperty` is not contained in the delegated member scope because it is not a delegated property.
+     */
+    public val KaDeclarationContainerSymbol.delegatedMemberScope: KaScope
+
+    /**
+     * A [KaScope] containing the top-level declarations (such as classes, functions and properties) in the given [KaFileSymbol].
+     */
+    public val KaFileSymbol.fileScope: KaScope
+
+    /**
+     * A [KaScope] containing all members of the package represented by the given [KaPackageSymbol], not including members of subpackages.
+     */
+    public val KaPackageSymbol.packageScope: KaScope
+
+    /**
+     * Combines a list of [KaScope]s into a single composite [KaScope]. The resulting scope contains all members of its constituent scopes.
+     */
+    public fun List<KaScope>.asCompositeScope(): KaScope
+
+    /**
+     * A [KaTypeScope] for the given [KaType], or `null` if the type is [erroneous][org.jetbrains.kotlin.analysis.api.types.KaErrorType].
+     * The scope includes all members which are callable on a given type. It also includes [synthetic Java properties](https://kotlinlang.org/docs/java-interop.html#getters-and-setters).
+     *
+     * Comparing to [KaScope], the [KaTypeScope] contains members whose use-site type parameters have been substituted.
+     *
+     * #### Example
+     *
+     * ```kotlin
+     * fun foo(list: List<String>) {
+     *     list
+     * }
+     *```
+     *
+     * We can get a [KaTypeScope] for the [expression type][org.jetbrains.kotlin.analysis.api.components.KaExpressionTypeProvider.expressionType]
+     * of `list`. This scope contains a `get(index: Int): String` function, where the return type `E` from [List.get] is substituted with
+     * the type argument `String`.
+     *
+     * @see KaTypeScope
+     * @see KaTypeProvider.type
+     * @see KaExpressionTypeProvider.expressionType
+     */
+    @KaExperimentalApi
+    public val KaType.scope: KaTypeScope?
+
+    /**
+     * A [KaScope] containing unsubstituted declarations from the [KaType]'s underlying declaration.
+     */
+    @KaExperimentalApi
+    public val KaTypeScope.declarationScope: KaScope
+
+    /**
+     * A [KaTypeScope] containing the [synthetic Java properties](https://kotlinlang.org/docs/java-interop.html#getters-and-setters) created
+     * for a given [KaType].
+     */
+    @KaExperimentalApi
+    public val KaType.syntheticJavaPropertiesScope: KaTypeScope?
+
+    /**
+     * Computes the lexical scope context for a given [position] in the [KtFile]. The scope context includes all scopes that are relevant
+     * for the given position, together with all available implicit receivers.
+     */
+    public fun KtFile.scopeContext(position: KtElement): KaScopeContext
+
+    /**
+     * A [KaScopeContext] formed from all imports in the [KtFile].
+     *
+     * By default, the scope context also includes default importing scopes, which can be filtered by [KaScopeKind].
+     */
+    public val KtFile.importingScopeContext: KaScopeContext
+
+    /**
+     * Returns a single [KaScope] that contains declarations from all scopes that satisfy [filter].
+     *
+     * The order of declarations corresponds to the order of their containing scopes, which are sorted according to their [indices][KaScopeKind.indexInTower]
+     * in the scope tower.
+     */
+    public fun KaScopeContext.compositeScope(filter: (KaScopeKind) -> Boolean = { true }): KaScope = withValidityAssertion {
+        val subScopes = scopes.filter { filter(it.kind) }.map { it.scope }
+        subScopes.asCompositeScope()
+    }
+}
+
+/**
+ * A scope context includes all scopes that are relevant for a given [KtElement] position in a [KtFile], together with all available
+ * implicit receivers.
+ *
+ * @see KaScopeProvider.scopeContext
+ */
+@SubclassOptInRequired(KaImplementationDetail::class)
+public interface KaScopeContext : KaLifetimeOwner {
+    /**
+     * The implicit receivers available at the context position.
+     *
+     * The list is sorted according to the order of scopes in the scope tower (from innermost to outermost).
+     *
+     * It is possible to use `this@` + [KaImplicitReceiver.label] to refer to the corresponding implicit receiver.
+     *
+     * `this` (without any explicit label) can be used to explicitly refer to the (currently) implicit receiver
+     * with the lowest index in the scope tower (= innermost scope).
+     */
+    @OptIn(KaExperimentalApi::class)
+    public val implicitReceivers: List<KaImplicitReceiver>
+        get() = implicitValues.filterIsInstance<KaImplicitReceiver>()
+
+    /**
+     * The implicit values available at the context position.
+     *
+     * The list is sorted according to the order of scopes in the scope tower (from innermost to outermost).
+     *
+     * @see KaScopeKind.indexInTower
+     */
+    @KaExperimentalApi
+    public val implicitValues: List<KaScopeImplicitValue>
+
+    /**
+     * The [KaScope]s available at the context position. [KaScopeWithKind] additionally determines the kind of scope at the index in the
+     * scope tower.
+     *
+     * The list is sorted according to the order of scopes in the scope tower (from innermost to outermost).
+     */
+    public val scopes: List<KaScopeWithKind>
+
+    /**
+     * The list of smart casts available at the context position.
+     *
+     * Note that an actual smart cast will only appear if the original expression type does not match the expected type.
+     * For actual smart cast application, check [KaDataFlowProvider.smartCastInfo].
+     *
+     * The list has an arbitrary (but stable) order.
+     */
+    @KaExperimentalApi
+    public val possibleSmartCasts: List<KaSmartCastPossibility>
+}
+
+/**
+ * Represents a possible smart cast at a fixed context position.
+ *
+ * The word "possible" means that the compiler is allowed to produce smart casts for the [source] expression if there is a need to do so.
+ * Note that unless [isStable] is set, the smart cast will not be applied. In addition, the `SMARTCAST_IMPOSSIBLE` error is issued
+ * in certain cases.
+ */
+@KaExperimentalApi
+@SubclassOptInRequired(KaImplementationDetail::class)
+public interface KaSmartCastPossibility : KaLifetimeOwner {
+    /**
+     * A declaration to whose references a smart cast may be applied (if [isStable] is `true`).
+     */
+    public val source: KaSmartCastSource
+
+    /**
+     * Types that [source] may be automatically cast to.
+     */
+    public val smartCastTypes: List<KaType>
+
+    /**
+     * Whether the smart cast [source] is stable at the context position.
+     *
+     * The same [source] can have different smart cast stability depending on the context position.
+     * For example, in the code snippet below, a smart cast will be applied to the first usage of `value`. However, after the conditional
+     * expression, the compiler is not sure anymore that `value` is still set, so a compilation error is reported.
+     *
+     * ```
+     * fun test() {
+     *     var value: String? = System.getProperty("some.property")
+     *     if (value == null) {
+     *         return
+     *     }
+     *
+     *     value.length  // Smart cast is applied
+     *
+     *     if (Random.nextBoolean()) {
+     *         value = null
+     *     }
+     *
+     *     value.length  // UNSAFE_CALL
+     * }
+     * ```
+     *
+     * For more information on smart cast stability, check the Kotlin specification:
+     * [Smart cast sink stability](https://kotlinlang.org/spec/type-inference.html#smart-cast-sink-stability).
+     */
+    public val isStable: Boolean
+}
+
+/**
+ * Either a symbol for which a smart cast is generated, or one of its receivers.
+ */
+@KaExperimentalApi
+@SubclassOptInRequired(KaImplementationDetail::class)
+public interface KaSmartCastSource : KaLifetimeOwner {
+    /**
+     * A declaration participating in the smart cast path.
+     *
+     * Smart casts to the same declaration can be allowed or prohibited, depending on how that declaration is accessed.
+     * In the following example, the [symbol] will be `val value: Any`. However, a smart cast will only be produced for `a.value`.
+     *
+     * ```
+     * class Holder(val value: Any)
+     *
+     * fun test(a: Holder, b: Holder) {
+     *     if (a.value is String) {
+     *         a.value.length  // OK
+     *         b.value.length  // compilation error
+     *     }
+     * }
+     * ```
+     *
+     * For `a.value` from the example above, a [KaSmartCastSource] is generated whose [symbol] points to `val value: Any` (a property),
+     * and whose [dispatchReceiver] is the `a: Holder` value parameter.
+     *
+     * For `this`, the [symbol] may be either a [org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol] (for an extension
+     * receiver parameter) or a [org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol] (if the cast occurs right inside a class).
+     */
+    public val symbol: KaDeclarationSymbol
+
+    /**
+     * The required dispatch receiver for this path component, if any.
+     *
+     * The [symbol] only participates in the smart cast if its dispatch receiver is the same as this one. E.g.:
+     *
+     * ```
+     * class Holder(val value: Any)
+     *
+     * fun test(holder: Holder) {
+     *     if (holder.value is String) {
+     *         holder.value.length  // Context position
+     *     }
+     * }
+     * ```
+     *
+     * In the example above, the `holder` parameter is a required dispatch receiver for `value`. If any other receiver is passed,
+     * such as `Holder().value`, the smart cast is not generated.
+     */
+    public val dispatchReceiver: KaSmartCastSource?
+
+    /**
+     * The required extension receiver for this path component, if any.
+     */
+    public val extensionReceiver: KaSmartCastSource?
+
+    /**
+     * The original type of the [symbol].
+     */
+    public val originalType: KaType
+}
+
+/**
+ * Represents a value which can be used implicitly inside a particular [KaScopeContext].
+ */
+@KaExperimentalApi
+@OptIn(KaImplementationDetail::class)
+public sealed interface KaScopeImplicitValue : KaLifetimeOwner {
+    /**
+     * The implicit value type.
+     */
+    public val type: KaType
+
+    /**
+     * The index of the scope in the scope tower where the implicit value is declared.
+     */
+    public val scopeIndexInTower: Int
+}
+
+/**
+ * Represents an implicit receiver available in a particular [KaScopeContext].
+ */
+@KaExperimentalApi
+@SubclassOptInRequired(KaImplementationDetail::class)
+public interface KaScopeImplicitReceiverValue : KaScopeImplicitValue {
+    /**
+     * The implicit value owner.
+     */
+    public val ownerSymbol: KaSymbol
+}
+
+/**
+ * Represents an implicit argument available in a particular [KaScopeContext].
+ */
+@KaExperimentalApi
+@SubclassOptInRequired(KaImplementationDetail::class)
+public interface KaScopeImplicitArgumentValue : KaScopeImplicitValue {
+    /**
+     * The corresponding context parameter symbol which can be used
+     * as an implicit argument.
+     */
+    public val symbol: KaContextParameterSymbol
+}
+
+/**
+ * Represents an implicit receiver available in a particular context.
+ */
+@OptIn(KaExperimentalApi::class)
+@SubclassOptInRequired(KaImplementationDetail::class)
+public interface KaImplicitReceiver : KaScopeImplicitReceiverValue {
+    override val type: KaType
+    override val ownerSymbol: KaSymbol
+    override val scopeIndexInTower: Int
+
+    /**
+     * A label for the implicit receiver, if any.
+     *
+     * If not null, `this@$label` can be used to refer to the implicit receiver.
+     *
+     * Will be null if shadowed by another receiver with the same label at a lower index
+     * in the scope tower.
+     */
+    @KaExperimentalApi
+    public val label: String?
+}
+
+public sealed interface KaScopeKind {
+    /**
+     * An index in the scope tower. The lower the index, the closer the scope is to the context position.
+     *
+     * #### Example
+     *
+     * ```kotlin
+     * fun f(a: A, b: B) {      // local scope:       indexInTower = 2
+     *     with(a) {            // type scope for A:  indexInTower = 1
+     *         with(b) {        // type scope for B:  indexInTower = 0
+     *             <caret>
+     *         }
+     *     }
+     * }
+     * ```
+     */
+    public val indexInTower: Int
+
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface LocalScope : KaScopeKind
+
+    /**
+     * Represents a [KaScope] for a type, which includes [synthetic Java properties](https://kotlinlang.org/docs/java-interop.html#getters-and-setters)
+     * of that type.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface TypeScope : KaScopeKind
+
+    public sealed interface NonLocalScope : KaScopeKind
+
+    /**
+     * Represents a [KaScope] containing type parameters.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface TypeParameterScope : NonLocalScope
+
+    /**
+     * Represents a [KaScope] containing declarations from a package.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface PackageMemberScope : NonLocalScope
+
+    /**
+     * Represents a [KaScope] containing declarations from imports.
+     */
+    public sealed interface ImportingScope : NonLocalScope
+
+    /**
+     * Represents a [KaScope] containing declarations from explicit non-star imports.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface ExplicitSimpleImportingScope : ImportingScope
+
+    /**
+     * Represents a [KaScope] containing declarations from explicit star imports.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface ExplicitStarImportingScope : ImportingScope
+
+    /**
+     * Represents a [KaScope] containing declarations from non-star imports which are not declared explicitly and are added by default.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface DefaultSimpleImportingScope : ImportingScope
+
+    /**
+     * Represents a [KaScope] containing declarations from star imports which are not declared explicitly and are added by default.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface DefaultStarImportingScope : ImportingScope
+
+    /**
+     * Represents a [KaScope] containing the static members of a classifier.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface StaticMemberScope : NonLocalScope
+
+    /**
+     * Represents a [KaScope] containing the members of a script.
+     */
+    @SubclassOptInRequired(KaImplementationDetail::class)
+    public interface ScriptMemberScope : NonLocalScope
+}
+
+@KaIdeApi
+@OptIn(KaImplementationDetail::class)
+public object KaScopeKinds {
+    @KaIdeApi
+    public class LocalScope(override val indexInTower: Int) : KaScopeKind.LocalScope
+
+    @KaIdeApi
+    public class TypeScope(override val indexInTower: Int) : KaScopeKind.TypeScope
+
+    @KaIdeApi
+    public class TypeParameterScope(override val indexInTower: Int) : KaScopeKind.TypeParameterScope
+
+    @KaIdeApi
+    public class PackageMemberScope(override val indexInTower: Int) : KaScopeKind.PackageMemberScope
+
+    @KaIdeApi
+    public class ExplicitSimpleImportingScope(override val indexInTower: Int) : KaScopeKind.ExplicitSimpleImportingScope
+
+    @KaIdeApi
+    public class ExplicitStarImportingScope(override val indexInTower: Int) : KaScopeKind.ExplicitStarImportingScope
+
+    @KaIdeApi
+    public class DefaultSimpleImportingScope(override val indexInTower: Int) : KaScopeKind.DefaultSimpleImportingScope
+
+    @KaIdeApi
+    public class DefaultStarImportingScope(override val indexInTower: Int) : KaScopeKind.DefaultStarImportingScope
+
+    @KaIdeApi
+    public class StaticMemberScope(override val indexInTower: Int) : KaScopeKind.StaticMemberScope
+
+    @KaIdeApi
+    public class ScriptMemberScope(override val indexInTower: Int) : KaScopeKind.ScriptMemberScope
+}
+
+/**
+ * A wrapper around a [KaScope] which is additionally positioned in the scope tower of a [KaScopeContext], represented by [KaScopeKind].
+ */
+@SubclassOptInRequired(KaImplementationDetail::class)
+public interface KaScopeWithKind : KaLifetimeOwner {
+    /**
+     * The [KaScope] underlying this [KaScopeWithKind].
+     */
+    public val scope: KaScope
+
+    /**
+     * The kind of the scope derived from its position in the scope tower.
+     */
+    public val kind: KaScopeKind
+}
+
+@KaIdeApi
+@OptIn(KaImplementationDetail::class)
+public class KaScopeWithKindImpl(
+    private val backingScope: KaScope,
+    private val backingKind: KaScopeKind,
+) : KaScopeWithKind {
+    override val token: KaLifetimeToken get() = backingScope.token
+
+    override val scope: KaScope get() = withValidityAssertion { backingScope }
+    override val kind: KaScopeKind get() = withValidityAssertion { backingKind }
+
+    override fun equals(other: Any?): Boolean {
+        return this === other ||
+                other is KaScopeWithKindImpl &&
+                other.backingScope == backingScope &&
+                other.backingKind == backingKind
+    }
+
+    override fun hashCode(): Int = Objects.hash(backingScope, backingKind)
+}
+
+/**
+ * A [KaScope] containing *non-static* callable members (functions, properties, and constructors) and all classifier members
+ * (classes and objects) of the given [KaDeclarationContainerSymbol]. The scope includes members inherited from the symbol's supertypes,
+ * in addition to members which are declared explicitly inside the symbol's body.
+ *
+ * The member scope doesn't include [synthetic Java properties](https://kotlinlang.org/docs/java-interop.html#getters-and-setters). For
+ * a scope which contains synthetic properties, please refer to [syntheticJavaPropertiesScope].
+ *
+ * @see staticMemberScope
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.memberScope", "org.jetbrains.kotlin.analysis.api.scopes.memberScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaDeclarationContainerSymbol.memberScope: KaScope
+    get() = with(session) { memberScope }
+
+/**
+ * A [KaScope] containing the *static* members of the given [KaDeclarationContainerSymbol].
+ *
+ * The behavior of the scope differs based on whether the given [KaDeclarationContainerSymbol] is a Kotlin or Java class:
+ *
+ * - **Kotlin class:** The scope contains static callables (functions and properties) and classifiers (classes and objects) declared
+ *   directly in the [KaDeclarationContainerSymbol]. Hence, the static member scope for Kotlin classes is equivalent to
+ *   [staticDeclaredMemberScope].
+ * - **Java class:** The scope contains static callables (functions and properties) declared in the [KaDeclarationContainerSymbol] or
+ *   any of its superclasses (excluding static callables from super-interfaces), and classes declared directly in the
+ *   [KaDeclarationContainerSymbol]. This follows Kotlin's rules about static inheritance in Java classes, where static callables are
+ *   propagated from superclasses, but nested classes are not.
+ *
+ * #### Kotlin Example
+ *
+ * ```kotlin
+ * abstract class A {
+ *     class C1
+ *     inner class D1
+ *     object O1
+ *
+ *     // There is no way to declare a static callable in an abstract class, as only enum classes define additional static callables.
+ * }
+ *
+ * class B : A() {
+ *     class C2
+ *     inner class D2
+ *     object O2
+ *     companion object {
+ *         val baz: String = ""
+ *     }
+ * }
+ * ```
+ *
+ * The static member scope of `B` contains the following symbols:
+ *
+ * ```
+ * class C2
+ * inner class D2
+ * object O2
+ * companion object
+ * ```
+ *
+ * #### Java Example
+ *
+ * ```java
+ * // SuperInterface.java
+ * public interface SuperInterface {
+ *     public static void fromSuperInterface() { }
+ * }
+ *
+ * // SuperClass.java
+ * public abstract class SuperClass implements SuperInterface {
+ *     static class NestedSuperClass { }
+ *     class InnerSuperClass { }
+ *     public static void fromSuperClass() { }
+ * }
+ *
+ * // FILE: JavaClass.java
+ * public class JavaClass extends SuperClass {
+ *     static class NestedClass { }
+ *     class InnerClass { }
+ *     public static void fromJavaClass() { }
+ * }
+ * ```
+ *
+ * The static member scope of `JavaClass` contains the following symbols:
+ *
+ * ```
+ * public static void fromSuperClass()
+ * public static void fromJavaClass()
+ * static class NestedClass
+ * class InnerClass
+ * ```
+ *
+ * @see memberScope
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.staticMemberScope", "org.jetbrains.kotlin.analysis.api.scopes.staticMemberScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaDeclarationContainerSymbol.staticMemberScope: KaScope
+    get() = with(session) { staticMemberScope }
+
+/**
+ * A [KaScope] containing *all* members from [memberScope] and [staticMemberScope].
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.combinedMemberScope", "org.jetbrains.kotlin.analysis.api.scopes.combinedMemberScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaDeclarationContainerSymbol.combinedMemberScope: KaScope
+    get() = with(session) { combinedMemberScope }
+
+/**
+ * A [KaScope] containing the *non-static* callables (functions, properties, and constructors) and inner classes explicitly
+ * declared in the given [KaDeclarationContainerSymbol].
+ *
+ * The declared member scope does not contain classifiers (including the companion object) except for inner classes. To retrieve the
+ * classifiers declared in this [KaDeclarationContainerSymbol], please use the *static* declared member scope provided by
+ * [staticDeclaredMemberScope].
+ *
+ * @see staticDeclaredMemberScope
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.declaredMemberScope", "org.jetbrains.kotlin.analysis.api.scopes.declaredMemberScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaDeclarationContainerSymbol.declaredMemberScope: KaScope
+    get() = with(session) { declaredMemberScope }
+
+/**
+ * A [KaScope] containing the *static* callables (functions and properties) and all classifiers (classes and objects) explicitly
+ * declared in the given [KaDeclarationContainerSymbol].
+ *
+ * It is worth noting that, while Java classes may contain declarations of static callables freely, in Kotlin only enum classes define
+ * static callables. Hence, for non-enum Kotlin classes, it is not expected that the static declared member scope will contain any
+ * callables.
+ *
+ * @see declaredMemberScope
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.staticDeclaredMemberScope", "org.jetbrains.kotlin.analysis.api.scopes.staticDeclaredMemberScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaDeclarationContainerSymbol.staticDeclaredMemberScope: KaScope
+    get() = with(session) { staticDeclaredMemberScope }
+
+/**
+ * A [KaScope] containing *all* members explicitly declared in the given [KaDeclarationContainerSymbol].
+ *
+ * In contrast to [declaredMemberScope] and [staticDeclaredMemberScope], this scope contains both static and non-static members.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.combinedDeclaredMemberScope", "org.jetbrains.kotlin.analysis.api.scopes.combinedDeclaredMemberScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaDeclarationContainerSymbol.combinedDeclaredMemberScope: KaScope
+    get() = with(session) { combinedDeclaredMemberScope }
+
+/**
+ * A [KaScope] containing synthetic callables (functions and properties) created by interface delegation.
+ *
+ * #### Example
+ *
+ * ```kotlin
+ * interface I {
+ *     val foo: Int get() = 2
+ *     fun bar(): String
+ * }
+ *
+ * class A(
+ *     private val p: I
+ * ) : I by p {
+ *     val regularProperty: Int = 5
+ * }
+ * ```
+ *
+ * The delegated member scope for `A` has the following entries:
+ *
+ * ```
+ * override val foo: kotlin.Int
+ *   get()
+ *
+ * override fun bar(): kotlin.String
+ * ```
+ *
+ * `regularProperty` is not contained in the delegated member scope because it is not a delegated property.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.delegatedMemberScope", "org.jetbrains.kotlin.analysis.api.scopes.delegatedMemberScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaDeclarationContainerSymbol.delegatedMemberScope: KaScope
+    get() = with(session) { delegatedMemberScope }
+
+/**
+ * A [KaScope] containing the top-level declarations (such as classes, functions and properties) in the given [KaFileSymbol].
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.fileScope", "org.jetbrains.kotlin.analysis.api.scopes.fileScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaFileSymbol.fileScope: KaScope
+    get() = with(session) { fileScope }
+
+/**
+ * A [KaScope] containing all members of the package represented by the given [KaPackageSymbol], not including members of subpackages.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.packageScope", "org.jetbrains.kotlin.analysis.api.scopes.packageScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaPackageSymbol.packageScope: KaScope
+    get() = with(session) { packageScope }
+
+/**
+ * Combines a list of [KaScope]s into a single composite [KaScope]. The resulting scope contains all members of its constituent scopes.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.asCompositeScope()", "org.jetbrains.kotlin.analysis.api.scopes.asCompositeScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun List<KaScope>.asCompositeScope(): KaScope {
+    return with(session) {
+        asCompositeScope()
+    }
+}
+
+/**
+ * A [KaTypeScope] for the given [KaType], or `null` if the type is [erroneous][org.jetbrains.kotlin.analysis.api.types.KaErrorType].
+ * The scope includes all members which are callable on a given type. It also includes [synthetic Java properties](https://kotlinlang.org/docs/java-interop.html#getters-and-setters).
+ *
+ * Comparing to [KaScope], the [KaTypeScope] contains members whose use-site type parameters have been substituted.
+ *
+ * #### Example
+ *
+ * ```kotlin
+ * fun foo(list: List<String>) {
+ *     list
+ * }
+ *```
+ *
+ * We can get a [KaTypeScope] for the [expression type][org.jetbrains.kotlin.analysis.api.components.KaExpressionTypeProvider.expressionType]
+ * of `list`. This scope contains a `get(index: Int): String` function, where the return type `E` from [List.get] is substituted with
+ * the type argument `String`.
+ *
+ * @see KaTypeScope
+ * @see KaTypeProvider.type
+ * @see KaExpressionTypeProvider.expressionType
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.scope", "org.jetbrains.kotlin.analysis.api.scopes.scope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaExperimentalApi
+@KaContextParameterApi
+context(session: KaSession)
+public val KaType.scope: KaTypeScope?
+    get() = with(session) { scope }
+
+/**
+ * A [KaScope] containing unsubstituted declarations from the [KaType]'s underlying declaration.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.declarationScope", "org.jetbrains.kotlin.analysis.api.scopes.declarationScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaExperimentalApi
+@KaContextParameterApi
+context(session: KaSession)
+public val KaTypeScope.declarationScope: KaScope
+    get() = with(session) { declarationScope }
+
+/**
+ * A [KaTypeScope] containing the [synthetic Java properties](https://kotlinlang.org/docs/java-interop.html#getters-and-setters) created
+ * for a given [KaType].
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.scopes' endpoint instead.",
+    replaceWith = ReplaceWith("this.syntheticJavaPropertiesScope", "org.jetbrains.kotlin.analysis.api.scopes.syntheticJavaPropertiesScope"),
+    level = DeprecationLevel.ERROR,
+)
+@KaExperimentalApi
+@KaContextParameterApi
+context(session: KaSession)
+public val KaType.syntheticJavaPropertiesScope: KaTypeScope?
+    get() = with(session) { syntheticJavaPropertiesScope }
+
+/**
+ * Computes the lexical scope context for a given [position] in the [KtFile]. The scope context includes all scopes that are relevant
+ * for the given position, together with all available implicit receivers.
+ */
+context(session: KaSession)
+public fun KtFile.scopeContext(position: KtElement): KaScopeContext {
+    return with(session) {
+        scopeContext(
+            position = position,
+        )
+    }
+}
+
+/**
+ * A [KaScopeContext] formed from all imports in the [KtFile].
+ *
+ * By default, the scope context also includes default importing scopes, which can be filtered by [KaScopeKind].
+ */
+context(session: KaSession)
+public val KtFile.importingScopeContext: KaScopeContext
+    get() = with(session) { importingScopeContext }
+
+/**
+ * Returns a single [KaScope] that contains declarations from all scopes that satisfy [filter].
+ *
+ * The order of declarations corresponds to the order of their containing scopes, which are sorted according to their [indices][KaScopeKind.indexInTower]
+ * in the scope tower.
+ */
+context(session: KaSession)
+public fun KaScopeContext.compositeScope(filter: (KaScopeKind) -> Boolean = { true }): KaScope {
+    return with(session) {
+        compositeScope(
+            filter = filter,
+        )
+    }
+}

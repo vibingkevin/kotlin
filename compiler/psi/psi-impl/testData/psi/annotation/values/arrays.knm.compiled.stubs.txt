@@ -1,0 +1,184 @@
+0_.knm:
+  FILE[kind=File[packageFqName=<root>]]
+    PACKAGE_DIRECTIVE
+    IMPORT_LIST
+    CLASS[classId=/Arrays, fqName=Arrays, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=Arrays, superNames=[Annotation]]
+      MODIFIER_LIST[public final annotation]
+      PRIMARY_CONSTRUCTOR[fqName=null, hasBody=false, hasNoExpressionBody=true, isDelegatedCallToThis=false, isExplicitDelegationCall=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=Arrays]
+        MODIFIER_LIST[public]
+        VALUE_PARAMETER_LIST
+          VALUE_PARAMETER[fqName=Arrays.ia, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=ia]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=IntArray]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Arrays.la, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=la]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=LongArray]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Arrays.fa, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=fa]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=FloatArray]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Arrays.da, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=da]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=DoubleArray]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Arrays.ca, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=ca]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=CharArray]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Arrays.ba, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=ba]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=BooleanArray]
+                  isClassRef: true
+      SUPER_TYPE_LIST
+        SUPER_TYPE_ENTRY
+          TYPE_REFERENCE
+            USER_TYPE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=kotlin]
+              REFERENCE_EXPRESSION[referencedName=Annotation]
+                isClassRef: true
+      CLASS_BODY
+
+
+1_.knm:
+  FILE[kind=File[packageFqName=<root>]]
+    PACKAGE_DIRECTIVE
+    IMPORT_LIST
+    CLASS[classId=/WithArrays, fqName=WithArrays, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=WithArrays, superNames=[]]
+      MODIFIER_LIST[public final]
+        ANNOTATION_ENTRY[hasValueArguments=true, shortName=Arrays]
+          valueArguments: [
+            ia -> [1, 2, 3]
+            la -> [1.toLong()]
+            fa -> []
+            da -> [2.2.toDouble()]
+            ca -> [\u0061 ('a')]
+            ba -> [true, false]
+          ]
+          CONSTRUCTOR_CALLEE
+            TYPE_REFERENCE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=Arrays]
+                  isClassRef: true
+          VALUE_ARGUMENT_LIST
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=ia]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=3]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=1]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=2]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=3]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=la]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=1]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=1L]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=fa]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=0]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=da]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=1]
+                FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=2.2]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=ca]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=1]
+                CHARACTER_CONSTANT[kind=CHARACTER_CONSTANT, value='a']
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=ba]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=2]
+                BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=true]
+                BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=false]
+      PRIMARY_CONSTRUCTOR[fqName=null, hasBody=false, hasNoExpressionBody=true, isDelegatedCallToThis=false, isExplicitDelegationCall=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=WithArrays]
+        MODIFIER_LIST[public]
+        VALUE_PARAMETER_LIST
+      CLASS_BODY
+
+
+2_.knm:
+  FILE[kind=File[packageFqName=<root>]]
+    PACKAGE_DIRECTIVE
+    IMPORT_LIST
+    CLASS[classId=/WithExplicitArrays, fqName=WithExplicitArrays, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=WithExplicitArrays, superNames=[]]
+      MODIFIER_LIST[public final]
+        ANNOTATION_ENTRY[hasValueArguments=true, shortName=Arrays]
+          valueArguments: [
+            ia -> [1, 2, 3]
+            la -> [1.toLong()]
+            fa -> []
+            da -> [2.2.toDouble()]
+            ca -> [\u0061 ('a')]
+            ba -> [true, false]
+          ]
+          CONSTRUCTOR_CALLEE
+            TYPE_REFERENCE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=Arrays]
+                  isClassRef: true
+          VALUE_ARGUMENT_LIST
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=ia]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=3]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=1]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=2]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=3]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=la]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=1]
+                INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=1L]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=fa]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=0]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=da]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=1]
+                FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=2.2]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=ca]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=1]
+                CHARACTER_CONSTANT[kind=CHARACTER_CONSTANT, value='a']
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=ba]
+              COLLECTION_LITERAL_EXPRESSION[innerExpressionCount=2]
+                BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=true]
+                BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=false]
+      PRIMARY_CONSTRUCTOR[fqName=null, hasBody=false, hasNoExpressionBody=true, isDelegatedCallToThis=false, isExplicitDelegationCall=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=WithExplicitArrays]
+        MODIFIER_LIST[public]
+        VALUE_PARAMETER_LIST
+      CLASS_BODY

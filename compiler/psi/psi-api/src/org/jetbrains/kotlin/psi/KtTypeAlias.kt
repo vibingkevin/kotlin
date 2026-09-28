@@ -1,0 +1,64 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi
+
+import com.intellij.lang.ASTNode
+import com.intellij.navigation.ItemPresentationProviders
+import com.intellij.psi.PsiElement
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.psi.psiUtil.ClassIdCalculator
+import org.jetbrains.kotlin.psi.psiUtil.isKtFile
+import org.jetbrains.kotlin.psi.stubs.KotlinTypeAliasStub
+
+/**
+ * Represents a type alias declaration.
+ *
+ * ### Example:
+ *
+ * ```kotlin
+ *    typealias StringList = List<String>
+ * // ^_________________________________^
+ * ```
+ */
+@OptIn(KtImplementationDetail::class)
+class KtTypeAlias : KtTypeParameterListOwnerStub<KotlinTypeAliasStub>, KtNamedDeclaration, KtClassLikeDeclaration {
+    @KtImplementationDetail
+    constructor(node: ASTNode) : super(node)
+
+    @KtImplementationDetail
+    constructor(stub: KotlinTypeAliasStub) : super(stub, KtNodeTypes.TYPEALIAS)
+
+    override fun <R, D> accept(visitor: KtVisitor<R, D>, data: D): R =
+        visitor.visitTypeAlias(this, data)
+
+    /**
+     * Returns `true` if this type alias is declared directly at the top level of a file.
+     */
+    fun isTopLevel(): Boolean = greenStub?.isTopLevel ?: isKtFile(parent)
+
+    /**
+     * Returns the `typealias` keyword, or `null` if it is absent in incomplete code.
+     */
+    @IfNotParsed
+    fun getTypeAliasKeyword(): PsiElement? =
+        findChildByType(KtTokens.TYPE_ALIAS_KEYWORD)
+
+    /**
+     * Returns the type reference on the right-hand side of `=` (the aliased type), or `null` if it is absent in incomplete code.
+     */
+    @IfNotParsed
+    fun getTypeReference(): KtTypeReference? =
+        getStubOrPsiChild(KtNodeTypes.TYPE_REFERENCE, KtTypeReference::class.java)
+
+    override fun getClassId(): ClassId? {
+        greenStub?.let { return it.classId }
+        return ClassIdCalculator.calculateClassId(this)
+    }
+
+    override fun getPresentation() = ItemPresentationProviders.getItemPresentation(this)
+}

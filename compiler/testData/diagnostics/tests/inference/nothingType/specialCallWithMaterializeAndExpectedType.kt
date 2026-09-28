@@ -1,0 +1,11 @@
+// RUN_PIPELINE_TILL: BACKEND
+// DIAGNOSTICS: -UNUSED_VARIABLE
+
+fun foo() {
+    val s: String? = if (true) <!DEBUG_INFO_EXPRESSION_TYPE("kotlin.String?")!>materialize()<!> else null
+}
+
+fun <K> materialize(): K = TODO()
+
+/* GENERATED_FIR_TAGS: functionDeclaration, ifExpression, localProperty, nullableType, propertyDeclaration,
+typeParameter */

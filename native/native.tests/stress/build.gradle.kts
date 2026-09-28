@@ -1,0 +1,36 @@
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+    id("java-test-fixtures")
+    id("test-inputs-check")
+}
+
+dependencies {
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+
+    testImplementation(testFixtures(project(":native:native.tests")))
+    testFixturesImplementation(testFixtures(project(":native:native.tests")))
+}
+
+sourceSets {
+    "main" { none() }
+    "test" { projectDefault() }
+    "testFixtures" { projectDefault() }
+}
+
+projectTests {
+    testData(project.isolated, "testData")
+
+    nativeTestTask(
+        "test",
+        requirePlatformLibs = true,
+        allowParallelExecution = false, // Stress tests are resource-intensive tests and they must be run in isolation.
+    )
+
+    testGenerator("org.jetbrains.kotlin.generators.tests.GenerateNativeStressTestsKt", generateTestsInBuildDirectory = true) {
+        javaLauncher.set(project.getToolchainLauncherFor(JdkMajorVersion.JDK_11_0))
+    }
+}

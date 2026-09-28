@@ -1,0 +1,165 @@
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: [
+    kotlin/OptIn(markerClass = [kotlin.contracts.ExperimentalContracts::class])
+      psi: KtAnnotationEntry
+  ]
+  callableId: /validate
+  contextParameters: [
+    KaContextParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      isActual: false
+      isCompanion: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isVal: true
+      location: LOCAL
+      modality: FINAL
+      name: a
+      origin: SOURCE
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/String?
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(booleanContextParameter.kt)
+      getContainingJvmClassName: BooleanContextParameterKt
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  contextReceivers: [
+    KaContextReceiver:
+      label: a
+      type: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/String?
+  ]
+  contractEffects: [
+    KaContractConditionalContractEffectDeclaration:
+      effect:
+        KaContractReturnsSuccessfullyEffectDeclaration:
+      condition:
+        KaContractIsNullPredicateExpression:
+          argument:
+            KaContractExplicitParameterValue:
+              symbol:
+                KaContextParameterSymbol:
+                  anchorPsi: KtParameter
+                  annotations: []
+                  callableId: null
+                  contextParameters: []
+                  contextReceivers: []
+                  isActual: false
+                  isCompanion: false
+                  isDelegated: false
+                  isExpect: false
+                  isExtension: false
+                  isExternal: false
+                  isVal: true
+                  location: LOCAL
+                  modality: FINAL
+                  name: a
+                  origin: SOURCE
+                  psi: KtParameter
+                  realPsi: KtParameter
+                  receiverParameter: null
+                  returnType: KaUsualClassType:
+                    annotations: []
+                    typeArguments: []
+                    type: kotlin/String?
+                  typeParameters: []
+                  visibility: PUBLIC
+                  getContainingFileSymbol: KaFileSymbol(booleanContextParameter.kt)
+                  getContainingJvmClassName: BooleanContextParameterKt
+                  getContainingModule: KaSourceModule "Sources of main"
+                  deprecation: null
+                  importableFqName: null
+          isNegated: true
+  ]
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: validate
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: param
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/Int?
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(booleanContextParameter.kt)
+      getContainingJvmClassName: BooleanContextParameterKt
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(booleanContextParameter.kt)
+  getContainingJvmClassName: BooleanContextParameterKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: validate
+  importableFqName: validate

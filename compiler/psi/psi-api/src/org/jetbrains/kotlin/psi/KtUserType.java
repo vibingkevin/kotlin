@@ -1,0 +1,142 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.google.common.collect.Lists;
+import com.intellij.lang.ASTNode;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.psi.stubs.KotlinUserTypeStub;
+import org.jetbrains.kotlin.resolution.KtResolvable;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a simple type, optionally with type arguments.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * val list: List<String> = listOf()
+ * //        ^__________^
+ * }</pre>
+ *
+ * <h3>Analysis API Resolver Notes:</h3>
+ *
+ * <p>Resolution of a {@link KtUserType} delegates to its {@link #getReferenceExpression() referenceExpression}, so calling
+ * {@code resolveSuccessfulSymbol()} returns the same symbol as resolving the inner simple-name expression.
+ *
+ * <p>For a well-formed type, the result is a {@code KaClassifierSymbol} (a class, type alias, or type parameter):
+ *
+ * <pre>{@code
+ * val list: List<String> = listOf()
+ * //        ^^^^^^^^^^^^  resolves to kotlin.collections.List
+ * //             ^^^^^^   resolves to kotlin.String
+ * }</pre>
+ *
+ * <p><b>Note:</b> a {@link KtUserType} may also resolve to a {@code KaPackageSymbol} when it appears as the package qualifier of a fully
+ * qualified nested type. In that case the user type is not a classifier reference itself but a package portion of one:
+ *
+ * <pre>{@code
+ * val foo: one.two.TopLevel = ...
+ * //       ^^^^^^^           resolves to the package one.two
+ * //       ^^^                 resolves to the package one
+ * //               ^^^^^^^^  resolves to the class one.two.TopLevel
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtUserType extends KtElementImplStub<KotlinUserTypeStub> implements KtTypeElement, KtResolvable {
+    @KtImplementationDetail
+    public KtUserType(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtUserType(@NotNull KotlinUserTypeStub stub) {
+        super(stub, KtNodeTypes.USER_TYPE);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitUserType(this, data);
+    }
+
+    /** Returns the angle-bracketed type argument list, or {@code null} if this type has no type arguments. */
+    @Nullable
+    public KtTypeArgumentList getTypeArgumentList() {
+        return getStubOrPsiChild(KtNodeTypes.TYPE_ARGUMENT_LIST, KtTypeArgumentList.class);
+    }
+
+    /** Returns the type arguments (as projections), or an empty list if this type has none. */
+    @NotNull
+    public List<KtTypeProjection> getTypeArguments() {
+        // TODO: empty elements in PSI
+        KtTypeArgumentList typeArgumentList = getTypeArgumentList();
+        return typeArgumentList == null ? Collections.emptyList() : typeArgumentList.getArguments();
+    }
+
+    @NotNull
+    @Override
+    public List<KtTypeReference> getTypeArgumentsAsTypes() {
+        List<KtTypeReference> result = Lists.newArrayList();
+        for (KtTypeProjection projection : getTypeArguments()) {
+            result.add(projection.getTypeReference());
+        }
+        return result;
+    }
+
+    /**
+     * Returns the simple-name reference to the classifier (the rightmost segment of the type name), or {@code null} if it is absent in
+     * incomplete code.
+     */
+    @Nullable @IfNotParsed
+    public KtSimpleNameExpression getReferenceExpression() {
+        KtNameReferenceExpression nameRefExpr = getStubOrPsiChild(KtNodeTypes.REFERENCE_EXPRESSION, KtNameReferenceExpression.class);
+        if (nameRefExpr != null) {
+            return nameRefExpr;
+        }
+
+        return getStubOrPsiChild(
+                KtNodeTypes.ENUM_ENTRY_SUPERCLASS_REFERENCE_EXPRESSION,
+                KtEnumEntrySuperclassReferenceExpression.class
+        );
+    }
+
+    /**
+     * Returns the qualifier of a dotted type name (for example, {@code kotlin.collections} in {@code kotlin.collections.List}), or
+     * {@code null} if the type name is unqualified.
+     */
+    @Nullable
+    public KtUserType getQualifier() {
+        return getStubOrPsiChild(KtNodeTypes.USER_TYPE, KtUserType.class);
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.removeQualifier(this)}
+     * instead.
+     */
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.removeQualifier(this)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.removeQualifier()",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.removeQualifier"
+            )
+    )
+    @Deprecated
+    public void deleteQualifier() {
+        KtPsiMutationService.getInstance().removeQualifier(this);
+    }
+
+    /** Returns the simple name of the referenced classifier (the rightmost segment), or {@code null} if it is absent in incomplete code. */
+    @Nullable
+    public String getReferencedName() {
+        KtSimpleNameExpression referenceExpression = getReferenceExpression();
+        return referenceExpression == null ? null : referenceExpression.getReferencedName();
+    }
+}

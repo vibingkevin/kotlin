@@ -1,0 +1,26 @@
+// FILE: lib.kt
+
+// FILE: main.kt
+
+enum class MyEnum : Enum<MyEnum> {
+  FOO = MyEnum()
+
+  BAR = MyEnum()
+
+  BAZ = MyEnum()
+
+  private constructor() /* primary */ {
+    super/*Enum*/<MyEnum>()
+    /* <init>() */
+
+  }
+
+  companion fun valueOf(value: String): MyEnum /* Synthetic body for ENUM_VALUEOF */
+
+  companion fun values(): Array<MyEnum> /* Synthetic body for ENUM_VALUES */
+
+  companion val entries: EnumEntries<MyEnum>
+    companion get(): EnumEntries<MyEnum> /* Synthetic body for ENUM_ENTRIES */
+
+}
+

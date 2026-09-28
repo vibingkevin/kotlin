@@ -1,0 +1,2 @@
+KtDestructuringDeclarationEntry(19,20): 'x'
+  NO_CANDIDATES

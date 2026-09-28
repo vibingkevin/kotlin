@@ -1,0 +1,918 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.konan.test.blackbox.support.group
+
+import com.intellij.core.CoreApplicationEnvironment
+import com.intellij.mock.MockProject
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.util.Disposer
+import com.intellij.pom.PomModel
+import com.intellij.pom.core.impl.PomModelImpl
+import com.intellij.pom.tree.TreeAspect
+import com.intellij.psi.impl.source.tree.TreeCopyHandler
+import org.jetbrains.kotlin.CoreEnvironmentDeprecation
+import org.jetbrains.kotlin.ObsoleteTestInfrastructure
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
+import org.jetbrains.kotlin.cli.common.disposeRootInWriteAction
+import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
+import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
+import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.konan.test.blackbox.support.*
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestCase.NoTestRunnerExtras
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestCase.WithTestRunnerExtras
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestDirectives.ASSERTIONS_MODE
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestDirectives.FILECHECK_STAGE
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestDirectives.FREE_CINTEROP_ARGS
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestDirectives.FREE_COMPILER_ARGS
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestDirectives.IGNORE_NATIVE
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestDirectives.NATIVE_STANDALONE
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestDirectives.WITH_PLATFORM_LIBS
+import org.jetbrains.kotlin.konan.test.blackbox.support.runner.TestRunCheck
+import org.jetbrains.kotlin.konan.test.blackbox.support.runner.TestRunCheck.*
+import org.jetbrains.kotlin.konan.test.blackbox.support.runner.TestRunChecks
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.*
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.KlibIrInlinerMode
+import org.jetbrains.kotlin.konan.test.blackbox.support.util.*
+import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
+import org.jetbrains.kotlin.resolve.checkers.OptInNames
+import org.jetbrains.kotlin.test.*
+import org.jetbrains.kotlin.test.InTextDirectivesUtils.isCompatibleTarget
+import org.jetbrains.kotlin.test.InTextDirectivesUtils.isDirectiveDefined
+import org.jetbrains.kotlin.test.directives.AdditionalFilesDirectives
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives
+import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
+import org.jetbrains.kotlin.test.directives.DiagnosticsDirectives.DIAGNOSTICS
+import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives.FULL_JDK
+import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives.JVM_TARGET
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.API_VERSION
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LANGUAGE
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LANGUAGE_VERSION
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.OPT_IN
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.RETURN_VALUE_CHECKER_MODE
+import org.jetbrains.kotlin.test.directives.model.*
+import org.jetbrains.kotlin.test.services.*
+import org.jetbrains.kotlin.test.services.JUnit5Assertions.assertTrue
+import org.jetbrains.kotlin.test.services.JUnit5Assertions.fail
+import org.jetbrains.kotlin.test.services.impl.RegisteredDirectivesParser
+import java.io.File
+
+internal open class ExtTestCaseGroupProvider : TestCaseGroupProvider, TestDisposable(parentDisposable = null) {
+    private val structureFactory = ExtTestDataFileStructureFactory(parentDisposable = this)
+    private val sharedModules = ThreadSafeCache<String, TestModule.Shared?>()
+
+    private val cachedTestCaseGroups = ThreadSafeCache<TestCaseGroupId.TestDataDir, TestCaseGroup?>()
+
+    override fun getTestCaseGroup(testCaseGroupId: TestCaseGroupId, settings: Settings): TestCaseGroup? {
+        assertNotDisposed()
+        check(testCaseGroupId is TestCaseGroupId.TestDataDir)
+
+        return cachedTestCaseGroups.computeIfAbsent(testCaseGroupId) {
+            val testDataDir = testCaseGroupId.dir
+
+            val excludes: Set<File> = settings.get<DisabledTestDataFiles>().filesAndDirectories
+            if (testDataDir in excludes)
+                return@computeIfAbsent TestCaseGroup.AllDisabled
+
+            val [excludedTestDataFiles, testDataFiles] = testDataDir.listFiles()
+                ?.filter { file -> file.isFile && file.extension == "kt" }
+                ?.partition { file -> file in excludes }
+                ?: return@computeIfAbsent null
+
+            val disabledTestCaseIds = hashSetOf<TestCaseId>()
+            excludedTestDataFiles.mapTo(disabledTestCaseIds, TestCaseId::TestDataFile)
+
+            val testCases = mutableListOf<TestCase>()
+
+            testDataFiles.forEach { testDataFile ->
+                val extTestDataFile = ExtTestDataFile(
+                    testDataFile = testDataFile,
+                    structureFactory = structureFactory,
+                    customSourceTransformers = settings.get<ExternalSourceTransformersProvider>().getSourceTransformers(testDataFile),
+                    settings = settings,
+                )
+
+                if (extTestDataFile.isRelevant)
+                    testCases += extTestDataFile.createTestCase(
+                        settings = settings,
+                        sharedModules = sharedModules
+                    )
+                else
+                    disabledTestCaseIds += TestCaseId.TestDataFile(testDataFile)
+            }
+
+            val lldbTestCases = testCases.filter { it.kind == TestKind.STANDALONE_LLDB || it.kind == TestKind.STANDALONE_STEPPING }
+            if (lldbTestCases.isNotEmpty()
+                && (settings.get<OptimizationMode>() != OptimizationMode.DEBUG
+                        || !settings.get<LLDB>().isAvailable
+                        || settings.get<KotlinNativeTargets>().areDifferentTargets())
+            ) {
+                lldbTestCases.mapTo(disabledTestCaseIds) { it.id }
+            }
+
+            TestCaseGroup.Default(disabledTestCaseIds, testCases)
+        }
+    }
+}
+
+private class ExtTestDataFile(
+    private val testDataFile: File,
+    structureFactory: ExtTestDataFileStructureFactory,
+    customSourceTransformers: ExternalSourceTransformers?,
+    settings: Settings,
+) {
+    private val testRoots = settings.get<TestRoots>()
+    private val generatedSources = settings.get<GeneratedSources>()
+    private val customKlibs = settings.get<CustomKlibs>()
+    private val testMode = settings.get<TestMode>()
+    private val cacheMode = settings.get<CacheMode>()
+    private val optimizationMode = settings.get<OptimizationMode>()
+    private val klibIrInlinerMode = settings.get<KlibIrInlinerMode>()
+
+    private val structure by lazy {
+        val allSourceTransformers: ExternalSourceTransformers = if (customSourceTransformers.isNullOrEmpty())
+            MANDATORY_SOURCE_TRANSFORMERS
+        else
+            MANDATORY_SOURCE_TRANSFORMERS + customSourceTransformers
+
+        structureFactory.ExtTestDataFileStructure(testDataFile, allSourceTransformers)
+    }
+
+    private val isExpectedFailure: Boolean = settings.isIgnoredTarget(structure.directives)
+
+    private val testDataFileSettings by lazy {
+        val optIns = structure.directives[OPT_IN]
+        val optInsForSourceCode = optIns subtract OPT_INS_PURELY_FOR_COMPILER
+        val optInsForCompiler = optIns intersect OPT_INS_PURELY_FOR_COMPILER
+        val extraLanguageSettings = buildSet {
+            if (klibIrInlinerMode == KlibIrInlinerMode.ON) {
+                add("+${LanguageFeature.IrIntraModuleInlinerBeforeKlibSerialization.name}")
+                add("+${LanguageFeature.IrCrossModuleInlinerBeforeKlibSerialization.name}")
+            } else {
+                add("-${LanguageFeature.IrCrossModuleInlinerBeforeKlibSerialization.name}")
+            }
+        }
+
+        ExtTestDataFileSettings(
+            languageSettings = extraLanguageSettings + structure.directives[LANGUAGE].filter {
+                // It is already on by default, but passing it explicitly turns on a special "compatibility mode" in FE,
+                // which is not desirable.
+                it != "+NewInference"
+            },
+            optInsForSourceCode = optInsForSourceCode,
+            optInsForCompiler = optInsForCompiler,
+            generatedSourcesDir = computeGeneratedSourcesDir(
+                testDataBaseDir = testRoots.baseDir,
+                testDataFile = testDataFile,
+                generatedSourcesBaseDir = generatedSources.testSourcesDir
+            ),
+            nominalPackageName = computePackageName(
+                testDataBaseDir = testRoots.baseDir,
+                testDataFile = testDataFile
+            ),
+            assertionsMode = structure.directives.singleOrZeroValue(ASSERTIONS_MODE) ?: AssertionsMode.DEFAULT,
+            returnValueCheckerMode = structure.directives.singleOrZeroValue(RETURN_VALUE_CHECKER_MODE)
+        )
+    }
+
+    val isRelevant: Boolean =
+        // Checks TARGET_BACKEND/DONT_TARGET_EXACT_BACKEND directives.
+        isCompatibleTarget(TargetBackend.NATIVE, testDataFile, /*separatedDirectiveValues=*/ true)
+                && !settings.isDisabledNative(structure.directives)
+                && INCOMPATIBLE_DIRECTIVES.none { it in structure.directives }
+                && structure.directives[API_VERSION].intersect(INCOMPATIBLE_API_VERSIONS).isEmpty()
+                && structure.directives[LANGUAGE_VERSION].intersect(INCOMPATIBLE_LANGUAGE_VERSIONS).isEmpty()
+                && !(FILECHECK_STAGE in structure.directives
+                && (cacheMode as? CacheMode.WithStaticCache)?.useStaticCacheForUserLibraries == true)
+                && !(testDataFileSettings.languageSettings.contains("+${LanguageFeature.MultiPlatformProjects.name}")
+                && testMode == TestMode.ONE_STAGE_MULTI_MODULE)
+                && structure.defFilesContents.all { it.defFileContentsIsSupportedOn(settings.get<KotlinNativeTargets>().testTarget) }
+
+    private fun assembleFreeCompilerArgs(settings: Settings): TestCompilerArgs {
+        val args = mutableListOf<String>()
+        val defaultDirectives = settings.get<RegisteredDirectives>()
+        args += defaultDirectives[FREE_COMPILER_ARGS]
+        args += structure.directives[FREE_COMPILER_ARGS]
+        testDataFileSettings.languageSettings.mapTo(args) { "-XXLanguage:$it" }
+        testDataFileSettings.optInsForCompiler.sorted().mapTo(args) { "-opt-in=$it" }
+
+        val disableIrCheckers = IrCheckersDisabledByTestDirectives
+            .filter { structure.directives[it.key].containsNativeOrAny || defaultDirectives[it.key].containsNativeOrAny }.values
+        if (disableIrCheckers.isNotEmpty()) {
+            args.add("-Xdisable-ir-checkers=" + disableIrCheckers.joinToString(","))
+        }
+
+        val additionalIrCheckers = IrCheckersEnabledByTestDirectives
+            .filter { structure.directives.contains(it.key) || defaultDirectives.contains(it.key) }.values
+        if (additionalIrCheckers.isNotEmpty()) {
+            args.add("-Xadditional-ir-checkers=" + additionalIrCheckers.joinToString(","))
+        }
+
+        args += "-opt-in=kotlin.native.internal.InternalForKotlinNative" // for `Any.isPermanent()` and `Any.isStack()`
+        if (!settings.withPlatformLibs && !structure.directives.contains(WITH_PLATFORM_LIBS))
+            args += "-no-default-libs"
+        val freeCInteropArgs = structure.directives[FREE_CINTEROP_ARGS]
+            .orEmpty().flatMap { it.split(" ") }
+            .map { it.replace("\$generatedSourcesDir", testDataFileSettings.generatedSourcesDir.absolutePath) }
+        testDataFileSettings.returnValueCheckerMode?.let {
+            args += "-Xreturn-value-checker=${it.state}"
+        }
+        val fileCheckStage = retrieveFileCheckStage()
+        if (fileCheckStage != null && !args.any { it.startsWith("-Xbinary=preCodegenInlineThreshold=") })
+            args.add("-Xbinary=preCodegenInlineThreshold=0")
+        return TestCompilerArgs(args, freeCInteropArgs, testDataFileSettings.assertionsMode)
+    }
+
+    fun createTestCase(settings: Settings, sharedModules: ThreadSafeCache<String, TestModule.Shared?>): TestCase {
+        assertTrue(isRelevant)
+
+        var testKind = settings.testKind(structure.directives)
+        val definitelyStandaloneTest = testKind != TestKind.REGULAR
+        val isStandaloneTest = definitelyStandaloneTest || determineIfStandaloneTest()
+        if (testKind == TestKind.REGULAR && isStandaloneTest) {
+            testKind = TestKind.STANDALONE
+        }
+
+        patchPackageNames(isStandaloneTest)
+        patchFileLevelAnnotations()
+        findEntryPoint()?.let { [entryPointFunctionFQN, entryPointIsSuspend] ->
+            when (testKind) {
+                TestKind.REGULAR, TestKind.STANDALONE -> {
+                    generateTestLauncher(isStandaloneTest, entryPointFunctionFQN)
+                }
+                TestKind.STANDALONE_STEPPING -> {
+                    generateEntryPointForSteppingTest(entryPointIsSuspend, entryPointFunctionFQN)
+                }
+                else -> {}
+            }
+        }
+
+        return doCreateTestCase(settings, testKind, sharedModules)
+    }
+
+    /**
+     * Determine if the current test should be compiled as a standalone test, i.e.
+     * - package names are not patched
+     * - test is compiled independently of any other tests
+     */
+    private fun determineIfStandaloneTest(): Boolean = with(structure) {
+        if (directives.contains(NATIVE_STANDALONE)) return true
+        if (directives.contains(FILECHECK_STAGE)) return true
+        if (directives.contains(ASSERTIONS_MODE)) return true
+        if (isExpectedFailure) return true
+        // To make the debug of possible failed testruns easier, it makes sense to run dodgy tests alone
+        if (directives.contains(IGNORE_NATIVE)) return true
+
+        /**
+         * K2 in MPP compilation expects that it receives module structure with exactly one platform leaf module
+         * This invariant may be broken during grouping tests, so MPP tests should be run in standalone mode
+         */
+        if (testDataFileSettings.languageSettings.contains("+MultiPlatformProjects")) return true
+
+        var isStandaloneTest = false
+
+        filesToTransform.forEach { handler ->
+            handler.accept(object : KtTreeVisitorVoid() {
+                override fun visitKtFile(file: KtFile) = when {
+                    isStandaloneTest -> Unit
+                    file.packageFqName.startsWith(StandardNames.BUILT_INS_PACKAGE_NAME) -> {
+                        // We can't fully patch packages for tests containing source code in any of kotlin.* packages.
+                        // So, such tests should be run in standalone mode to avoid possible signature clashes with other tests.
+                        isStandaloneTest = true
+                    }
+                    else -> super.visitKtFile(file)
+                }
+            })
+        }
+
+        isStandaloneTest
+    }
+
+    /**
+     * See comment to [org.jetbrains.kotlin.test.services.BatchingPackageInserter]
+     */
+    private fun patchPackageNames(isStandaloneTest: Boolean): Unit = with(structure) {
+        if (isStandaloneTest) return // Don't patch packages for standalone tests.
+
+        val basePackageName = FqName(testDataFileSettings.nominalPackageName.toString())
+
+        val oldPackageNames: Set<FqName> = filesToTransform.mapToSet { it.packageFqName }
+        val oldToNewPackageNameMapping: Map<FqName, FqName> = oldPackageNames.associateWith { oldPackageName ->
+            basePackageName.child(oldPackageName)
+        }
+
+        filesToTransform.forEach { handler ->
+            val visitor = BatchingPackageInserter.PackageNamePatcher(
+                handler.psiFactory,
+                oldToNewPackageNameMapping,
+                basePackageName,
+                transformHelpersPackage = false,
+                reflectionPackageNameAnnotation = ReflectionPackageNameAnnotation,
+            )
+            handler.accept(visitor, emptySet())
+        }
+    }
+
+    /**
+     * Make sure that the OptIns specified in test directives (see [ExtTestDataFileSettings.optInsForSourceCode]) are represented
+     * as file-level annotations in every individual test file.
+     */
+    private fun patchFileLevelAnnotations() = with(structure) {
+        fun getAnnotationText(fullyQualifiedName: String) = "@file:${OPT_IN_ANNOTATION_NAME.asString()}($fullyQualifiedName::class)"
+
+        // Make sure that every test file contains all the necessary file-level annotations.
+        if (testDataFileSettings.optInsForSourceCode.isNotEmpty()) {
+            filesToTransform.forEach { handler ->
+                handler.accept(object : KtTreeVisitorVoid() {
+                    override fun visitKtFile(file: KtFile) {
+                        val newFileAnnotationList = handler.psiFactory.createFile(buildString {
+                            testDataFileSettings.optInsForSourceCode.forEach {
+                                appendLine(getAnnotationText(it))
+                            }
+                        }).fileAnnotationList!!
+
+                        file.addAnnotations(newFileAnnotationList)
+                    }
+                })
+            }
+        }
+    }
+
+    /** Finds the fully-qualified name of the entry point function (aka `fun box(): String`). */
+    private fun findEntryPoint(): Pair<String, Boolean>? = with(structure) {
+        val result = mutableListOf<Pair<String, Boolean>>()
+
+        filesToTransform.forEach { handler ->
+            handler.accept(object : KtTreeVisitorVoid() {
+                override fun visitKtFile(file: KtFile) {
+                    val boxFunctions = file.getChildrenOfType<KtNamedFunction>().filter { function ->
+                        function.name == BOX_FUNCTION_NAME.asString() && function.valueParameters.isEmpty()
+                    }
+
+                    for (boxFunction in boxFunctions) {
+                        val boxFunctionFqName = file.packageFqName.child(BOX_FUNCTION_NAME).asString()
+                        val isSuspend = boxFunction.modifierList?.hasModifier(KtTokens.SUSPEND_KEYWORD) == true
+                        result += boxFunctionFqName to isSuspend
+
+                        handler.module.markAsMain()
+                    }
+                }
+            })
+        }
+
+        return when (result.size) {
+            0 -> null
+            1 -> result.single()
+            else -> fail { "At most one entry point function is expected in $testDataFile. But ${result.size} were found: $result" }
+        }
+    }
+
+    /** Adds a wrapper to run it as Kotlin test. */
+    private fun generateTestLauncher(isStandaloneTest: Boolean, entryPointFunctionFQN: String) {
+        val fileText = buildString {
+            if (!isStandaloneTest) {
+                append("package ").appendLine(testDataFileSettings.nominalPackageName)
+                appendLine()
+            }
+
+            append(generateBoxFunctionLauncher(entryPointFunctionFQN))
+        }
+
+        structure.addFileToMainModule(fileName = LAUNCHER_FILE_NAME, text = fileText)
+    }
+
+    private fun generateEntryPointForSteppingTest(entryPointIsSuspend: Boolean, entryPointFunctionFQN: String) {
+        val fileText = if (entryPointIsSuspend) {
+            """
+            import kotlin.coroutines.startCoroutine
+
+            fun main() {
+                ::box.startCoroutine(EmptyContinuation)
+            }
+            """.trimIndent()
+        } else {
+            """
+            fun main() {
+                $entryPointFunctionFQN()
+            }
+            """.trimIndent()
+        }
+        structure.addFileToMainModule("Generated_Box_Main.kt", fileText)
+        val coroutineHelpersText = this::class.java.getResourceAsStream("/coroutineHelpers.kt")?.bufferedReader()?.readText()
+            ?: error("Resource /coroutineHelpers.kt not found on the classpath")
+        structure.addFileToMainModule("coroutineHelpers.kt", coroutineHelpersText)
+    }
+
+    private fun doCreateTestCase(
+        settings: Settings,
+        testKind: TestKind,
+        sharedModules: ThreadSafeCache<String, TestModule.Shared?>,
+    ): TestCase = with(structure) {
+        val modules = generateModules(
+            testCaseDir = testDataFileSettings.generatedSourcesDir,
+            findOrGenerateSharedModule = { moduleName: String, generator: SharedModuleGenerator ->
+                sharedModules.computeIfAbsent(moduleName) {
+                    generator(generatedSources.sharedSourcesDir)
+                }
+            }
+        )
+
+        val testFiltering = TestFiltering(
+            when (testKind) {
+                TestKind.REGULAR, TestKind.STANDALONE -> TCTestOutputFilter
+                TestKind.STANDALONE_LLDB -> LLDBTestOutputFilter
+                else -> TestOutputFilter.NO_FILTERING
+            }
+        )
+
+        val inputDataFile = parseInputDataFile(baseDir = testDataFile.parentFile, structure.directives)
+        val lldbSpec = when (testKind) {
+            TestKind.STANDALONE_STEPPING -> SteppingLLDBSessionSpec(structure.directives, testDataFile, originalTestSourceFiles)
+            else -> null
+        }
+        val outputMatcher = lldbSpec?.let {
+            OutputMatcher { output -> lldbSpec.checkLLDBOutput(output, settings.get()) }
+        } ?: parseOutputRegex(structure.directives)
+
+        // LLDB changes whitespace formatting across versions.
+        // Let's squash tab and space sequences to a single space while leaving newlines.
+        val outputDataSanitizer: (String) -> String = when (testKind) {
+            TestKind.STANDALONE_LLDB -> ::normalizeLldbWhitespace
+            else -> { s -> s }
+        }
+
+        val expectedExitCode = if (testKind == TestKind.STANDALONE_NO_TR) parseExpectedExitCode(structure.directives)
+        else ExitCode.Expected(0)
+
+        val expectedTimeoutFailure = parseExpectedTimeoutFailure(structure.directives)
+        val executionTimeoutCheck = if (expectedTimeoutFailure != null) ExecutionTimeout.ShouldExceed(expectedTimeoutFailure)
+        else ExecutionTimeout.ShouldNotExceed(settings.get<Timeouts>().executionTimeout)
+
+        val fileCheckStage = retrieveFileCheckStage()
+
+        val testCase = TestCase(
+            id = TestCaseId.TestDataFile(testDataFile),
+            kind = testKind,
+            modules = modules,
+            freeCompilerArgs = assembleFreeCompilerArgs(settings),
+            nominalPackageName = testDataFileSettings.nominalPackageName,
+            expectedFailure = isExpectedFailure,
+            checks = TestRunChecks(
+                executionTimeoutCheck = executionTimeoutCheck,
+                testFiltering = testFiltering,
+                exitCodeCheck = expectedExitCode,
+                outputMatcher = outputMatcher,
+                outputDataFile = parseOutputDataFile(
+                    testDataFile.parentFile,
+                    structure.directives,
+                    sanitizer = outputDataSanitizer,
+                ),
+                fileCheckMatcher = fileCheckStage?.let { TestRunCheck.FileCheckMatcher(settings, testDataFile) },
+            ),
+            fileCheckStage = fileCheckStage,
+            extras = when (testKind) {
+                TestKind.STANDALONE_NO_TR -> {
+                    NoTestRunnerExtras(
+                        entryPoint = parseEntryPoint(structure.directives),
+                        inputDataFile = inputDataFile,
+                        arguments = parseProgramArguments(structure.directives)
+                    )
+                }
+                TestKind.REGULAR, TestKind.STANDALONE -> {
+                    WithTestRunnerExtras(runnerType = parseTestRunner(structure.directives))
+                }
+                TestKind.STANDALONE_LLDB -> {
+                    val locationFormat = "{ at \${line.file.basename}:\${line.number}{:\${line.column}}}"
+                    val nameFormat = "{ \${module.file.basename}{\\`\${function.name-with-args}{\${frame.no-debug}}}}"
+                    val stopReasonFormat = "{, stop reason = \${thread.stop-reason}}"
+                    val returnValFormat = "{\\nReturn value: \${thread.return-value}}{\\nCompleted expression: \${thread.completed-expression}}"
+                    val activityFormat = "{, activity = '\${thread.info.activity.name}'}{, \${thread.info.trace_messages} messages}"
+                    val lldbTestHelper = ForTestCompileRuntime.transformTestDataPath("native/native.tests/testData/scripts/konan_lldb_test_helper.py")
+                    NoTestRunnerExtras(
+                        entryPoint = parseEntryPoint(structure.directives),
+                        arguments = buildList {
+                            this += "--no-lldbinit"
+                            this += "-b"
+                            this += "-o"
+                            this += "settings set stop-disassembly-display never"
+                            this += "-o"
+                            this += "settings set frame-format \"frame #\${frame.index}: <frame pc>$nameFormat$locationFormat\\n\""
+                            this += "-o"
+                            this += "settings set thread-format \"thread #<thread id>$nameFormat$locationFormat$stopReasonFormat$returnValFormat\\n\""
+                            this += "-o"
+                            this += "settings set thread-stop-format \"thread #<thread id>$activityFormat$stopReasonFormat$returnValFormat\\n\""
+                            this += "-o"
+                            this += "command script import ${settings.get<LLDB>().prettyPrinters.absolutePath}"
+                            this += "-o"
+                            this += "command script import ${lldbTestHelper.absolutePath}"
+                            inputDataFile?.readLines()?.filterNot { it.isBlank() }?.forEach {
+                                this += "-o"
+                                this += it
+                            }
+                        }
+                    )
+                }
+                TestKind.STANDALONE_STEPPING -> {
+                    NoTestRunnerExtras(
+                        entryPoint = parseEntryPoint(structure.directives),
+                        arguments = lldbSpec!!.generateCLIArguments(settings.get<LLDB>().prettyPrinters)
+                    )
+                }
+            }
+        )
+        testCase.initialize(
+            givenModules = customKlibs.klibs.mapToSet(TestModule::Given),
+            findSharedModule = sharedModules::get
+        )
+
+        return testCase
+    }
+
+    private fun retrieveFileCheckStage(): String? {
+        val fileCheckStages = structure.directives[FILECHECK_STAGE]
+        return when (fileCheckStages.size) {
+            0 -> {
+                require(!isDirectiveDefined(testDataFile.readText(), FILECHECK_STAGE.name)) {
+                    "In ${testDataFile.absolutePath}, one argument for FILECHECK directive is needed: LLVM stage name, to dump bitcode after"
+                }
+                null
+            }
+            1 -> fileCheckStages.single()
+            else -> fail { "In ${testDataFile.absolutePath}, only one argument for FILECHECK directive is allowed: $fileCheckStages" }
+        }
+    }
+
+    companion object {
+        private val INCOMPATIBLE_DIRECTIVES = setOf(FULL_JDK, JVM_TARGET, DIAGNOSTICS)
+
+        private val INCOMPATIBLE_API_VERSIONS = setOf(ApiVersion.KOTLIN_1_4)
+        private val INCOMPATIBLE_LANGUAGE_VERSIONS = setOf(LanguageVersion.KOTLIN_1_3, LanguageVersion.KOTLIN_1_4)
+
+        private val OPT_INS_PURELY_FOR_COMPILER = setOf(
+            /*
+             * `SymbolNameIsInternal` is internal, so it can't be simply mentioned in the source code in `@file:OptIn`
+             * (which is the default way of handling the OPT_IN directive in this test infrastructure).
+             * Adding it here makes the test infra pass it via the `-opt-in` compiler argument instead.
+             */
+            "kotlin.native.SymbolNameIsInternal",
+            OptInNames.REQUIRES_OPT_IN_FQ_NAME.asString()
+        )
+
+        private val BOX_FUNCTION_NAME = Name.identifier("box")
+        private val OPT_IN_ANNOTATION_NAME = Name.identifier("OptIn")
+
+        private val MANDATORY_SOURCE_TRANSFORMERS: ExternalSourceTransformers = listOf(DiagnosticsRemovingSourceTransformer)
+    }
+}
+
+private class ExtTestDataFileSettings(
+    val languageSettings: Set<String>,
+    val optInsForSourceCode: Set<String>,
+    val optInsForCompiler: Set<String>,
+    val generatedSourcesDir: File,
+    val nominalPackageName: PackageName,
+    val assertionsMode: AssertionsMode,
+    val returnValueCheckerMode: ReturnValueCheckerMode? = null,
+)
+
+private typealias SharedModuleGenerator = (sharedModulesDir: File) -> TestModule.Shared?
+private typealias SharedModuleCache = (moduleName: String, generator: SharedModuleGenerator) -> TestModule.Shared?
+
+@OptIn(ObsoleteTestInfrastructure::class)
+private class ExtTestDataFileStructureFactory(parentDisposable: Disposable) : TestDisposable(parentDisposable) {
+    private val psiFactory = createPsiFactory(parentDisposable = this)
+
+    inner class ExtTestDataFileStructure(originalTestDataFile: File, sourceTransformers: ExternalSourceTransformers) {
+        init {
+            assertNotDisposed()
+        }
+
+        private val filesAndModules = FilesAndModules(originalTestDataFile, sourceTransformers)
+        val originalTestSourceFiles = mutableSetOf<File>()
+
+        val directives: RegisteredDirectives get() = filesAndModules.directives
+
+        val defFilesContents: List<String>
+            get() = filesAndModules.parsedFiles.filterKeys { it.name.endsWith(".def") }.map {
+                it.value.text
+            }
+
+        val filesToTransform: Iterable<CurrentFileHandler>
+            get() = filesAndModules.parsedFiles.filter { it.key.name.endsWith(".kt") || it.key.name.endsWith(".def") }
+                .map { [extTestFile, psiFile] ->
+                    object : CurrentFileHandler {
+                        override val packageFqName get() = psiFile.packageFqNameForKLib
+                        override val module = object : CurrentFileHandler.ModuleHandler {
+                            override fun markAsMain() {
+                                extTestFile.module.isMain = true
+                            }
+                        }
+                        override val psiFactory get() = this@ExtTestDataFileStructureFactory.psiFactory
+
+                        override fun accept(visitor: KtVisitor<*, *>): Unit = psiFile.accept(visitor)
+                        override fun <D> accept(visitor: KtVisitor<*, D>, data: D) {
+                            psiFile.accept(visitor, data)
+                        }
+                    }
+                }
+
+        fun addFileToMainModule(fileName: String, text: String): Unit = filesAndModules.addFileToMainModule(fileName, text)
+
+        fun generateModules(testCaseDir: File, findOrGenerateSharedModule: SharedModuleCache): Set<TestModule.Exclusive> {
+            checkModulesConsistency()
+
+            // Generate support module, if any.
+            val supportModule = generateSharedSupportModule(findOrGenerateSharedModule)
+
+            // Update texts of parsed test files.
+            filesAndModules.parsedFiles.forEach { [extTestFile, psiFile] -> extTestFile.text = psiFile.text }
+
+            // Transform internal model into Kotlin/Native test infrastructure test model.
+            fun transformDependency(extTestModule: LegacyTestModule): String =
+                if (extTestModule is ExtTestModule && extTestModule.isSupport && supportModule != null) {
+                    // Is support module is met across dependencies, then return new (unique) name for it.
+                    supportModule.name
+                } else
+                    extTestModule.name
+
+            return filesAndModules.modules.values.mapNotNullToSet { extTestModule ->
+                if (extTestModule.isSupport) return@mapNotNullToSet null
+
+                serializeModuleToFileSystem(
+                    source = extTestModule,
+                    destination = TestModule.Exclusive(
+                        name = extTestModule.name,
+                        directRegularDependencySymbols = extTestModule.dependencies.mapToSet(::transformDependency),
+                        directFriendDependencySymbols = extTestModule.friends.mapToSet(::transformDependency),
+                        directDependsOnDependencySymbols = extTestModule.dependsOn.mapToSet(::transformDependency),
+                        directives = extTestModule.directivesBuilder.build(),
+                    ),
+                    baseDir = testCaseDir
+                ) { module, file -> module.files += file }
+            }
+        }
+
+        private fun generateSharedSupportModule(findOrGenerateSharedModule: SharedModuleCache): TestModule.Shared? {
+            val extTestSupportModule = filesAndModules.modules[SUPPORT_MODULE_NAME] ?: return null
+
+            // Compute the module's hash. It will be used to give a unique name for the module.
+            val prettyHash = prettyHash(
+                extTestSupportModule.files.sortedBy { it.name }.fold(0) { hash, extTestFile ->
+                    (hash * 31 + extTestFile.name.hashCode()) * 31 + extTestFile.text.hashCode()
+                })
+            val newModuleName = "${SUPPORT_MODULE_NAME}_$prettyHash"
+
+            return findOrGenerateSharedModule(newModuleName) { sharedModulesDir ->
+                serializeModuleToFileSystem(
+                    source = extTestSupportModule,
+                    destination = TestModule.Shared(newModuleName),
+                    baseDir = sharedModulesDir
+                ) { module, file -> module.files += file }
+            }
+        }
+
+        private fun <T : TestModule> serializeModuleToFileSystem(
+            source: ExtTestModule,
+            destination: T,
+            baseDir: File,
+            process: (T, TestFile<T>) -> Unit
+        ): T {
+            val moduleDir = baseDir.resolve(destination.name)
+            moduleDir.mkdirs()
+
+            source.files.forEach { extTestFile ->
+                val file = moduleDir.resolve(extTestFile.name)
+                file.parentFile.mkdirs()
+                file.writeText(extTestFile.text)
+                process(destination, TestFile.createCommitted(file, destination))
+                if (!extTestFile.isSynthetic) {
+                    originalTestSourceFiles += file
+                }
+            }
+
+            return destination
+        }
+
+        private fun checkModulesConsistency() {
+            filesAndModules.modules.values.forEach { module ->
+                val unknownFriends = (module.friendsSymbols + module.friends.map { it.name }).toSet() - filesAndModules.modules.keys
+
+                val unknownDependencies =
+                    (module.dependenciesSymbols + module.dependencies.map { it.name }).toSet() - filesAndModules.modules.keys
+
+                val unknownDependsOn =
+                    (module.dependsOnSymbols + module.dependsOn.map { it.name }).toSet() - filesAndModules.modules.keys
+
+                val unknownAllDependencies = unknownDependencies + unknownFriends + unknownDependsOn
+                assertTrue(unknownAllDependencies.isEmpty()) { "Module $module has unknown dependencies: $unknownAllDependencies" }
+
+                assertTrue(module.files.isNotEmpty()) { "Module $module has no files" }
+            }
+        }
+    }
+
+    private class ExtTestModule(
+        name: String,
+        dependencies: List<String>,
+        friends: List<String>,
+        dependsOn: List<String>, // mimics the name from ModuleStructureExtractorImpl, thought later converted to `-Xfragment-refines` parameter
+    ) : LegacyTestModule(name, dependencies, friends, dependsOn) {
+        val files = mutableListOf<ExtTestFile>()
+        val directivesBuilder = RegisteredDirectivesParser(DirectivesContainer.Empty, JUnit5Assertions)
+
+        val isSupport get() = name == SUPPORT_MODULE_NAME
+        var isMain = false
+
+        override fun equals(other: Any?) = (other as? ExtTestModule)?.name == name
+        override fun hashCode() = name.hashCode()
+    }
+
+    private class ExtTestFile(
+        val name: String,
+        val module: ExtTestModule,
+        var text: String,
+        val isSynthetic: Boolean,
+    ) {
+        init {
+            module.files += this
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is ExtTestFile) return false
+            return other.name == name && other.module == module
+        }
+
+        override fun hashCode() = name.hashCode() * 31 + module.hashCode()
+    }
+
+    @OptIn(ObsoleteTestInfrastructure::class)
+    private class ExtTestFileFactory : TestFiles.TestFileFactory<ExtTestModule, ExtTestFile> {
+        private val defaultModule by lazy { createModule(DEFAULT_MODULE_NAME, emptyList(), emptyList(), emptyList()) }
+        private val supportModule by lazy { createModule(SUPPORT_MODULE_NAME, emptyList(), emptyList(), emptyList()) }
+        val directivesParser = RegisteredDirectivesParser(
+            ComposedDirectivesContainer(
+                TestDirectives, ConfigurationDirectives, LanguageSettingsDirectives,
+                CodegenTestDirectives, AdditionalFilesDirectives
+            ), JUnit5Assertions
+        )
+
+        fun createFile(module: ExtTestModule, fileName: String, text: String, isSynthetic: Boolean = true): ExtTestFile =
+            ExtTestFile(getSanitizedFileName(fileName), module, text, isSynthetic)
+
+        override fun createFile(module: ExtTestModule?, fileName: String, text: String, directives: Directives): ExtTestFile {
+            recordRegisteredDirectives(module, directives)
+            return createFile(
+                module = module ?: if (fileName == "CoroutineUtil.kt") supportModule else defaultModule,
+                fileName = fileName,
+                text = text,
+                isSynthetic = false,
+            )
+        }
+
+        private fun recordRegisteredDirectives(module: ExtTestModule?, directives: Directives) {
+            for ([name, valuesPerLine] in directives.allDirectives) {
+                for (rawValue in valuesPerLine ?: listOf(null)) {
+                    // Convert Directive to RegisteredDirective
+                    val splitValues = rawValue?.split(RegisteredDirectivesParser.SPACES_PATTERN)
+                        ?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() }
+                    val rawDir = RegisteredDirectivesParser.RawDirective(name, splitValues, rawValue)
+                    val dir = directivesParser.convertToRegisteredDirective(rawDir) ?: continue
+
+                    // Register a given directive either globally or in a current module. (Registering in a file is not needed ATM.)
+                    if (dir.directive.applicability == DirectiveApplicability.Global) {
+                        directivesParser.addParsedDirective(dir)
+                    }
+                    if (dir.directive.applicability == DirectiveApplicability.Module) {
+                        module?.directivesBuilder?.addParsedDirective(dir)
+                    }
+                }
+            }
+        }
+
+        override fun createModule(name: String, dependencies: List<String>, friends: List<String>, dependsOn: List<String>): ExtTestModule =
+            ExtTestModule(name, dependencies, friends, dependsOn)
+    }
+
+    private inner class FilesAndModules(originalTestDataFile: File, sourceTransformers: ExternalSourceTransformers) {
+        private val testFileFactory = ExtTestFileFactory()
+
+        @OptIn(ObsoleteTestInfrastructure::class)
+        private val generatedFiles = TestFiles.createTestFiles(
+            /* testFileName = */ "main.kt",
+            /* expectedText = */ originalTestDataFile.readText(),
+            /* factory = */ testFileFactory,
+            /* preserveLocations = */ true,
+            /* parseDirectivesPerFile = */ true,
+        )
+
+        val directives: RegisteredDirectives = testFileFactory.directivesParser.build()
+
+        private val lazyData: Triple<Map<String, ExtTestModule>, Map<ExtTestFile, KtFile>, MutableList<ExtTestFile>> by lazy {
+            // Clean up contents of every individual test file. Important: This should be done only after parsing testData file,
+            // because parsing of testData file relies on certain directives which could be removed by the transformation.
+            generatedFiles.forEach { file ->
+                file.text = sourceTransformers.fold(file.text) { source, transformer -> transformer(source) }
+            }
+
+            val modules = generatedFiles.map { it.module }.associateBy { it.name }
+
+            val [supportModuleFiles, nonSupportModuleFiles] = generatedFiles.partition { it.module.isSupport }
+            val parsedFiles = nonSupportModuleFiles.associateWith { psiFactory.createFile(it.name, it.text) }
+            val nonParsedFiles = supportModuleFiles.toMutableList()
+
+            // Explicitly add support module to other modules' dependencies (as it is not listed there by default).
+            val supportModule = modules[SUPPORT_MODULE_NAME]
+            if (supportModule != null) {
+                modules.forEach { [moduleName, module] ->
+                    if (moduleName != SUPPORT_MODULE_NAME && supportModule !in module.dependencies) {
+                        module.dependencies += supportModule
+                    }
+                }
+            }
+
+            Triple(modules, parsedFiles, nonParsedFiles)
+        }
+
+        val modules: Map<String, ExtTestModule> get() = lazyData.first
+        val parsedFiles: Map<ExtTestFile, KtFile> get() = lazyData.second
+        private val nonParsedFiles: MutableList<ExtTestFile> get() = lazyData.third
+
+        fun addFileToMainModule(fileName: String, text: String) {
+            val foundModules = modules.values.filter { it.isMain }
+            val mainModule = when (val size = foundModules.size) {
+                1 -> foundModules.first()
+                else -> fail { "Exactly one main module is expected. But ${if (size == 0) "none" else size} were found." }
+            }
+
+            nonParsedFiles += testFileFactory.createFile(mainModule, fileName, text)
+        }
+    }
+
+    interface CurrentFileHandler {
+        interface ModuleHandler {
+            fun markAsMain()
+        }
+
+        val packageFqName: FqName
+        val module: ModuleHandler
+        val psiFactory: KtPsiFactory
+
+        fun accept(visitor: KtVisitor<*, *>)
+        fun <D> accept(visitor: KtVisitor<*, D>, data: D)
+    }
+
+    companion object {
+        private val lock = Any()
+
+        private fun createPsiFactory(parentDisposable: Disposable): KtPsiFactory {
+            val configuration: CompilerConfiguration = KotlinTestUtils.newConfiguration()
+            configuration.put(CommonConfigurationKeys.MODULE_NAME, "native-blackbox-test-patching-module")
+
+            @OptIn(CoreEnvironmentDeprecation::class)
+            val environment = KotlinCoreEnvironment.createForProduction(
+                projectDisposable = parentDisposable,
+                configuration = configuration,
+                configFiles = EnvironmentConfigFiles.METADATA_CONFIG_FILES
+            )
+
+            synchronized(lock) {
+                CoreApplicationEnvironment.registerApplicationDynamicExtensionPoint(
+                    TreeCopyHandler.EP_NAME.name,
+                    TreeCopyHandler::class.java
+                )
+            }
+
+            val project = environment.project as MockProject
+            project.registerService(PomModel::class.java, PomModelImpl::class.java)
+            project.registerService(TreeAspect::class.java)
+
+            return KtPsiFactory(environment.project)
+        }
+    }
+}
+
+fun Settings.isIgnoredTarget(testDataFile: File): Boolean {
+    val disposable = Disposer.newDisposable("Disposable for ExtTestCaseGroupProvider.isIgnoredTarget")
+    try {
+        val extTestDataFileStructure = ExtTestDataFileStructureFactory(disposable).ExtTestDataFileStructure(testDataFile, emptyList())
+        return isIgnoredTarget(extTestDataFileStructure.directives)
+    } finally {
+        disposeRootInWriteAction(disposable)
+    }
+}
+
+internal fun normalizeLldbWhitespace(text: String): String =
+    text.lineSequence()
+        .map { line ->
+            if (line.isBlank()) ""
+            else line.replace(Regex("""[\t ]+"""), " ").trim()
+        }
+        .joinToString("\n")

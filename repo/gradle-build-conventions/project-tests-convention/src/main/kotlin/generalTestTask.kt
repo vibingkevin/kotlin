@@ -1,0 +1,209 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+import org.gradle.api.Project
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.internal.tasks.testing.filter.DefaultTestFilter
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
+import org.gradle.api.tasks.*
+import org.gradle.api.tasks.testing.Test
+import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.newInstance
+import org.gradle.kotlin.dsl.project
+import org.gradle.kotlin.dsl.support.serviceOf
+import org.gradle.process.CommandLineArgumentProvider
+import java.io.File
+import java.nio.file.Files
+import javax.inject.Inject
+
+
+abstract class GeneralTestArgumentProvider @Inject constructor() : CommandLineArgumentProvider {
+    @get:Inject
+    protected abstract val providers: ProviderFactory
+
+    @get:Internal
+    abstract val projectName: Property<String>
+
+    @get:Internal
+    abstract val taskName: Property<String>
+
+    @get:InputFile
+    @get:Optional
+    @get:PathSensitive(PathSensitivity.NONE)
+    val excludesFile: Provider<File> = providers.environmentVariable("TEAMCITY_PARALLEL_TESTS_ARTIFACT_PATH")
+        .map { File(it) }
+        .filter { it.exists() }
+
+    @get:Internal
+    val tempDir: Provider<String> =
+        providers.environmentVariable("TMPDIR").orElse(providers.systemProperty("java.io.tmpdir"))
+
+    @get:Internal
+    val prefix = projectName.zip(taskName) { projectName, taskName -> "${projectName}Project_${taskName}_" }
+
+    override fun asArguments(): Iterable<String?> = listOfNotNull(
+        excludesFile.orNull?.let { "-Dteamcity.build.parallelTests.excludesFile=${excludesFile.get().path}" },
+        tempDir.orNull?.let { "-Djava.io.tmpdir=" + Files.createTempDirectory(File(it).toPath(), prefix.get()).toString() },
+    )
+}
+
+val testMaxHeapSizeTiny get() = 256.MiB
+val testMaxHeapSizeSmall get() = 1.GiB
+val testMaxHeapSizeMedium get() = 2.GiB
+val testMaxHeapSizeLarge get() = 4.GiB
+val testMaxHeapSizeHuge get() = 8.GiB
+
+internal val testDefaultMaxHeapSize = testMaxHeapSizeMedium
+internal val testDefaultMinHeapSize = 64.MiB
+internal val testDefaultMaxMetaspaceSize = 512.MiB
+internal val testDefaultReservedCodeCacheSize = 256.MiB
+internal val testDefaultGC = GarbageCollector.G1
+
+internal fun Project.createGeneralTestTask(
+    taskName: String = "test",
+    javaLauncher: JdkMajorVersion = DEFAULT_JAVA_LAUNCHER_FOR_TESTS,
+    maxHeapSize: Size = testDefaultMaxHeapSize,
+    minHeapSize: Size = testDefaultMinHeapSize,
+    maxMetaspaceSize: Size = testDefaultMaxMetaspaceSize,
+    reservedCodeCacheSize: Size = testDefaultReservedCodeCacheSize,
+    garbageCollector: GarbageCollector? = testDefaultGC,
+    defineJDKEnvVariables: List<JdkMajorVersion> = emptyList(),
+    body: Test.() -> Unit = {},
+): TaskProvider<Test> {
+
+    val properties = kotlinBuildProperties
+    val effectiveXmx = properties.testXmx.orElse(maxHeapSize)
+    val effectiveXms = properties.testXms.orElse(minHeapSize)
+    val effectiveGC = properties.testGarbageCollector.orElse(provider { garbageCollector })
+
+    val shouldInstrument = project.providers.gradleProperty("kotlin.test.instrumentation.disable")
+        .orNull?.toBoolean() != true
+    return getOrCreateTask<Test>(taskName) {
+        this.javaLauncher.set(getToolchainLauncherFor(javaLauncher))
+
+        if (taskName != "test" && classpath.isEmpty) {
+            classpath = sourceSets.getByName("test").runtimeClasspath
+            testClassesDirs = sourceSets.getByName("test").output.classesDirs
+        }
+        val ideaHomeForTests =
+            this.project.configurations.detachedConfiguration(this.project.dependencies.project(":", configuration = "ideaHomeForTests"))
+        jvmArgumentProviders.add(this.project.objects.newInstance(SystemPropertyClasspathDirectoryProvider::class.java).apply {
+            property.set("idea.home.path")
+            classpath.from(ideaHomeForTests)
+            directory.value(ideaHomePathForTests())
+        })
+
+        if (shouldInstrument) {
+            val agentJar = configurations.detachedConfiguration(dependencies.project(":test-instrumenter")).apply { isTransitive = false }
+            val bootClasspathJar = configurations.detachedConfiguration(dependencies.project(":test-instrumenter", "bootClasspath"))
+            val debugProperty = kotlinBuildProperties.booleanProperty("test.instrumenter.debug")
+
+            systemProperty("test.instrumenter.debug", debugProperty.get())
+
+            val testInstrumentationProvider = objects.newInstance<TestInstrumentationArgumentProvider>().apply {
+                this.agentJar.from(agentJar)
+                this.bootClasspathJar.from(bootClasspathJar)
+                this.debug.set(debugProperty)
+            }
+            jvmArgumentProviders.add(testInstrumentationProvider)
+        }
+
+        // The glibc default number of memory pools on 64bit systems is 8 times the number of CPU cores
+        // Choosing a value MALLOC_ARENA_MAX is generally a tradeoff between performance and memory consumption.
+        // Not setting MALLOC_ARENA_MAX gives the best performance, but may mean higher memory use.
+        // Setting MALLOC_ARENA_MAX to “2” or “1” makes glibc use fewer memory pools and potentially less memory,
+        // but this may reduce performance.
+        environment("MALLOC_ARENA_MAX", "2")
+
+        jvmArgs(
+            "-ea",
+            "-XX:+HeapDumpOnOutOfMemoryError",
+            "-XX:+UseCodeCacheFlushing",
+            "-XX:ReservedCodeCacheSize=${reservedCodeCacheSize.toJvmArg()}",
+            "-XX:MaxMetaspaceSize=${maxMetaspaceSize.toJvmArg()}",
+            "-XX:CICompilerCount=2",
+            "-Djna.nosys=true"
+        )
+
+        when (effectiveGC.orNull) {
+            GarbageCollector.G1 -> jvmArgs("-XX:+UseG1GC")
+            GarbageCollector.Parallel -> jvmArgs("-XX:+UseParallelGC")
+            null -> Unit
+        }
+
+        val nativeMemoryTracking = project.providers.gradleProperty("kotlin.build.test.process.NativeMemoryTracking")
+        if (nativeMemoryTracking.isPresent) {
+            jvmArgs("-XX:NativeMemoryTracking=${nativeMemoryTracking.get()}")
+        }
+
+        this.maxHeapSize = effectiveXmx.get().toJvmArg()
+        this.minHeapSize = effectiveXms.get().toJvmArg()
+
+        systemProperty("idea.is.unit.test", "true")
+        systemProperty("idea.use.native.fs.for.win", false)
+        systemProperty("java.awt.headless", "true")
+        environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
+        environment("PROJECT_BUILD_DIR", project.layout.buildDirectory.get().asFile)
+        systemProperty(
+            "kotlin.test.update.test.data",
+            project.kotlinBuildProperties.booleanProperty("kotlin.test.update.test.data", false).get()
+        )
+        systemProperty("cacheRedirectorEnabled", project.kotlinBuildProperties.isCacheRedirectorEnabled.get())
+        project.kotlinBuildProperties.junit5NumberOfThreadsForParallelExecution?.let { n ->
+            systemProperty("junit.jupiter.execution.parallel.config.strategy", "fixed")
+            systemProperty("junit.jupiter.execution.parallel.config.fixed.parallelism", n)
+        }
+
+        val testArgumentProvider = objects.newInstance<GeneralTestArgumentProvider>().also {
+            it.projectName.set(project.name)
+            it.taskName.set(name)
+        }
+        jvmArgumentProviders.add(testArgumentProvider)
+
+        systemProperty("idea.ignore.disabled.plugins", "true")
+
+        doFirst {
+            // workaround for a Gradle bug: https://github.com/gradle/gradle/issues/37539
+            // the tests won't be skipped by Gradle but will be disabled by TCParallelTestsExecutionCondition
+            // this can be removed after Gradle updated to a version with the fix (likely 9.6.0)
+            val excludesFile = testArgumentProvider.excludesFile
+            if (excludesFile.isPresent) {
+                logger.warn("Removing excludes set by TeamCity")
+                val parallelTestsExcludes = File(excludesFile.get().path).readLines().filter { !it.startsWith("#") }.toSet()
+                filter.excludePatterns.removeAll(parallelTestsExcludes)
+            }
+        }
+
+        val fs = project.serviceOf<FileSystemOperations>()
+        doLast {
+            File(testArgumentProvider.tempDir.get(), testArgumentProvider.prefix.get()).let {
+                try {
+                    fs.delete {
+                        delete(it)
+                    }
+                } catch (e: Exception) {
+                    logger.warn("Can't delete test temp root folder $it", e.printStackTrace())
+                }
+            }
+        }
+
+        if (!kotlinBuildProperties.isTeamcityBuild.get()) {
+            defineJDKEnvVariables.forEach { version ->
+                val jdkHome = project.getToolchainJdkHomeFor(version).orNull ?: error("Can't find toolchain for $version")
+                environment(version.envName, jdkHome)
+            }
+        }
+        body()
+    }
+}
+
+private val Test.commandLineIncludePatterns: Set<String>
+    get() = (filter as? DefaultTestFilter)?.commandLineIncludePatterns.orEmpty()
+
+private inline fun String.isFirstChar(f: (Char) -> Boolean) = isNotEmpty() && f(first())

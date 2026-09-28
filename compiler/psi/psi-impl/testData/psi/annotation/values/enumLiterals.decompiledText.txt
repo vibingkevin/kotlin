@@ -1,0 +1,36 @@
+E.class:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  package test
+
+  public final enum class E private constructor() : kotlin.Enum<test.E> {
+      E1,
+
+      E2;
+  }
+
+EnumLiteral.class:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  package test
+
+  public final annotation class EnumLiteral public constructor(
+      public final val e1: test.E,
+
+      public final val e2: test.E,
+
+      public final val e3: test.E,
+  ) : kotlin.Annotation {
+  }
+
+WithEnumLiteral.class:
+  // IntelliJ API Decompiler stub source generated from a class file
+  // Implementation of methods is not available
+
+  package test
+
+  @test.EnumLiteral(e1 = test.E.E1, e2 = test.E.E2, e3 = test.E.E2)
+  public final class WithEnumLiteral public constructor() {
+  }

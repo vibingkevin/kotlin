@@ -1,0 +1,36 @@
+description = "Kotlin Serialization Compiler Plugin (K2)"
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+}
+
+dependencies {
+    compileOnly(project(":compiler:fir:cones"))
+    compileOnly(project(":compiler:fir:tree"))
+    compileOnly(project(":compiler:fir:diagnostic-renderers"))
+    compileOnly(project(":compiler:fir:fir-serialization"))
+    compileOnly(project(":compiler:fir:fir-deserialization"))
+    compileOnly(project(":compiler:fir:resolve"))
+    compileOnly(project(":compiler:fir:plugin-utils"))
+    compileOnly(project(":compiler:fir:entrypoint"))
+    compileOnly(project(":compiler:cli-base"))
+    compileOnly(project(":native:native.config"))
+
+    implementation(project(":kotlinx-serialization-compiler-plugin.common"))
+    implementation(project(":compiler:frontend.common-psi"))
+    implementation(project(":compiler:psi:psi-api"))
+    implementation(project(":core:compiler.common.jvm"))
+
+    compileOnly(intellijCore())
+}
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" { none() }
+}
+
+runtimeJar()
+sourcesJar()
+javadocJar()

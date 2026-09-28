@@ -1,0 +1,2 @@
+KDocName(54,73): 'JavaChild.staticFun'
+  NO_CANDIDATES

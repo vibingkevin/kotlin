@@ -1,0 +1,32 @@
+KaJavaFieldSymbol:
+  anchorPsi: PsiFieldImpl
+  annotations: []
+  callableId: /BaseClass.bar
+  contextParameters: []
+  contextReceivers: []
+  isActual: false
+  isCompanion: true
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isStatic: true
+  isVal: false
+  location: CLASS
+  modality: FINAL
+  name: bar
+  origin: JAVA_SOURCE
+  psi: PsiFieldImpl
+  realPsi: PsiFieldImpl
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Int
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: null
+  getContainingJvmClassName: BaseClass
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: BaseClass.bar

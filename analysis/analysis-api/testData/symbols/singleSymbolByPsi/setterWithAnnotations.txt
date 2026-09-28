@@ -1,0 +1,126 @@
+KaPropertySetterSymbol:
+  anchorPsi: KtPropertyAccessor
+  annotations: [
+    SetAnnotation()
+      psi: KtAnnotationEntry
+    ExplicitSetAnnotation()
+      psi: KtAnnotationEntry
+  ]
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInline: false
+  isNotDefault: true
+  isOverride: false
+  location: PROPERTY
+  modality: FINAL
+  origin: SOURCE
+  parameter: KaValueParameterSymbol:
+    anchorPsi: KtParameter
+    annotations: [
+      ExplicitSetparamAnnotation()
+        psi: KtAnnotationEntry
+      SetparamAnnotation()
+        psi: KtAnnotationEntry
+    ]
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    hasDeclaredDefaultValue: false
+    hasDefaultValue: false
+    isActual: false
+    isCompanion: false
+    isCrossinline: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isImplicitLambdaParameter: false
+    isNoinline: false
+    isVal: true
+    isVararg: false
+    location: LOCAL
+    modality: FINAL
+    name: value
+    origin: SOURCE
+    primaryConstructorProperty: null
+    psi: KtParameter
+    realPsi: KtParameter
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Int
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(setterWithAnnotations.kt)
+    getContainingJvmClassName: null
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  psi: KtPropertyAccessor
+  realPsi: KtPropertyAccessor
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: [
+        ExplicitSetparamAnnotation()
+          psi: KtAnnotationEntry
+        SetparamAnnotation()
+          psi: KtAnnotationEntry
+      ]
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: value
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/Int
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(setterWithAnnotations.kt)
+      getContainingJvmClassName: null
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(setterWithAnnotations.kt)
+  getContainingJvmClassName: SetterWithAnnotationsKt
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: setX
+  importableFqName: null

@@ -1,0 +1,16 @@
+KtNameReferenceExpression(73,74): 'l'
+  KaSimpleCallResolutionSuccess:
+    call = KaSimpleVariableAccessCall:
+      contextArguments = []
+      dispatchReceiver = null
+      extensionReceiver = null
+      isContextSensitive = false
+      kind = Read
+      signature = KaVariableSignature:
+        name = l
+        receiverType = null
+        returnType = A
+        symbol = l: A
+        contextParameters = []
+        callableId = null
+      typeArgumentsMapping = {}

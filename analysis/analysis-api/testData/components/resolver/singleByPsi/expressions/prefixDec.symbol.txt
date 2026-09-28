@@ -1,0 +1,6 @@
+KtPrefixExpression(138,148): '--variable'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      var variable: MyClass,
+      /MyClass.dec(<dispatch receiver>: MyClass): MyClass
+    ]

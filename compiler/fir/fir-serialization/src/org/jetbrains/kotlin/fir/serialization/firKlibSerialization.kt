@@ -1,0 +1,86 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.fir.serialization
+
+import org.jetbrains.kotlin.config.LanguageVersionSettings
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.packageFqName
+import org.jetbrains.kotlin.fir.resolve.ScopeSession
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
+import org.jetbrains.kotlin.library.metadata.buildKlibPackageFragment
+import org.jetbrains.kotlin.metadata.ProtoBuf
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.serialization.SerializableStringTable
+
+// TODO: handle incremental/monolothic (see klib serializer) - maybe externally
+fun serializeSingleFirFile(
+    file: FirFile, session: FirSession, scopeSession: ScopeSession,
+    actualizedExpectDeclarations: Set<FirDeclaration>?,
+    serializerExtension: FirKLibSerializerExtension,
+    languageVersionSettings: LanguageVersionSettings,
+    produceHeaderKlib: Boolean = false,
+): ProtoBuf.PackageFragment {
+    val approximator = TypeApproximatorForMetadataSerializer(session)
+
+    val packageSerializer = FirElementSerializer.createTopLevel(
+        session, scopeSession, serializerExtension,
+        approximator,
+        languageVersionSettings,
+        produceHeaderKlib
+    )
+    val packageProto = packageSerializer.packagePartProto(file, actualizedExpectDeclarations).build()
+
+    val classesProto = mutableListOf<Pair<ProtoBuf.Class, Int>>()
+
+    fun FirClass.makeClassProtoWithNested(parentSerializer: FirElementSerializer?) {
+        if (!isNotExpectOrShouldBeSerialized(actualizedExpectDeclarations) ||
+            !isNotPrivateOrShouldBeSerialized(produceHeaderKlib)
+        ) {
+            return
+        }
+
+        val classSerializer = FirElementSerializer.create(
+            session, scopeSession, klass = this, serializerExtension, parentSerializer,
+            approximator, languageVersionSettings, produceHeaderKlib
+        )
+        val index = classSerializer.stringTable.getFqNameIndex(this)
+
+        classesProto += classSerializer.classProto(this).build() to index
+
+        for (nestedClassifierSymbol in classSerializer.computeNestedClassifiersForClass(symbol)) {
+            (nestedClassifierSymbol as? FirClassSymbol<*>)?.fir?.makeClassProtoWithNested(parentSerializer = classSerializer)
+        }
+    }
+
+    for (declaration in file.declarations) {
+        (declaration as? FirClass)?.makeClassProtoWithNested(parentSerializer = null)
+    }
+    for (declaration in session.providedDeclarationsForMetadataService.getProvidedTopLevelDeclarations(file)) {
+        (declaration as? FirClass)?.makeClassProtoWithNested(parentSerializer = null)
+    }
+
+    val fileAnnotationProtos = file.nonSourceAnnotations(session).mapNotNull { annotation ->
+        serializerExtension.annotationSerializer.serializeAnnotation(annotation)
+    }
+
+    return buildKlibPackageFragment(
+        packageProto,
+        classesProto,
+        file.packageFqName,
+        isEmpty = packageProto.functionList.isEmpty() &&
+                packageProto.propertyList.isEmpty() &&
+                packageProto.typeAliasList.isEmpty() &&
+                classesProto.isEmpty(),
+        serializerExtension.stringTable,
+        fileAnnotations = fileAnnotationProtos,
+    )
+}
+
+class FirElementAwareSerializableStringTable : FirElementAwareStringTable, SerializableStringTable() {
+    override fun getLocalClassLikeDeclarationIdReplacement(declaration: FirClassLikeDeclaration): ClassId = StandardClassIds.Any
+}

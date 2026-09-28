@@ -1,0 +1,6 @@
+Resulting Content Scopes:
+Module MAIN:
+    - a.kt
+    - b.kt
+    + c.kt
+    + d.kt

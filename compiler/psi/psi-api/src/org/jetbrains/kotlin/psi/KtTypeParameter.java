@@ -1,0 +1,97 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.search.LocalSearchScope;
+import com.intellij.psi.search.SearchScope;
+import com.intellij.psi.util.PsiTreeUtil;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.stubs.KotlinTypeParameterStub;
+import org.jetbrains.kotlin.types.Variance;
+
+/**
+ * Represents a type parameter in a generic declaration.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * class Box<T>(val value: T)
+ * //        ^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtTypeParameter extends KtNamedDeclarationStub<KotlinTypeParameterStub> {
+    /** A shared empty array, which can be reused to avoid unnecessary allocations. */
+    public static final KtTypeParameter[] EMPTY_ARRAY = new KtTypeParameter[0];
+
+    @KtImplementationDetail
+    public KtTypeParameter(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtTypeParameter(@NotNull KotlinTypeParameterStub stub) {
+        super(stub, KtNodeTypes.TYPE_PARAMETER);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitTypeParameter(this, data);
+    }
+
+    /**
+     * Returns the declaration-site variance of this type parameter: {@link Variance#OUT_VARIANCE} for {@code out},
+     * {@link Variance#IN_VARIANCE} for {@code in}, or {@link Variance#INVARIANT} if no variance modifier is present.
+     */
+    @NotNull
+    public Variance getVariance() {
+        KtModifierList modifierList = getModifierList();
+        if (modifierList == null) return Variance.INVARIANT;
+
+        if (modifierList.hasModifier(KtTokens.OUT_KEYWORD)) return Variance.OUT_VARIANCE;
+        if (modifierList.hasModifier(KtTokens.IN_KEYWORD)) return Variance.IN_VARIANCE;
+        return Variance.INVARIANT;
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.setTypeParameterExtendsBound(this, typeReference)}
+     * instead.
+     */
+    @Nullable
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.setTypeParameterExtendsBound(this, typeReference)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.setTypeParameterExtendsBound(typeReference)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.setTypeParameterExtendsBound"
+            )
+    )
+    @Deprecated
+    public KtTypeReference setExtendsBound(@Nullable KtTypeReference typeReference) {
+        return KtPsiMutationService.getInstance().setTypeParameterExtendsBound(this, typeReference);
+    }
+
+    /**
+     * Returns the inline upper bound written after {@code :} (as in {@code <T : Comparable<T>>}), or {@code null} if this type parameter
+     * has no inline bound. Bounds declared in a {@code where} clause are exposed via {@link
+     * KtTypeParameterListOwner#getTypeConstraints()} instead.
+     */
+    @Nullable
+    public KtTypeReference getExtendsBound() {
+        return getStubOrPsiChild(KtNodeTypes.TYPE_REFERENCE, KtTypeReference.class);
+    }
+
+    @NotNull
+    @Override
+    public SearchScope getUseScope() {
+        KtTypeParameterListOwner owner = PsiTreeUtil.getParentOfType(this, KtTypeParameterListOwner.class);
+        return new LocalSearchScope(owner != null ? owner : this);
+    }
+}

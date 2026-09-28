@@ -1,0 +1,91 @@
+// Copyright (c) 2011, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package org.jetbrains.kotlin.js.backend.ast;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.js.util.AstUtil;
+
+/**
+ * Represents a JavaScript catch clause.
+ */
+public class JsCatch extends SourceInfoAwareJsNode {
+
+    protected final JsCatchScope scope;
+    private JsBlock body;
+    private JsParameter param;
+
+    public JsCatch(@NotNull JsDeclarable declarable) {
+        param = new JsParameter(declarable);
+        scope = null;
+    }
+
+    public JsCatch(JsScope parent, @NotNull JsDeclarable declarable) {
+        super();
+        assert (parent != null);
+        scope = new JsCatchScope(parent, declarable);
+        param = new JsParameter(declarable);
+    }
+
+    public JsCatch(JsScope parent, @NotNull JsDeclarable declarable, @NotNull JsStatement catchBody) {
+        this(parent, declarable);
+        if (catchBody instanceof JsBlock) {
+            body = (JsBlock) catchBody;
+        } else {
+            body = new JsBlock(catchBody);
+        }
+    }
+
+    public JsBlock getBody() {
+        return body;
+    }
+
+    public JsParameter getParameter() {
+        return param;
+    }
+
+    public JsScope getScope() {
+        return scope;
+    }
+
+    public void setBody(JsBlock body) {
+        this.body = body;
+    }
+
+    @Override
+    public void accept(JsVisitor v) {
+        v.visitCatch(this);
+    }
+
+    @Override
+    public void acceptChildren(JsVisitor visitor) {
+        visitor.accept(param);
+        visitor.accept(body);
+    }
+
+    @Override
+    public void traverse(JsVisitorWithContext v, JsContext ctx) {
+        if (v.visit(this, ctx)) {
+            param = v.accept(param);
+            body = v.acceptStatement(body);
+        }
+        v.endVisit(this, ctx);
+    }
+
+    @NotNull
+    @Override
+    public JsCatch deepCopy() {
+        JsCatchScope scopeCopy = scope != null ? scope.copy() : null;
+        JsBlock bodyCopy = AstUtil.deepCopy(body);
+        JsParameter paramCopy = AstUtil.deepCopy(param);
+
+        return AbstractNodeKt.withMetadataFrom(new JsCatch(scopeCopy, bodyCopy, paramCopy), this);
+    }
+
+    private JsCatch(JsCatchScope scope, JsBlock body, JsParameter param) {
+        this.scope = scope;
+        this.body = body;
+        this.param = param;
+    }
+}

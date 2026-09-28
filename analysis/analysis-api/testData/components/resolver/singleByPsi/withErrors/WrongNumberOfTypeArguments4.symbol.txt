@@ -1,0 +1,9 @@
+KtNameReferenceExpression(54,56): 'CC'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = [
+      foo/CC
+    ]
+    diagnostic = ERROR<WRONG_NUMBER_OF_TYPE_ARGUMENTS: One type argument expected for 'class CC<T> : Any'.>

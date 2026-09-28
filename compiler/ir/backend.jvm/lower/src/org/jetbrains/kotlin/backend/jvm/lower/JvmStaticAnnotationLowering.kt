@@ -1,0 +1,184 @@
+/*
+ * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.jvm.lower
+
+import org.jetbrains.kotlin.backend.common.FileLoweringPass
+import org.jetbrains.kotlin.backend.jvm.CachedFieldsForObjectInstances
+import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
+import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
+import org.jetbrains.kotlin.backend.jvm.ir.isEffectivelyInlineOnly
+import org.jetbrains.kotlin.backend.jvm.ir.isInlineFunctionCall
+import org.jetbrains.kotlin.backend.jvm.ir.replaceThisByStaticReference
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.ir.IrBuiltIns
+import org.jetbrains.kotlin.ir.IrStatement
+import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.lazy.IrLazyFunctionBase
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrTypeOperatorCallImpl
+import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
+import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
+import org.jetbrains.kotlin.name.JvmStandardClassIds
+
+/**
+ * Makes `@JvmStatic` functions in non-companion objects static and replaces all call sites in the module.
+ */
+internal class JvmStaticInObjectLowering(val context: JvmBackendContext) : FileLoweringPass {
+    override fun lower(irFile: IrFile) =
+        irFile.transformChildrenVoid(
+            SingletonObjectJvmStaticTransformer(context.irBuiltIns, context.cachedDeclarations.fieldsForObjectInstances)
+        )
+}
+
+/**
+ * Synthesizes static proxy functions for `@JvmStatic` functions in companion objects.
+ */
+internal class JvmStaticInCompanionLowering(val context: JvmBackendContext) : FileLoweringPass {
+    override fun lower(irFile: IrFile) =
+        irFile.transformChildrenVoid(CompanionObjectJvmStaticTransformer(context))
+}
+
+private fun IrDeclaration.isJvmStaticDeclaration(): Boolean =
+    hasAnnotation(JvmStandardClassIds.Annotations.JvmStatic) ||
+            (this as? IrSimpleFunction)?.correspondingPropertySymbol?.owner?.hasAnnotation(JvmStandardClassIds.Annotations.JvmStatic) == true ||
+            (this as? IrProperty)?.getter?.hasAnnotation(JvmStandardClassIds.Annotations.JvmStatic) == true
+
+private fun IrDeclaration.isJvmStaticInCompanion(): Boolean =
+    isJvmStaticDeclaration() && (parent as? IrClass)?.isCompanion == true
+
+internal fun IrDeclaration.isJvmStaticInObject(): Boolean =
+    isJvmStaticDeclaration() && (parent as? IrClass)?.isNonCompanionObject == true
+
+// `coerceToUnit()` is private in InsertImplicitCasts, have to reproduce it here
+private fun IrExpression.coerceToUnit(irBuiltIns: IrBuiltIns) =
+    IrTypeOperatorCallImpl(startOffset, endOffset, irBuiltIns.unitType, IrTypeOperator.IMPLICIT_COERCION_TO_UNIT, irBuiltIns.unitType, this)
+
+private fun IrMemberAccessExpression<*>.makeStatic(irBuiltIns: IrBuiltIns, replaceCallee: IrSimpleFunction?): IrExpression {
+    val receiver = arguments.removeAt(0)
+    if (replaceCallee != null) {
+        (this as IrCall).symbol = replaceCallee.symbol
+    }
+    if (receiver == null) return this
+    return this.addEvaluationOfArgIfSideEffects(receiver, irBuiltIns)
+}
+
+private fun IrExpression.addEvaluationOfArgIfSideEffects(arg: IrExpression, builtIns: IrBuiltIns): IrExpression {
+    if (arg.isTrivial()) return this
+    return IrBlockImpl(startOffset, endOffset, type).apply {
+        statements += arg.coerceToUnit(builtIns)
+        statements += this@addEvaluationOfArgIfSideEffects
+    }
+}
+
+class SingletonObjectJvmStaticTransformer(
+    private val irBuiltIns: IrBuiltIns,
+    private val cachedFields: CachedFieldsForObjectInstances
+) : IrElementTransformerVoid() {
+    override fun visitSimpleFunction(declaration: IrSimpleFunction): IrStatement {
+        transformFunction(declaration)
+        return super.visitSimpleFunction(declaration)
+    }
+
+    private fun transformFunction(function: IrFunction) {
+        if (function.isJvmStaticInObject()) {
+            // dispatch receiver parameter is already null for synthetic property annotation methods
+            function.dispatchReceiverParameter?.let { oldDispatchReceiverParameter ->
+                function.parameters -= oldDispatchReceiverParameter
+
+                if (function !is IrLazyFunctionBase) {
+                    function.replaceThisByStaticReference(cachedFields, function.parentAsClass, oldDispatchReceiverParameter)
+                }
+            }
+        }
+    }
+
+    // This lowering runs before functions references are handled, and should transform them too.
+    override fun visitMemberAccess(expression: IrMemberAccessExpression<*>): IrExpression {
+        expression.transformChildrenVoid(this)
+
+        val callee = expression.symbol.owner
+        if (callee is IrFunction) {
+            transformFunction(callee)
+        }
+        if (callee is IrProperty) {
+            callee.getter?.let {
+                transformFunction(it)
+            }
+            callee.setter?.let {
+                transformFunction(it)
+            }
+        }
+
+        if (callee is IrDeclaration && callee.isJvmStaticInObject()) {
+            return expression.makeStatic(irBuiltIns, replaceCallee = null)
+        }
+        return expression
+    }
+
+    override fun visitRichPropertyReference(expression: IrRichPropertyReference): IrExpression {
+        expression.transformChildrenVoid(this)
+        val property = expression.reflectionTargetSymbol?.owner
+        if (property is IrDeclaration && property.isJvmStaticInObject()) {
+            val boundReceiver = expression.boundReceiverOrNull ?: return expression
+            val objectClass = property.parentAsClass
+            val objectValue = IrGetObjectValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, objectClass.defaultType, objectClass.symbol)
+            expression.boundValues[expression.boundValues.lastIndex] = objectValue
+            return expression.addEvaluationOfArgIfSideEffects(boundReceiver, irBuiltIns)
+        }
+        return expression
+    }
+}
+
+private class CompanionObjectJvmStaticTransformer(val context: JvmBackendContext) : IrElementTransformerVoid() {
+    // TODO: would be nice to add a mode that *only* leaves static versions for all annotated methods, with nothing
+    //  in companions - this would reduce the number of classes if the companion only has `@JvmStatic` declarations.
+    private fun IrSimpleFunction.needsStaticProxy(): Boolean = when {
+        // Case 1: `external` static methods are moved to the outer class. JNI code does not care about visibility.
+        isExternal -> true
+        // Case 2: `JvmStatic` is useless on inline-only methods because they're not visible to any Java code anyway.
+        origin == JvmLoweredDeclarationOrigin.SYNTHETIC_METHOD_FOR_PROPERTY_OR_TYPEALIAS_ANNOTATIONS -> false
+        isEffectivelyInlineOnly() -> false
+        // Case 3: protected non-inline needs a static proxy in the parent to be callable from subclasses
+        // of said parent in different packages even in pure Kotlin due to JVM visibility rules.
+        visibility == DescriptorVisibilities.PROTECTED && !isInline -> true
+        // Case 4: public or protected inline needs a static proxy if not synthetic to be callable
+        // on the parent class from Java code (the original point of this annotation).
+        else -> !origin.isSynthetic
+    }
+
+    override fun visitClass(declaration: IrClass): IrStatement =
+        super.visitClass(declaration).also {
+            declaration.companionObject()?.declarations?.transformInPlace {
+                if (it is IrSimpleFunction && it.isJvmStaticDeclaration() && it.needsStaticProxy()) {
+                    val [static, companionFun] = context.cachedDeclarations.getStaticAndCompanionDeclaration(it)
+                    declaration.declarations.add(static)
+                    companionFun
+                } else it
+            }
+        }
+
+    // By this point all callable references have already been lowered (except ones for signature-generating
+    // intrinsics, which do not care about accessibility rules), so only calls remain.
+    override fun visitCall(expression: IrCall): IrExpression {
+        expression.transformChildrenVoid(this)
+        val callee = expression.symbol.owner
+        return if (shouldReplaceWithStaticCall(callee)) {
+            val [staticProxy, _] = context.cachedDeclarations.getStaticAndCompanionDeclaration(callee)
+            expression.makeStatic(context.irBuiltIns, staticProxy)
+        } else {
+            expression
+        }
+    }
+
+    private fun shouldReplaceWithStaticCall(callee: IrSimpleFunction) =
+        callee.isJvmStaticInCompanion() &&
+                callee.visibility == DescriptorVisibilities.PROTECTED &&
+                !callee.isInlineFunctionCall(context)
+}

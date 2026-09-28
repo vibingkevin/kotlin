@@ -1,0 +1,4 @@
+FILE: [ResolvedTo(BODY_RESOLVE)] setterWithNoBodyAndDifferentValueParameterType.kt
+    public final [ResolvedTo(BODY_RESOLVE)] var prop: R|kotlin/String| = String()
+        public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/String|
+        public [ResolvedTo(BODY_RESOLVE)] set([ResolvedTo(BODY_RESOLVE)] value: R|kotlin/CharSequence|): R|kotlin/Unit|

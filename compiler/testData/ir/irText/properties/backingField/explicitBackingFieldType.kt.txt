@@ -1,0 +1,23 @@
+class A {
+  val a: Int
+    field = 20
+    get
+
+  val it: Int
+    field = 4
+    get
+
+  val p: Int
+    field = 5
+    get(): Int {
+      return <this>.#p
+    }
+
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+}
+

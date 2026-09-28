@@ -1,0 +1,634 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+@file:OptIn(KaNonPublicApi::class, KtNonPublicApi::class)
+
+package org.jetbrains.kotlin.js.tsexport
+
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
+import org.jetbrains.kotlin.analysis.api.KaIdeApi
+import org.jetbrains.kotlin.analysis.api.KaNonPublicApi
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotated
+import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotationList
+import org.jetbrains.kotlin.analysis.api.annotations.KaAnnotationValue
+import org.jetbrains.kotlin.analysis.api.base.KaConstantValue
+import org.jetbrains.kotlin.analysis.api.scopes.declaredMemberScope
+import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.analysis.api.symbols.markers.KaNamedSymbol
+import org.jetbrains.kotlin.analysis.api.types.*
+import org.jetbrains.kotlin.analysis.api.types.typeCreation.typeCreator
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.ir.backend.js.tsexport.*
+import org.jetbrains.kotlin.js.config.ModuleKind
+import org.jetbrains.kotlin.name.*
+import org.jetbrains.kotlin.name.JsStandardClassIds.Annotations.JsDontExportDefaultImplementation
+import org.jetbrains.kotlin.name.JsStandardClassIds.Annotations.JsExport
+import org.jetbrains.kotlin.name.JsStandardClassIds.Annotations.JsExportDefault
+import org.jetbrains.kotlin.name.JsStandardClassIds.Annotations.JsExportIgnore
+import org.jetbrains.kotlin.name.JsStandardClassIds.Annotations.JsImplicitExport
+import org.jetbrains.kotlin.name.JsStandardClassIds.Annotations.JsNoRuntime
+import org.jetbrains.kotlin.name.JsStandardClassIds.Annotations.JsStatic
+import org.jetbrains.kotlin.name.StandardClassIds.Annotations.ConsistentCopyVisibility
+import org.jetbrains.kotlin.name.StandardClassIds.Annotations.ExposedCopyVisibility
+import org.jetbrains.kotlin.psi.KtNonPublicApi
+import org.jetbrains.kotlin.util.OperatorNameConventions
+import org.jetbrains.kotlin.utils.addToStdlib.butIf
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
+
+private val reservedWords = setOf(
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "enum",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "new",
+    "null",
+    "return",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with"
+)
+
+private val strictModeReservedWords = setOf(
+    "as",
+    "implements",
+    "interface",
+    "let",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "static",
+    "yield"
+)
+
+internal val allReservedWords = reservedWords + strictModeReservedWords
+
+private fun KaAnnotationList.getSingleAnnotationArgumentString(annotationClassId: ClassId): String? {
+    val annotation = this[annotationClassId].singleOrNull() ?: return null
+    return ((annotation.arguments[0].expression as? KaAnnotationValue.ConstantValue)?.value as? KaConstantValue.StringValue)?.value
+}
+
+private fun KaAnnotated.getSingleAnnotationArgumentString(annotationClassId: ClassId): String? =
+    annotations.getSingleAnnotationArgumentString(annotationClassId)
+
+private fun KaAnnotationList.getJsQualifier(): String? =
+    getSingleAnnotationArgumentString(JsStandardClassIds.Annotations.JsQualifier)
+
+private fun KaAnnotated.getJsQualifier(): String? = annotations.getJsQualifier()
+
+internal fun KaAnnotationList.getJsFileName(): String? =
+    getSingleAnnotationArgumentString(JsStandardClassIds.Annotations.JsFileName)
+
+context(_: KaSession)
+private fun KaSymbol.getSingleAnnotationArgumentStringForOverriddenDeclaration(annotationClassId: ClassId): String? {
+    val argument = (this as? KaAnnotated)?.getSingleAnnotationArgumentString(annotationClassId)
+    return when {
+        argument != null -> argument
+        this is KaCallableSymbol -> allOverriddenSymbols.firstNotNullOfOrNull {
+            when (this) {
+                is KaPropertyGetterSymbol -> (it as? KaPropertySymbol)?.getter?.getSingleAnnotationArgumentString(annotationClassId)
+                is KaPropertySetterSymbol -> (it as? KaPropertySymbol)?.setter?.getSingleAnnotationArgumentString(annotationClassId)
+                else -> it.getSingleAnnotationArgumentString(annotationClassId)
+            }
+        }
+        else -> null
+    }
+}
+
+context(_: KaSession)
+internal fun KaSymbol.getJsNameForOverriddenDeclaration(): String? =
+    getSingleAnnotationArgumentStringForOverriddenDeclaration(JsStandardClassIds.Annotations.JsName)
+
+context(_: KaSession)
+internal fun KaNamedSymbol.getJsSymbolForOverriddenDeclaration(): String? =
+    getSingleAnnotationArgumentStringForOverriddenDeclaration(JsStandardClassIds.Annotations.JsSymbol)
+
+context(_: KaSession)
+internal fun KaNamedSymbol.getExportedIdentifier(): String {
+    getJsNameForOverriddenDeclaration()?.let { return it }
+    return name.asString()
+}
+
+context(_: KaSession)
+internal fun KaDeclarationSymbol.isEffectivelyExported(config: TypeScriptExportConfig, includingImplicitExport: Boolean = false): Boolean {
+    if (isExpect || isJsExportIgnore() || !visibility.isPublicApi) {
+        return false
+    }
+    if (isExplicitlyExported() || (includingImplicitExport && isJsImplicitExport())) {
+        return true
+    }
+
+    @OptIn(KaIdeApi::class)
+    if (importableFqName in config.additionalExportedDeclarationNames) {
+        return true
+    }
+
+    if (this is KaCallableSymbol && isOverride) {
+        return (this is KaNamedFunctionSymbol && isMethodOfAny)
+                || allOverriddenSymbols.any { it.isEffectivelyExported(config, includingImplicitExport) }
+    }
+
+    val parent = containingDeclaration
+    val parentModality = parent?.modality
+    if (!(this is KaConstructorSymbol && isPrimary)
+        && visibility == KaSymbolVisibility.PROTECTED
+        && (parentModality == KaSymbolModality.FINAL || parentModality == KaSymbolModality.SEALED)
+    ) {
+        // Protected members inside final classes are effectively private.
+        // Protected members inside sealed classes are effectively module-private.
+        // The only exception is the primary constructor: we will set its visibility to private during
+        // TypeScript export model generation, otherwise, if no (private) primary constructor is exported, there will be
+        // a default constructor, which we don't want.
+        return false
+    }
+
+    return when (parent) {
+        null -> containingFileAnnotations?.contains(JsExport) ?: false
+        else -> parent.isEffectivelyExported(config, includingImplicitExport) &&
+                (!isDataClassCopyMethod(parent) || shouldExportDataClassCopy(parent, config, includingImplicitExport))
+    }
+}
+
+@OptIn(ExperimentalContracts::class)
+private fun KaDeclarationSymbol.isDataClassCopyMethod(parent: KaDeclarationSymbol): Boolean {
+    contract {
+        returns(true) implies (parent is KaNamedClassSymbol)
+    }
+
+    return parent is KaNamedClassSymbol &&
+            parent.isData &&
+            this is KaFunctionSymbol &&
+            name == StandardNames.DATA_CLASS_COPY
+}
+
+/**
+ * This is the Analysis API-based version of the same function from org.jetbrains.kotlin.ir.backend.js.ir
+ * The changes here should be synchronized with the original function.
+ *
+ * Also, the same rules are defined on the FIR side for the exportability checks. see [org.jetbrains.kotlin.fir.analysis.checkers.FirVisibilityHelpers]
+ */
+context(_: KaSession)
+private fun shouldExportDataClassCopy(
+    parentDataClass: KaNamedClassSymbol,
+    config: TypeScriptExportConfig,
+    includingImplicitExport: Boolean,
+): Boolean {
+    val primaryConstructor = parentDataClass.declaredMemberScope.constructors.firstOrNull(KaConstructorSymbol::isPrimary) ?: return false
+
+    return when {
+        parentDataClass.isExposedCopyVisibility() -> true
+        primaryConstructor.isEffectivelyExported(config, includingImplicitExport) -> true
+        config.dataClassCopyRespectsConstructorVisibility -> false
+        else -> !parentDataClass.isConsistentCopyVisibility()
+    }
+}
+
+internal val TypeScriptExportConfig.generateNamespacesForPackages: Boolean
+    get() = artifactConfiguration.moduleKind != ModuleKind.ES
+
+// TODO: Add memoization?
+context(_: KaSession)
+internal fun KaNamedSymbol.getExportedFqName(shouldIncludePackage: Boolean, config: TypeScriptExportConfig): FqName {
+    val name = Name.identifier(getExportedIdentifier())
+    val isEsModules = config.artifactConfiguration.moduleKind == ModuleKind.ES
+    return when (val parent = containingDeclaration) {
+        is KaNamedSymbol -> parent.getExportedFqName(shouldIncludePackage, config).child(name)
+        null ->
+            getTopLevelQualifier(shouldIncludePackage).child(name)
+                .butIf(isEsModules && this is KaNamedClassSymbol && classKind == KaClassKind.OBJECT && !isExternal) {
+                    // In ES modules, static members of a top-level object actually live in the <object name>.$metadata.type namespace,
+                    // rather than just the <object name> namespace.
+                    it.child(Name.identifier($$"$metadata$")).child(Name.identifier("type"))
+                }
+        else -> FqName.topLevel(name)
+    }
+}
+
+context(_: KaSession)
+private fun KaNamedSymbol.getTopLevelQualifier(shouldIncludePackage: Boolean): FqName {
+    val jsQualifier = (this as? KaAnnotated)?.getJsQualifier()
+        ?: (this as? KaDeclarationSymbol)?.containingFileAnnotations?.getJsQualifier()
+    if (jsQualifier != null) {
+        return FqName(jsQualifier)
+    }
+
+    if (!shouldIncludePackage) {
+        return FqName.ROOT
+    }
+
+    return when (this) {
+        is KaClassLikeSymbol -> classId?.packageFqName
+        is KaCallableSymbol -> callableId?.packageName
+        else -> null
+    } ?: FqName.ROOT
+}
+
+internal fun KaAnnotated.isJsImplicitExport(): Boolean =
+    annotations.contains(JsImplicitExport)
+
+internal fun KaAnnotated.isJsExportIgnore(): Boolean =
+    annotations.contains(JsExportIgnore)
+
+internal fun KaAnnotated.isJsStatic(): Boolean =
+    annotations.contains(JsStatic)
+
+private fun KaAnnotated.isExplicitlyExported(): Boolean =
+    annotations.contains(JsExport) || annotations.contains(JsExportDefault)
+
+internal fun KaAnnotated.isJsNoRuntime(): Boolean =
+    annotations.contains(JsNoRuntime)
+
+internal fun KaAnnotated.noDefaultImplementation(): Boolean =
+    annotations.contains(JsDontExportDefaultImplementation)
+
+internal fun KaAnnotated.isExposedCopyVisibility(): Boolean =
+    annotations.contains(ExposedCopyVisibility)
+
+internal fun KaAnnotated.isConsistentCopyVisibility(): Boolean =
+    annotations.contains(ConsistentCopyVisibility)
+
+private val KaSymbolVisibility.isPublicApi: Boolean
+    get() = this == KaSymbolVisibility.PUBLIC || this == KaSymbolVisibility.PROTECTED
+
+@OptIn(KaExperimentalApi::class)
+context(_: KaSession)
+private val KaNamedFunctionSymbol.isMethodOfAny: Boolean
+    get() {
+        if (receiverParameter != null || contextParameters.isNotEmpty()) return false
+        return when (name) {
+            OperatorNameConventions.HASH_CODE, OperatorNameConventions.TO_STRING ->
+                valueParameters.isEmpty()
+            OperatorNameConventions.EQUALS ->
+                valueParameters.singleOrNull()?.returnType?.fullyExpandedType
+                    ?.let { it.classId == KaStandardTypeClassIds.ANY && it.isNullable } == true
+            else -> false
+        }
+    }
+
+private val KaCallableSymbol.isOverride: Boolean
+    get() = when (this) {
+        is KaNamedFunctionSymbol -> isOverride
+        is KaPropertySymbol -> isOverride
+        else -> false
+    }
+
+private const val ownImplementableSymbolName = "Symbol"
+private const val notImplementablePropertyName = "__doNotUseOrImplementIt"
+
+internal fun MutableList<ExportedDeclaration>.addOwnJsSymbolDeclaration() =
+    add(
+        ExportedField(
+            name = ExportedMemberName.Identifier(ownImplementableSymbolName),
+            type = ExportedType.Primitive.UniqueSymbol,
+            mutable = false,
+            isMember = false,
+            isStatic = true,
+        )
+    )
+
+context(_: KaSession)
+internal fun MutableList<ExportedDeclaration>.addImplementableSymbolProperty(klass: KaNamedClassSymbol, config: TypeScriptExportConfig) =
+    add(
+        ExportedField(
+            name = ExportedMemberName.SymbolReference(
+                "${
+                    klass.getExportedFqName(shouldIncludePackage = config.generateNamespacesForPackages, config).asString()
+                }.$ownImplementableSymbolName"
+            ),
+            type = ExportedType.LiteralType.BooleanLiteralType(true),
+            mutable = false,
+            isMember = true,
+            isStatic = false,
+        )
+    )
+
+private fun KaNamedClassSymbol.shouldContainNotImplementableProperty(
+    config: TypeScriptExportConfig,
+    hasNonExportedAbstractMembers: Boolean,
+): Boolean =
+    hasNonExportedAbstractMembers ||
+            classId?.packageFqName == StandardNames.COLLECTIONS_PACKAGE_FQ_NAME ||
+            (!config.implementableInterfaces && classKind == KaClassKind.INTERFACE && !isExternal && !isJsNoRuntime()) ||
+            (classKind == KaClassKind.INTERFACE && modality == KaSymbolModality.SEALED)
+
+@OptIn(KaExperimentalApi::class)
+context(_: KaSession)
+internal fun MutableList<ExportedDeclaration>.addSuperTypesSpecialProperties(
+    klass: KaNamedClassSymbol,
+    superTypes: Collection<KaType>,
+    superTypeApproximator: SuperTypeApproximator?,
+    typeParameterScope: TypeParameterScope,
+    config: TypeScriptExportConfig,
+    hasNonExportedAbstractMembers: Boolean,
+) {
+    val allSuperTypesWithBrandProperty = klass.collectAllImplementableAndNotImplementableInterfaces(superTypes, config)
+    val typeItselfShouldNotBeImplemented = klass.shouldContainNotImplementableProperty(config, hasNonExportedAbstractMembers)
+
+    val [implementableSuperTypes, notImplementableSuperTypes] = allSuperTypesWithBrandProperty.partition { it.value }
+
+    for ([superType, _] in implementableSuperTypes) {
+        addImplementableSymbolProperty(superType, config)
+    }
+
+    if (notImplementableSuperTypes.isEmpty()) {
+        if (typeItselfShouldNotBeImplemented) addNotImplementableProperty(klass, config)
+        return
+    }
+
+    val intersectionOfTypes = notImplementableSuperTypes
+        .map { [superType, _] ->
+            // TODO: rework it to stricter types instead of `any` for type parameters
+            val superTypeWithDynamicArguments = typeCreator.classType(superType) {
+                for (i in superType.typeParameters.indices) {
+                    invariantTypeArgument(dynamicType())
+                }
+            }
+            ExportedType.PropertyType(
+                TypeExporter(config, typeParameterScope, null, superTypeApproximator).exportType(superTypeWithDynamicArguments),
+                ExportedType.LiteralType.StringLiteralType(notImplementablePropertyName),
+            )
+        }
+        .reduce(ExportedType::IntersectionType)
+        .butIf(typeItselfShouldNotBeImplemented) {
+            ExportedType.IntersectionType(
+                klass.generateNotImplementableBrandType(config),
+                it
+            )
+        }
+
+    add(
+        ExportedField(
+            name = ExportedMemberName.Identifier(notImplementablePropertyName),
+            type = intersectionOfTypes,
+            mutable = false,
+            isMember = true,
+        )
+    )
+}
+
+context(_: KaSession)
+private fun MutableList<ExportedDeclaration>.addNotImplementableProperty(klass: KaNamedClassSymbol, config: TypeScriptExportConfig) {
+    add(
+        ExportedField(
+            name = ExportedMemberName.Identifier(notImplementablePropertyName),
+            type = klass.generateNotImplementableBrandType(config),
+            mutable = false,
+            isMember = true,
+        )
+    )
+}
+
+context(_: KaSession)
+private fun KaNamedClassSymbol.generateNotImplementableBrandType(config: TypeScriptExportConfig): ExportedType {
+    return ExportedType.InlineInterfaceType(
+        listOf(
+            ExportedField(
+                name = ExportedMemberName.Identifier(getExportedFqName(shouldIncludePackage = true, config).asString()),
+                type = ExportedType.Primitive.UniqueSymbol,
+                mutable = false,
+                isMember = true,
+            )
+        )
+    )
+}
+
+/**
+ * With this method we're collecting all the super types that may contain either implementable or non-implementable properties
+ * - For interfaces we're looking only parents that contain not-implementable properties
+ * - For classes we're looking for both kinds of super-types
+ *
+ * We're collecting such information to copy those properties into the current declaration to generate a valid TypeScript definition
+ *
+ * As an example:
+ * ```kotlin
+ * @JsExport interface Foo
+ * @JsExport interface Bar
+ *
+ * class NotExportedParent : Foo, Bar
+ *
+ * @JsExport
+ * class ExportedChild : NotExportedParent
+ * ```
+ *
+ * For such a class we should do the following:
+ * 1. Implementable interfaces and no strict implicit export
+ * ```typescript
+ * declare interface Foo { readonly [Foo.Symbol]: true }
+ * declare namespace Foo { const Symbol: unique symbol; }
+ *
+ * declare interface Bar { readonly [Bar.Symbol]: true }
+ * declare namespace Bar { const Symbol: unique symbol; }
+ *
+ * declare  class ExportedChild implements Foo, Bar {
+ *   readonly [Foo.Symbol]: true;
+ *   readonly [Bar.Symbol]: true;
+ * }
+ * ```
+ * 2. Implementable interfaces and strict implicit export
+ * ```typescript
+ * declare interface Foo { readonly [Foo.Symbol]: true }
+ * declare namespace Foo { const Symbol: unique symbol; }
+ *
+ * declare interface Bar { readonly [Bar.Symbol]: true }
+ * declare namespace Bar { const Symbol: unique symbol; }
+ *
+ * declare interface NotExportedParent extends Foo, Bar {
+ *    readonly __doNotUseOrImplementIt: {
+ *      readonly "NotExportedParent": unique symbol;
+ *    };
+ * }
+ *
+ * declare class ExportedChild implements NotExportedParent {
+ *   readonly [Foo.Symbol]: true;
+ *   readonly [Bar.Symbol]: true;
+ *   readonly __doNotUseOrImplementIt: {
+ *      readonly "NotExportedParent": unique symbol;
+ *   };
+ * }
+ * ```
+ *
+ * 3. Not-implementable interfaces and no strict implicit export
+ * ```typescript
+ * declare interface Foo {
+ *    readonly __doNotUseOrImplementIt: {
+ *      readonly "Foo": unique symbol;
+ *    };
+ * }
+ *
+ * declare interface Bar {
+ *    readonly __doNotUseOrImplementIt: {
+ *      readonly "Bar": unique symbol;
+ *    };
+ * }
+ *
+ * declare class ExportedChild implements Foo, Bar {
+ *   readonly __doNotUseOrImplementIt: Foo["__doNotUseOrImplementIt"] & Bar["__doNotUseOrImplementIt"]
+ * }
+ * ```
+ *
+ * 3. Not-implementable interfaces and strict implicit export
+ * ```typescript
+ * declare interface Foo {
+ *    readonly __doNotUseOrImplementIt: {
+ *      readonly "Foo": unique symbol;
+ *    };
+ * }
+ *
+ * declare interface Bar {
+ *    readonly __doNotUseOrImplementIt: {
+ *      readonly "Bar": unique symbol;
+ *    };
+ * }
+ *
+ * declare interface NotExportedParent extends Foo, Bar {
+ *    readonly __doNotUseOrImplementIt: Foo["__doNotUseOrImplementIt"] & Bar["__doNotUseOrImplementIt"] & {
+ *      readonly "NotExportedParent": unique symbol;
+ *    };
+ * }
+ *
+ * declare class ExportedChild implements NotExportedParent {
+ *   readonly __doNotUseOrImplementIt: NotExportedParent["__doNotUseOrImplementIt"]
+ * }
+ * ```
+ *
+ * Because of such complications, I believe we should remove the strict-implicit export in future (since it's unstable and we don't have a plan to support it in future)
+ */
+// TODO: think about per class memoization
+context(_: KaSession)
+private fun KaNamedClassSymbol.collectAllImplementableAndNotImplementableInterfaces(
+    superTypes: Iterable<KaType>,
+    config: TypeScriptExportConfig,
+): Collection<Map.Entry<KaNamedClassSymbol, Boolean>> {
+    fun MutableList<KaNamedClassSymbol>.enqueueSuperTypes(superTypes: Iterable<KaType>) =
+        superTypes.mapNotNullTo(this) { superType ->
+            (superType.expandedSymbol as? KaNamedClassSymbol)?.takeIf { !it.isExternal }
+        }
+
+    // If we're processing an interface:
+    // - If it's not implementable, we just need to add its direct not-implementable super types to generate a correct type for __doNotUseOrImplementIt
+    // - If it's implementable, we don't need to generate anything, since it's already receiving all the properties through the inheritance
+    // If we're processing a class, we should collect:
+    // - All the implementable interfaces in the hierarchy to add the correct Symbol
+    // - All the nearest not-implementable interfaces to generate a correct type for __doNotUseOrImplementIt
+    val result = linkedMapOf<KaNamedClassSymbol, Boolean>()
+    val stack = mutableListOf<KaNamedClassSymbol>()
+    stack.enqueueSuperTypes(superTypes)
+
+    while (stack.isNotEmpty()) {
+        val processedClass = stack.removeLast().takeIf { it !in result } ?: continue
+
+        if (!processedClass.isEffectivelyExported(config, includingImplicitExport = true)) continue
+
+        if (processedClass.hasNonExportedAbstractMembers()) {
+            result[processedClass] = false
+            continue
+        }
+
+        val isSealed = processedClass.modality == KaSymbolModality.SEALED
+        if (processedClass.classKind == KaClassKind.INTERFACE && (!processedClass.isJsNoRuntime() || isSealed)) {
+            if (config.implementableInterfaces) {
+                if (classKind == KaClassKind.INTERFACE) continue
+                result[processedClass] = !isSealed
+            } else {
+                result[processedClass] = false
+            }
+        }
+
+        if (result.isNotEmpty()) {
+            stack.enqueueSuperTypes(processedClass.superTypes)
+        }
+    }
+
+    return result.entries
+}
+
+internal fun KaDeclarationSymbol.exportedVisibility(parent: KaDeclarationSymbol?): ExportedVisibility =
+    when (visibility) {
+        KaSymbolVisibility.PROTECTED if (parent?.modality == KaSymbolModality.SEALED || parent?.modality == KaSymbolModality.FINAL) ->
+            ExportedVisibility.PRIVATE
+        KaSymbolVisibility.PROTECTED -> ExportedVisibility.PROTECTED
+        else -> ExportedVisibility.DEFAULT
+    }
+
+@OptIn(KaExperimentalApi::class)
+context(_: KaSession)
+internal fun <T : ExportedDeclaration> T.withAttributes(source: KaDeclarationSymbol?, ignoreDoc: Boolean = false): T {
+    if (source == null) return this
+    if (this is ExportedConstructor && visibility == ExportedVisibility.PRIVATE) return this
+
+    source
+        .getSingleAnnotationArgumentString(StandardClassIds.Annotations.Deprecated)
+        ?.takeIf { source.deprecation?.level != KaDeprecationLevel.HIDDEN }
+        ?.let { attributes.add(ExportedAttribute.DeprecatedAttribute(it)) }
+
+    if (source.annotations.contains(JsExportDefault)) {
+        attributes.add(ExportedAttribute.DefaultExport)
+    }
+
+    if (!ignoreDoc) addDocumentationAttributes(source)
+
+    return this
+}
+
+
+/**
+ * We only process interfaces because it's impossible to cover the following case:
+ * an abstract class that extends another abstract class which contains an ignored abstract member
+ * but the current inheritor overrides them all and converts them into non-abstract members.
+ *
+ * Example code:
+ * ```kotlin
+ * @JsExport
+ * abstract class A {
+ *   @JsExport.Ignore
+ *   abstract fun a(): Int
+ * }
+ *
+ *
+ * @JsExport
+ * interface B {
+ *   @JsExport.Ignore
+ *   fun b(): Int
+ * }
+ *
+ * @JsExport
+ * abstract class ProblemOne : A(), B {
+ *    override fun a(): Int = 1
+ *    // Here we should generate our magic `__doNotUseItOrImplementIt` both as abstract and non-abstract member
+ *    // It's impossible to express in TypeScript
+ * }
+ * ```
+ */
+context(_: KaSession)
+internal fun KaNamedClassSymbol.hasNonExportedAbstractMembers(): Boolean =
+    classKind == KaClassKind.INTERFACE && declaredMemberScope.callables.any { !it.isOverride && it.isJsExportIgnore() }

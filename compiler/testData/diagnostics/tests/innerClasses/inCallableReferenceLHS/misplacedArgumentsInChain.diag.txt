@@ -1,0 +1,17 @@
+/misplacedArgumentsInChain.kt:15:5: warning: Expression is unused.
+
+/misplacedArgumentsInChain.kt:16:5: warning: Expression is unused.
+
+/misplacedArgumentsInChain.kt:16:16: error: One type argument expected for 'inner class Middle<B, Outer(A)> : Any'.
+
+/misplacedArgumentsInChain.kt:17:5: warning: Expression is unused.
+
+/misplacedArgumentsInChain.kt:17:5: error: One type argument expected for 'class Outer<A> : Any'.
+
+/misplacedArgumentsInChain.kt:18:5: warning: Expression is unused.
+
+/misplacedArgumentsInChain.kt:18:10: error: One type argument expected for 'class Outer<A> : Any'.
+
+/misplacedArgumentsInChain.kt:19:5: warning: Expression is unused.
+
+/misplacedArgumentsInChain.kt:19:5: error: One type argument expected for 'class Outer<A> : Any'.

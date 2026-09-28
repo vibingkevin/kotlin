@@ -1,0 +1,5 @@
+expression: 1.equals(1)
+constant: true
+constantValueKind: BooleanValue
+constantValueSource: DOT_QUALIFIED_EXPRESSION
+constantValueSourceText: 1.equals(1)

@@ -1,0 +1,690 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.fir.resolve.calls.stages
+
+import org.jetbrains.kotlin.KtSourceElement
+import org.jetbrains.kotlin.builtins.functions.FunctionTypeKind
+import org.jetbrains.kotlin.builtins.functions.isBasicFunctionOrKFunction
+import org.jetbrains.kotlin.config.AnalysisFlags
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.fir.*
+import org.jetbrains.kotlin.fir.declarations.FirAnonymousFunction
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
+import org.jetbrains.kotlin.fir.expressions.*
+import org.jetbrains.kotlin.fir.resolve.calls.*
+import org.jetbrains.kotlin.fir.resolve.calls.candidate.Candidate
+import org.jetbrains.kotlin.fir.resolve.calls.candidate.CheckerSink
+import org.jetbrains.kotlin.fir.resolve.calls.stages.ArgumentCheckingProcessor.argumentTypeWithCustomConversion
+import org.jetbrains.kotlin.fir.resolve.createFunctionType
+import org.jetbrains.kotlin.fir.resolve.inference.ConeTypeVariableForLambdaParameterType
+import org.jetbrains.kotlin.fir.resolve.inference.ConeTypeVariableForLambdaReturnType
+import org.jetbrains.kotlin.fir.resolve.inference.extractLambdaInfoFromFunctionType
+import org.jetbrains.kotlin.fir.resolve.inference.model.ConeArgumentConstraintPosition
+import org.jetbrains.kotlin.fir.resolve.inference.model.ConeExplicitTypeParameterConstraintPosition
+import org.jetbrains.kotlin.fir.resolve.inference.model.ConeReceiverConstraintPosition
+import org.jetbrains.kotlin.fir.resolve.inference.model.ConeRegularLambdaArgumentConstraintPosition
+import org.jetbrains.kotlin.fir.resolve.shouldBeResolvedInContextSensitiveMode
+import org.jetbrains.kotlin.fir.types.*
+import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.resolve.calls.inference.ConstraintSystemBuilder
+import org.jetbrains.kotlin.resolve.calls.inference.addSubtypeConstraintIfCompatible
+import org.jetbrains.kotlin.resolve.calls.inference.components.PostponedArgumentInputTypesResolver.Companion.TYPE_VARIABLE_NAME_FOR_LAMBDA_RETURN_TYPE
+import org.jetbrains.kotlin.resolve.calls.inference.components.PostponedArgumentInputTypesResolver.Companion.TYPE_VARIABLE_NAME_PREFIX_FOR_LAMBDA_PARAMETER_TYPE
+import org.jetbrains.kotlin.resolve.calls.inference.isSubtypeConstraintCompatible
+import org.jetbrains.kotlin.resolve.calls.inference.model.ArgumentConstraintPosition
+import org.jetbrains.kotlin.resolve.calls.inference.model.ConstraintKind
+import org.jetbrains.kotlin.resolve.calls.inference.model.ConstraintPosition
+import org.jetbrains.kotlin.resolve.calls.inference.model.SimpleConstraintSystemConstraintPosition
+import org.jetbrains.kotlin.types.AbstractTypeChecker
+import org.jetbrains.kotlin.types.model.fastCorrespondingSupertypes
+import org.jetbrains.kotlin.types.model.isUnit
+import org.jetbrains.kotlin.types.model.typeConstructor
+import org.jetbrains.kotlin.util.ArrayLiteralResolution
+import org.jetbrains.kotlin.utils.addToStdlib.applyIf
+import org.jetbrains.kotlin.utils.addToStdlib.runIf
+
+internal object ArgumentCheckingProcessor {
+    private data class ArgumentContext(
+        val csBuilder: ConstraintSystemBuilder,
+        /**
+         * [containingCallCandidate] is the immediate candidate that contains the atom being resolved.
+         * Note that relation `containingCallCandidate.csBuilder === csBuilder` is **not** guaranteed since during
+         * completion of postponed lambda / collection literal we use `csBuilder` of some arbitrary outer call.
+         */
+        val containingCallCandidate: Candidate,
+        val expectedType: ConeKotlinType?,
+        val sink: CheckerSink?,
+        val context: ResolutionContext,
+        val isReceiver: Boolean,
+        val isDispatch: Boolean,
+        /**
+         * See [org.jetbrains.kotlin.fir.resolve.calls.ArgumentTypeMismatch.anonymousFunctionIfReturnExpression]
+         */
+        val anonymousFunctionIfReturnExpression: FirAnonymousFunction? = null,
+    ) : SessionHolder {
+        override val session: FirSession
+            get() = context.session
+
+        fun reportDiagnostic(diagnostic: ResolutionDiagnostic) {
+            sink?.reportDiagnostic(diagnostic)
+        }
+    }
+
+    // -------------------------------------------- Public API --------------------------------------------
+
+    fun resolveArgumentExpression(
+        csBuilder: ConstraintSystemBuilder,
+        atom: ConeResolutionAtom,
+        containingCallCandidate: Candidate,
+        expectedType: ConeKotlinType?,
+        sink: CheckerSink,
+        context: ResolutionContext,
+        isReceiver: Boolean,
+        isDispatch: Boolean,
+        anonymousFunctionIfReturnExpression: FirAnonymousFunction? = null,
+    ) {
+        val argumentContext = ArgumentContext(
+            csBuilder, containingCallCandidate,
+            expectedType, sink, context, isReceiver, isDispatch,
+            anonymousFunctionIfReturnExpression,
+        )
+        argumentContext.resolveArgumentExpression(atom)
+    }
+
+    fun resolvePlainArgumentType(
+        csBuilder: ConstraintSystemBuilder,
+        atom: ConeResolutionAtom,
+        containingCallCandidate: Candidate,
+        argumentType: ConeKotlinType,
+        expectedType: ConeKotlinType?,
+        sink: CheckerSink,
+        context: ResolutionContext,
+        isReceiver: Boolean,
+        isDispatch: Boolean,
+        sourceForReceiver: KtSourceElement? = null,
+    ) {
+        val argumentContext = ArgumentContext(
+            csBuilder, containingCallCandidate,
+            expectedType, sink, context, isReceiver, isDispatch,
+        )
+        argumentContext.resolvePlainArgumentType(atom, argumentType, sourceForReceiver = sourceForReceiver)
+    }
+
+    fun createResolvedLambdaAtomDuringCompletion(
+        csBuilder: ConstraintSystemBuilder,
+        containingCallCandidate: Candidate,
+        atom: ConeResolutionAtomWithPostponedChild,
+        expectedType: ConeKotlinType?,
+        context: ResolutionContext,
+        returnTypeVariable: ConeTypeVariableForLambdaReturnType?,
+        anonymousFunctionIfReturnExpression: FirAnonymousFunction? = null,
+    ): ConeResolvedLambdaAtom {
+        val argumentContext = ArgumentContext(
+            csBuilder, containingCallCandidate, expectedType,
+            sink = null, context, isReceiver = false, isDispatch = false,
+            anonymousFunctionIfReturnExpression,
+        )
+        return argumentContext.createResolvedLambdaAtom(atom, duringCompletion = true, returnTypeVariable)
+    }
+
+    // -------------------------------------------- Real implementation --------------------------------------------
+
+    private fun ArgumentContext.resolveArgumentExpression(atom: ConeResolutionAtom) {
+        when (atom) {
+            is ConeResolutionAtomWithPostponedChild -> when (atom.expression) {
+                is FirAnonymousFunctionExpression -> preprocessLambdaArgument(atom)
+                is FirCallableReferenceAccess -> preprocessCallableReference(atom)
+                is FirPropertyAccessExpression ->
+                    when {
+                        atom.expression.explicitReceiver == null && atom.expression.shouldBeResolvedInContextSensitiveMode() ->
+                            preprocessSimpleNameReferenceForContextSensitiveResolution(atom, atom.expression)
+                        AnalysisFlags.ideMode.isSet() ->
+                            preprocessQualifierWithContextSensitiveAlternative(atom, atom.expression)
+                        else ->
+                            error("Unknown kind of atom with postponed child: ${atom.expression::class}")
+                    }
+                is FirResolvedQualifier if AnalysisFlags.ideMode.isSet() ->
+                    preprocessQualifierWithContextSensitiveAlternative(atom, atom.expression)
+                is FirCollectionLiteral -> preprocessCollectionLiteral(atom)
+                else -> error("Unknown kind of atom with postponed child: ${atom.expression::class}")
+            }
+
+            is ConeSimpleLeafResolutionAtom, is ConeAtomWithCandidate -> resolvePlainExpressionArgument(atom)
+
+            is ConePostponedResolvedAtom -> error("Unexpected type of atom: ${atom::class.java}")
+            is ConeResolutionAtomWithSingleChild -> {
+                when (atom.expression) {
+                    // x?.bar() is desugared to `x SAFE-CALL-OPERATOR { $not-null-receiver$.bar() }`
+                    //
+                    // If we have a safe-call as argument like in a call "foo(x SAFE-CALL-OPERATOR { $not-null-receiver$.bar() })"
+                    // we obtain argument type (and argument's constraint system) from "$not-null-receiver$.bar()" (argument.regularQualifiedAccess)
+                    // and then add constraint: typeOf(`$not-null-receiver$.bar()`).makeNullable() <: EXPECTED_TYPE
+                    // NB: argument.regularQualifiedAccess is either a call or a qualified access
+                    is FirSafeCallExpression -> when (val selectorAtom = atom.subAtom) {
+                        // Assignment
+                        null -> checkApplicabilityForArgumentType(
+                            atom,
+                            StandardClassIds.Unit.constructClassLikeType(),
+                            SimpleConstraintSystemConstraintPosition,
+                        )
+                        else -> resolvePlainExpressionArgument(
+                            selectorAtom,
+                            useNullableArgumentType = true
+                        )
+                    }
+                    is FirBlock -> when (val lastExpression = atom.subAtom) {
+                        null -> {
+                            val newContext = this.copy(isReceiver = false, isDispatch = false)
+                            newContext.checkApplicabilityForArgumentType(
+                                atom,
+                                atom.expression.resolvedType,
+                                SimpleConstraintSystemConstraintPosition,
+                            )
+                        }
+                        else -> resolveArgumentExpression(lastExpression)
+                    }
+                    else -> when (val subAtom = atom.subAtom) {
+                        null -> resolvePlainExpressionArgument(atom)
+                        else -> resolveArgumentExpression(subAtom)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun ArgumentContext.resolvePlainExpressionArgument(
+        atom: ConeResolutionAtom,
+        useNullableArgumentType: Boolean = false,
+    ) {
+        if (expectedType == null) return
+        val expression = atom.expression
+
+        val argumentType = expression.resolvedType
+        resolvePlainArgumentType(atom, argumentType, useNullableArgumentType)
+    }
+
+    private fun ArgumentContext.createArgumentConstraintPosition(atom: ConeResolutionAtom): ArgumentConstraintPosition<*> {
+        return when (val containingLambda = anonymousFunctionIfReturnExpression) {
+            null -> ConeArgumentConstraintPosition(atom.expression)
+            else -> ConeRegularLambdaArgumentConstraintPosition(containingLambda, atom.expression)
+        }
+    }
+
+    private fun ArgumentContext.resolvePlainArgumentType(
+        atom: ConeResolutionAtom,
+        argumentType: ConeKotlinType,
+        useNullableArgumentType: Boolean = false,
+        sourceForReceiver: KtSourceElement? = null,
+    ) {
+        val expression = atom.expression
+        val position = when {
+            isReceiver -> ConeReceiverConstraintPosition(expression, sourceForReceiver)
+            else -> createArgumentConstraintPosition(atom)
+        }
+
+        val capturedType = prepareCapturedType(argumentType, context.session)
+
+        var argumentTypeForApplicabilityCheck = capturedType.applyIf(useNullableArgumentType) {
+            withNullability(nullable = true, session.typeContext)
+        }
+
+        // If the argument is of functional type and the expected type is a suspend function type, we need to do "suspend conversion."
+        // Similarly, if the expected return type is Unit and the argument's return type is not, we need to do "unit conversion."
+
+        if (expectedType != null && shouldRunConversion()) {
+            var isFromSimpleToCustom = false
+            var isForUnitCoercion = false
+            var originalFunctionType: ConeClassLikeType? = null
+
+            argumentTypeWithCustomConversion(
+                expectedType = expectedType,
+                argumentType = argumentTypeForApplicabilityCheck,
+            )?.let { (val typeAfterConversion, val originalArgumentAsFunctionType = originalTypeAsFunctionType) ->
+                argumentTypeForApplicabilityCheck = typeAfterConversion
+                originalFunctionType = originalArgumentAsFunctionType
+                isFromSimpleToCustom = true
+            }
+
+            argumentTypeWithUnitConversion(
+                expectedType = expectedType,
+                argumentType = argumentTypeForApplicabilityCheck,
+            )?.let { (val typeAfterConversion, val originalArgumentAsFunctionType = originalTypeAsFunctionType) ->
+                argumentTypeForApplicabilityCheck = typeAfterConversion
+                if (originalFunctionType == null) {
+                    originalFunctionType = originalArgumentAsFunctionType
+                }
+                isForUnitCoercion = true
+            }
+
+            if (isFromSimpleToCustom || isForUnitCoercion) {
+                containingCallCandidate.addFunctionKindConversionOfArgument(
+                    expression,
+                    Candidate.FunctionConversionDescription(
+                        isFromSimpleToCustom,
+                        isForUnitCoercion,
+                        expectedType,
+                        originalFunctionType!!,
+                    ),
+                )
+            }
+        }
+
+        checkApplicabilityForArgumentType(atom, argumentTypeForApplicabilityCheck, position)
+    }
+
+    private fun ArgumentContext.shouldRunConversion(): Boolean {
+        // Currently, we only apply conversions for arguments, not lambda's return expressions
+        if (anonymousFunctionIfReturnExpression != null) {
+            // For latest LV it's equal to `return false`
+            return LanguageFeature.DoNotRunSuspendConversionForLambdaReturnStatements.isDisabled()
+        }
+        return !isReceiver
+    }
+
+    private fun ArgumentContext.checkApplicabilityForArgumentType(
+        atom: ConeResolutionAtom,
+        argumentTypeBeforeCapturing: ConeKotlinType,
+        position: ConstraintPosition,
+    ) {
+        if (expectedType == null) return
+
+        val argumentType = captureFromTypeParameterUpperBoundIfNeeded(argumentTypeBeforeCapturing, expectedType, session)
+
+        when {
+            isReceiver && isDispatch -> {
+                if (!expectedType.isMarkedOrFlexiblyNullable && argumentType.isMarkedNullable) {
+                    reportDiagnostic(InapplicableWrongReceiver(expectedType, argumentType))
+                }
+            }
+
+            isReceiver && expectedType is ConeDynamicType && argumentType !is ConeDynamicType -> {
+                reportDiagnostic(DynamicReceiverExpectedButWasNonDynamic(argumentType))
+            }
+
+            else -> {
+                if (csBuilder.addSubtypeConstraintIfCompatible(argumentType, expectedType, position)) return // no errors
+
+                val smartcastExpression = atom.expression as? FirSmartCastExpression
+                if (smartcastExpression != null && !smartcastExpression.isStable) {
+                    val unstableType = smartcastExpression.smartcastType.coneType
+                    if (csBuilder.addSubtypeConstraintIfCompatible(unstableType, expectedType, position)) {
+                        reportDiagnostic(
+                            UnstableSmartCast(
+                                smartcastExpression,
+                                expectedType,
+                                isCastToNotNull = session.typeContext.isTypeMismatchDueToNullability(argumentType, expectedType),
+                                isImplicitInvokeReceiver = false,
+                            )
+                        )
+                        return
+                    }
+                }
+
+                if (!isReceiver) {
+                    reportDiagnostic(subtypeError(atom.expression, argumentType))
+                    return
+                }
+
+                val nullableExpectedType = expectedType.withNullability(nullable = true, session.typeContext)
+
+                if (csBuilder.addSubtypeConstraintIfCompatible(argumentType, nullableExpectedType, position)) {
+                    reportDiagnostic(InapplicableNullableReceiver(argumentType))
+                } else {
+                    csBuilder.addSubtypeConstraint(argumentType, expectedType, position)
+                    reportDiagnostic(InapplicableWrongReceiver(expectedType, argumentType))
+                }
+            }
+        }
+    }
+
+    private fun ArgumentContext.subtypeError(
+        expression: FirExpression,
+        argumentType: ConeKotlinType,
+    ): ResolutionDiagnostic {
+        require(expectedType != null) { "Expected type mustn't be null" }
+
+        if (expression.isNullLiteral && !expectedType.isMarkedOrFlexiblyNullable) {
+            return NullForNotNullType(expression, expectedType)
+        }
+
+        if (argumentType is ConeErrorType || expectedType is ConeErrorType) return ErrorTypeInArguments
+
+        // The check must always succeed because we only have one implementation of ConstraintSystemBuilder
+        // But even if it does not, this code is diagnostics only
+        val [preparedExpectedType, preparedActualType] = context(context, csBuilder) {
+            prepareTypeForArgumentTypeMismatch(expectedType) to prepareTypeForArgumentTypeMismatch(argumentType)
+        }
+
+        return ArgumentTypeMismatch(
+            preparedExpectedType,
+            preparedActualType,
+            expression,
+            // Reaching here means argument types mismatch, and we want to record whether it's due to the nullability by checking a subtype
+            // relation with nullable expected type.
+            session.typeContext.isTypeMismatchDueToNullability(argumentType, expectedType),
+            anonymousFunctionIfReturnExpression,
+            csBuilder.hasContradiction,
+        )
+    }
+
+    private fun ArgumentContext.preprocessCallableReference(atom: ConeResolutionAtomWithPostponedChild) {
+        val expression = atom.callableReferenceExpression
+        val lhs = context.bodyResolveComponents.callableReferenceLhsResolver.resolveLhsAsType(expression)
+        val postponedAtom = ConeResolvedCallableReferenceAtom(
+            expression, expectedType, lhs, context.session,
+            containingCallCandidate, anonymousFunctionIfReturnExpression,
+        )
+        atom.setPostponedSubAtom(postponedAtom)
+        containingCallCandidate.addPostponedAtom(postponedAtom)
+    }
+
+    private fun ArgumentContext.preprocessSimpleNameReferenceForContextSensitiveResolution(
+        atom: ConeResolutionAtomWithPostponedChild,
+        expression: FirPropertyAccessExpression,
+    ) {
+        if (expectedType == null || !LanguageFeature.ContextSensitiveResolutionUsingExpectedType.isEnabled()) {
+            atom.useFallbackSubAtom()
+            resolveArgumentExpression(atom.subAtom!!)
+            return
+        }
+
+        val postponedAtom = ConeSimpleNameForContextSensitiveResolution(
+            expression, expectedType, containingCallCandidate, atom.fallbackSubAtom!!,
+        )
+
+        atom.setPostponedSubAtom(postponedAtom)
+        containingCallCandidate.addPostponedAtom(postponedAtom)
+    }
+
+    private fun ArgumentContext.preprocessQualifierWithContextSensitiveAlternative(
+        atom: ConeResolutionAtomWithPostponedChild,
+        expression: FirQualifierWithContextSensitiveAlternative,
+    ) {
+        @OptIn(FirIdeOnly::class)
+        val alternative = expression.contextSensitiveAlternative
+        // See org.jetbrains.kotlin.fir.resolve.calls.ConeResolutionAtom.Companion.createRawAtom
+        // [Sorry for the comment formatting (KTIJ-31545)]
+            ?: error("Should not create atom with postponed child for expression without CSR alternative ${expression.render()}")
+
+        if (expectedType == null) {
+            atom.useFallbackSubAtom()
+            resolveArgumentExpression(atom.subAtom!!)
+            return
+        }
+
+        @OptIn(FirIdeOnly::class)
+        val postponedAtom = ConeContextSensitiveAlternativeForQualifierAtom(
+            expression,
+            alternative,
+            expectedType,
+            containingCallCandidate,
+        )
+
+        // NB: We apply the original expression immediately just the same way we would do without the alternative
+        resolveArgumentExpression(atom.fallbackSubAtom!!)
+
+        atom.setPostponedSubAtom(postponedAtom)
+        containingCallCandidate.addPostponedAtom(postponedAtom)
+    }
+
+    private fun ArgumentContext.preprocessCollectionLiteral(atom: ConeResolutionAtomWithPostponedChild) {
+        val expression = atom.collectionLiteralExpression
+
+        if (useArrayLiteralResolution()) {
+            @OptIn(ArrayLiteralResolution::class)
+            atom.useFallbackForDisabledCollectionLiterals()
+            resolveArgumentExpression(atom.subAtom!!)
+            return
+        }
+
+        val postponedAtom = ConeCollectionLiteralAtom(expression, expectedType, containingCallCandidate)
+        atom.setPostponedSubAtom(postponedAtom)
+        containingCallCandidate.addPostponedAtom(postponedAtom)
+    }
+
+    private fun ArgumentContext.preprocessLambdaArgument(atom: ConeResolutionAtomWithPostponedChild) {
+        if (createLambdaWithTypeVariableAsExpectedTypeAtomIfNeeded(atom)) {
+            return
+        }
+        createResolvedLambdaAtom(atom, duringCompletion = false, returnTypeVariable = null)
+    }
+
+    /**
+     * @return true in case [ConeLambdaWithTypeVariableAsExpectedTypeAtom] was created and set as
+     * [ConeResolutionAtomWithPostponedChild.subAtom] of the [atom] and a postponed atom of the
+     * [ArgumentCheckingProcessor.ArgumentContext.containingCallCandidate].
+     * In case of false result, this function works as pure (it does not change inference state).
+     */
+    private fun ArgumentContext.createLambdaWithTypeVariableAsExpectedTypeAtomIfNeeded(
+        atom: ConeResolutionAtomWithPostponedChild,
+    ): Boolean {
+        if (expectedType == null || !csBuilder.isTypeVariable(expectedType)) return false
+        val expectedTypeVariableWithConstraints = csBuilder.currentStorage()
+            .notFixedTypeVariables[expectedType.typeConstructor(c = context.typeContext)]
+            ?: return false
+
+        val explicitTypeArgument = expectedTypeVariableWithConstraints.constraints.find {
+            it.kind == ConstraintKind.EQUALITY && it.position.from is ConeExplicitTypeParameterConstraintPosition
+        }?.type?.asCone()
+
+        if (explicitTypeArgument != null && explicitTypeArgument.typeArguments.isEmpty()) {
+            return false
+        }
+        ConeLambdaWithTypeVariableAsExpectedTypeAtom(
+            atom.lambdaExpression,
+            expectedType,
+            containingCallCandidate,
+            anonymousFunctionIfReturnExpression,
+        ).also {
+            containingCallCandidate.addPostponedAtom(it)
+            atom.setPostponedSubAtom(it)
+        }
+        return true
+    }
+
+    private fun ArgumentContext.createResolvedLambdaAtom(
+        atom: ConeResolutionAtomWithPostponedChild,
+        duringCompletion: Boolean,
+        returnTypeVariable: ConeTypeVariableForLambdaReturnType?,
+    ): ConeResolvedLambdaAtom {
+        val expression = atom.lambdaExpression
+        val anonymousFunction = expression.anonymousFunction
+
+        val resolvedArgument = extractLambdaInfoFromFunctionType(
+            expectedType,
+            expression,
+            anonymousFunction,
+            returnTypeVariable,
+            context.bodyResolveComponents,
+            allowCoercionToExtensionReceiver = duringCompletion,
+            containingCallCandidate,
+            sourceForFunctionExpression = expression.source,
+        ) ?: extractLambdaInfo(expression, sourceForFunctionExpression = expression.source)
+
+        atom.setPostponedSubAtom(resolvedArgument)
+        containingCallCandidate.addPostponedAtom(resolvedArgument)
+
+        if (expectedType != null) {
+            val parameters = resolvedArgument.parameterTypes
+            val functionTypeKind = context.session.functionTypeService.extractSingleSpecialKindForFunction(anonymousFunction.symbol)
+                ?: resolvedArgument.expectedFunctionTypeKind?.nonReflectKind()
+                ?: FunctionTypeKind.Function
+            val lambdaType = createFunctionType(
+                functionTypeKind,
+                parameters,
+                resolvedArgument.receiverType,
+                resolvedArgument.returnType,
+                contextParameters = resolvedArgument.contextParameterTypes,
+            )
+
+            val position = createArgumentConstraintPosition(resolvedArgument)
+            if (duringCompletion) {
+                csBuilder.addSubtypeConstraint(lambdaType, expectedType, position)
+            } else {
+                if (!csBuilder.addSubtypeConstraintIfCompatible(lambdaType, expectedType, position)) {
+                    reportDiagnostic(
+                        ArgumentTypeMismatch(
+                            expectedType, lambdaType, expression,
+                            context.session.typeContext.isTypeMismatchDueToNullability(lambdaType, expectedType),
+                            anonymousFunctionIfReturnExpression
+                        )
+                    )
+                }
+            }
+        }
+
+        return resolvedArgument
+    }
+
+    private fun ArgumentContext.extractLambdaInfo(
+        argument: FirAnonymousFunctionExpression,
+        sourceForFunctionExpression: KtSourceElement?,
+    ): ConeResolvedLambdaAtom {
+        require(expectedType?.lowerBoundIfFlexible()?.functionTypeKind(session) == null) {
+            "Currently, we only extract lambda info from its shape when expected type is not function, but $expectedType"
+        }
+        val lambda = argument.anonymousFunction
+        val typeVariable = ConeTypeVariableForLambdaReturnType(lambda, TYPE_VARIABLE_NAME_FOR_LAMBDA_RETURN_TYPE)
+
+        val receiverType = lambda.receiverType
+        val returnType = lambda.returnType ?: typeVariable.defaultType
+
+        val defaultType = runIf(containingCallCandidate.symbol.origin == FirDeclarationOrigin.DynamicScope) {
+            ConeDynamicType.create(session)
+        }
+
+        val parameters = lambda.valueParameters.mapIndexed { i, it ->
+            it.returnTypeRef.coneTypeSafe<ConeKotlinType>()
+                ?: defaultType
+                ?: ConeTypeVariableForLambdaParameterType(TYPE_VARIABLE_NAME_PREFIX_FOR_LAMBDA_PARAMETER_TYPE + i).apply {
+                    csBuilder.registerVariable(this)
+                }.defaultType
+        }
+
+        val contextParameters = lambda.contextParameters.mapIndexed { i, it ->
+            it.returnTypeRef.coneTypeSafe<ConeKotlinType>()
+                ?: defaultType
+                ?: ConeTypeVariableForLambdaParameterType("_C$i").apply { csBuilder.registerVariable(this) }.defaultType
+        }
+
+        val newTypeVariableUsed = returnType == typeVariable.defaultType
+        if (newTypeVariableUsed) {
+            csBuilder.registerVariable(typeVariable)
+        }
+
+        return ConeResolvedLambdaAtom(
+            argument,
+            expectedType,
+            expectedFunctionTypeKind = lambda.typeRef.coneTypeSafe<ConeKotlinType>()?.lowerBoundIfFlexible()?.functionTypeKind(session),
+            receiverType,
+            contextParameters,
+            parameters,
+            returnType,
+            typeVariable.takeIf { newTypeVariableUsed },
+            coerceFirstParameterToExtensionReceiver = false,
+            containingCallCandidate,
+            sourceForFunctionExpression,
+        )
+    }
+
+    private data class ConversionData(
+        val typeAfterConversion: ConeClassLikeType,
+        val originalTypeAsFunctionType: ConeClassLikeType,
+    )
+
+    context(c: ArgumentContext)
+    private fun argumentTypeWithCustomConversion(
+        expectedType: ConeKotlinType,
+        argumentType: ConeKotlinType,
+    ): ConversionData? {
+        // Expect the expected type to be a not regular functional type (e.g. suspend or custom)
+        val expectedTypeKind = expectedType.functionTypeKind(c.session) ?: return null
+        if (expectedTypeKind.isBasicFunctionOrKFunction) return null
+
+        // We want to check the argument type against non-suspend functional type.
+        val expectedFunctionType =
+            if (expectedTypeKind.supportsConversionFromSimpleFunctionType) {
+                expectedType.customFunctionTypeToSimpleFunctionType(c.session)
+            } else {
+                return null
+            }
+
+        val argumentTypeWithInvoke = argumentType.findSubtypeOfBasicFunctionType(c.session, expectedFunctionType) ?: return null
+        val functionType = context(c.session.typeContext) {
+            argumentTypeWithInvoke.unwrapLowerBound()
+                .fastCorrespondingSupertypes(expectedFunctionType.typeConstructor())
+                ?.firstOrNull() as? ConeClassLikeType ?: return null
+        }.withNullability(expectedFunctionType.isMarkedNullable, c.session.typeContext)
+
+        val typeArguments =
+            functionType.typeArguments.map { it.type ?: c.session.builtinTypes.nullableAnyType.coneType }
+                .ifEmpty { return null }
+        return ConversionData(
+            typeAfterConversion = createFunctionType(
+                kind = expectedTypeKind,
+                parameters = typeArguments.subList(0, typeArguments.lastIndex),
+                receiverType = null,
+                rawReturnType = typeArguments.last(),
+            ),
+            functionType,
+        )
+    }
+
+    /**
+     * If the expected type is a functional type with Unit return, and the argument type is a functional type (or subtype)
+     * with a non-Unit return, returns a converted argument type with the return type changed to Unit.
+     *
+     * This works in combination with [argumentTypeWithCustomConversion]: the kind conversion (e.g., suspend) is applied first,
+     * then unit conversion may further adapt the return type. The [argumentType] may already be kind-converted
+     * (e.g., to a suspend function type).
+     */
+    context(c: ArgumentContext)
+    private fun argumentTypeWithUnitConversion(
+        expectedType: ConeKotlinType,
+        argumentType: ConeKotlinType,
+    ): ConversionData? = context(c.session.typeContext) {
+        if (LanguageFeature.UnitConversionsOnArbitraryExpressions.isDisabled()) return null
+
+        // The expected type must be a function type
+        val expectedTypeKind = expectedType.functionTypeKind(c.session) ?: return null
+        val expectedClassLikeType = expectedType.lowerBoundIfFlexible() as? ConeClassLikeType ?: return null
+
+        // Already compatible
+        if (c.csBuilder.isSubtypeConstraintCompatible(argumentType, expectedType)) return null
+
+        // The expected return type must be Unit
+        val expectedReturnType = expectedClassLikeType.returnType(c.session)
+        if (!expectedReturnType.isUnitOrFlexibleUnit) return null
+
+        val argumentAsFunctionType = AbstractTypeChecker.findCorrespondingSupertypes(
+            c.session.typeContext.newTypeCheckerState(errorTypesEqualToAnything = false, stubTypesEqualToAnything = false),
+            argumentType.unwrapLowerBound(), expectedClassLikeType.typeConstructor(c = c.session.typeContext)
+        ).singleOrNull() as? ConeClassLikeType ?: return null
+
+        check(argumentAsFunctionType.functionTypeKind(c.session) == expectedTypeKind)
+
+        // It's already Unit-type
+        if (argumentAsFunctionType.returnType(c.session).isUnit()) return null
+
+        val actualTypeArguments = argumentAsFunctionType.typeArguments.toList()
+        return ConversionData(
+            typeAfterConversion =
+                argumentAsFunctionType.withArguments(
+                    (actualTypeArguments.subList(0, actualTypeArguments.lastIndex) + expectedReturnType).toTypedArray()
+                ),
+            argumentAsFunctionType,
+        )
+    }
+
+    private val ConeResolutionAtomWithPostponedChild.lambdaExpression: FirAnonymousFunctionExpression
+        get() = expression as? FirAnonymousFunctionExpression ?: error("Expected anonymous function expression")
+
+    private val ConeResolutionAtomWithPostponedChild.callableReferenceExpression: FirCallableReferenceAccess
+        get() = expression as? FirCallableReferenceAccess ?: error("Expected callable reference")
+
+    private val ConeResolutionAtomWithPostponedChild.collectionLiteralExpression: FirCollectionLiteral
+        get() = expression as? FirCollectionLiteral ?: error("Expected collection literal expression")
+}

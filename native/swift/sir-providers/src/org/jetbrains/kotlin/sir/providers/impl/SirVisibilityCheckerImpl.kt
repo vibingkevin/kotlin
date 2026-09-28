@@ -1,0 +1,339 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.sir.providers.impl
+
+import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.export.utilities.isAllSuperTypesExported
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
+import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.analysis.api.symbols.markers.KaAnnotatedSymbol
+import org.jetbrains.kotlin.analysis.api.types.*
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.sir.SirAvailability
+import org.jetbrains.kotlin.sir.SirVisibility
+import org.jetbrains.kotlin.sir.providers.SirSession
+import org.jetbrains.kotlin.sir.providers.SirVisibilityChecker
+import org.jetbrains.kotlin.sir.providers.sirModule
+import org.jetbrains.kotlin.sir.providers.utils.UnsupportedDeclarationReporter
+import org.jetbrains.kotlin.sir.providers.utils.deprecatedAnnotation
+import org.jetbrains.kotlin.sir.providers.utils.hasNonPublicOptIns
+import org.jetbrains.kotlin.sir.providers.utils.isAbstract
+import org.jetbrains.kotlin.sir.providers.utils.isFromTemporarilyIgnoredPackage
+import org.jetbrains.kotlin.sir.providers.utils.resolveUpperBound
+import org.jetbrains.kotlin.sir.providers.withSessions
+import org.jetbrains.kotlin.sir.util.SirPlatformModule
+import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.utils.addIfNotNull
+import org.jetbrains.kotlin.utils.findIsInstanceAnd
+import org.jetbrains.kotlin.utils.zipIfSizesAreEqual
+
+public class SirVisibilityCheckerImpl(
+    private val sirSession: SirSession,
+    private val unsupportedDeclarationReporter: UnsupportedDeclarationReporter,
+    private val enableCoroutinesSupport: Boolean,
+    private val hiddenModules: List<KaModule>
+) : SirVisibilityChecker {
+    override fun KaDeclarationSymbol.sirAvailability(): SirAvailability = sirSession.withSessions {
+        val ktSymbol = this@sirAvailability
+
+        if (ktSymbol is KaClassSymbol && ktSymbol.classId?.let { sirSession.isClassIdSupported(it) } == true) {
+            return@withSessions SirAvailability.Available(SirVisibility.PUBLIC)
+        }
+
+        val visibility = object {
+            var value: SirVisibility = SirVisibility.entries.last()
+                set(newValue) {
+                    field = minOf(field, newValue)
+                }
+        }
+
+        if (hiddenModules.contains(ktSymbol.containingModule)) {
+            return@withSessions SirAvailability.Hidden("Declaration comes from a module excluded from Swift Export")
+        }
+
+        val containingModule = ktSymbol.containingModule.sirModule()
+        if (containingModule is SirPlatformModule) {
+            // The majority of platform libraries can be mapped onto Xcode SDK modules. However, there are exceptions to this rule.
+            // This means that `import $platformLibraryName` would be invalid in Swift. For the sake of simplicity, we skip such declarations.
+            if (setOf("posix", "darwin", "zlib", "objc", "builtin", "CFCGTypes").contains(containingModule.name)) {
+                return@withSessions SirAvailability.Unavailable("Types from certain platform libraries are hidden")
+            } else {
+                if (ktSymbol is KaTypeAliasSymbol)
+                    return@withSessions SirAvailability.Hidden("Typealiases from platform libs are sometimes point to custom-exported objc types which we can not detect")
+                else
+                    visibility.value = SirVisibility.PUBLIC
+            }
+        }
+        // We care only about public API.
+        if (!ktSymbol.visibility.isExposedToSwift) {
+            visibility.value = SirVisibility.PRIVATE
+        }
+        // Hidden declarations are, well, hidden.
+        val deprecatedAnnotation = ktSymbol.deprecatedAnnotation
+        if (deprecatedAnnotation?.level == DeprecationLevel.HIDDEN) {
+            visibility.value = SirVisibility.PRIVATE
+        }
+        if (deprecatedAnnotation?.level == DeprecationLevel.ERROR && (ktSymbol.containingDeclaration as? KaNamedClassSymbol)?.classKind == KaClassKind.INTERFACE) {
+            return@withSessions SirAvailability.Unavailable("Protocol members with DeprecationLevel.ERROR are unsupported")
+        }
+        if (ktSymbol is KaCallableSymbol && hasUnsupportedInputTypeParameters(ktSymbol)) {
+            return@withSessions SirAvailability.Unavailable("Callables with parameters unbound generic types are not supported yet")
+        }
+        if (ktSymbol is KaCallableSymbol && ktSymbol.typeParameters.hasUnsupportedFBoundedTypeParameters()) {
+            return@withSessions SirAvailability.Unavailable("Callables with F-bounded generics are not supported yet")
+        }
+        if (containsHidesFromObjCAnnotation(ktSymbol)) {
+            return@withSessions SirAvailability.Unavailable("Declaration is @HiddenFromObjC")
+        }
+        if ((ktSymbol.containingSymbol as? KaDeclarationSymbol?)?.sirAvailability() is SirAvailability.Unavailable) {
+            return@withSessions SirAvailability.Unavailable("Declaration's lexical parent is unavailable")
+        }
+        if (ktSymbol.hasNonPublicOptIns) {
+            return@withSessions SirAvailability.Unavailable("Declarations with non-public OptIn requirements are unsupported")
+        }
+        visibility.value = when (ktSymbol) {
+            is KaNamedClassSymbol -> {
+                val exported = ktSymbol.isExported()
+                if (exported is SirAvailability.Available) {
+                    exported.visibility
+                } else return@withSessions exported
+            }
+            is KaConstructorSymbol -> {
+                SirVisibility.PUBLIC
+            }
+            is KaNamedFunctionSymbol -> {
+                if (!ktSymbol.isExported()) {
+                    return@withSessions SirAvailability.Hidden("Function declaration kind isn't supported yet")
+                } else {
+                    SirVisibility.PUBLIC
+                }
+            }
+            is KaVariableSymbol -> {
+                val exported = ktSymbol.isExported()
+                if (exported is SirAvailability.Available) {
+                    exported.visibility
+                } else return@withSessions exported
+            }
+            is KaPropertySetterSymbol -> SirVisibility.PUBLIC
+            is KaTypeAliasSymbol -> ktSymbol.expandedType.fullyExpandedType.let { type ->
+                if (type is KaFunctionType) {
+                    val types = buildList {
+                        addAll(type.contextParameterTypes)
+                        addIfNotNull(type.receiverType)
+                        addAll(type.parameterTypes)
+                        add(type.returnType)
+                    }
+                    var visibility = SirVisibility.PUBLIC
+                    for (type in types) {
+                        when (val availability = type.availability()) {
+                            is SirAvailability.Available -> visibility = minOf(visibility, availability.visibility)
+                            is SirAvailability.Hidden -> return@withSessions SirAvailability.Hidden("Type in functional typealias is hidden")
+                            is SirAvailability.Unavailable -> return@withSessions SirAvailability.Unavailable("Type in functional typealias is unavailable")
+                        }
+                    }
+                    visibility
+                } else if (type.classId in KaStandardTypeClassIds.PRIMITIVES || type.classId == KaStandardTypeClassIds.NOTHING) {
+                    SirVisibility.PUBLIC
+                } else when (val availability = type.availability()) {
+                    is SirAvailability.Available -> availability.visibility
+                    is SirAvailability.Hidden -> return@withSessions SirAvailability.Hidden("Typealias target is hidden")
+                    is SirAvailability.Unavailable -> return@withSessions SirAvailability.Unavailable("Typealias target is unavailable")
+                }
+            }
+            else -> return@withSessions SirAvailability.Unavailable("Declaration kind isn't supported yet")
+        }
+
+        return@withSessions SirAvailability.Available(visibility.value)
+    }
+
+    private fun KaNamedFunctionSymbol.isExported(): Boolean = sirSession.withSessions {
+        // TODO(KT-87720): Support companion blocks and extensions.
+        @OptIn(KaExperimentalApi::class)
+        if (isCompanion && !isValueOfOnEnum(this@isExported)) {
+            unsupportedDeclarationReporter.report(this@isExported, "companion blocks and extensions are not supported yet.")
+            return@withSessions false
+        }
+        if (origin !in SUPPORTED_SYMBOL_ORIGINS) {
+            unsupportedDeclarationReporter.report(this@isExported, "${origin.name.lowercase()} origin is not supported yet.")
+            return@withSessions false
+        }
+        if (isSuspend && !enableCoroutinesSupport) {
+            unsupportedDeclarationReporter.report(this@isExported, "suspend functions are not supported yet.")
+            return@withSessions false
+        }
+        if (isInline && typeParameters.any { it.isReified }) {
+            unsupportedDeclarationReporter.report(this@isExported, "inline functions with reified type parameters are not supported yet.")
+            return@withSessions false
+        }
+        return@withSessions true
+    }
+
+    private fun KaNamedClassSymbol.isExported(): SirAvailability = sirSession.withSessions {
+
+        if (hasHiddenAncestors()) {
+            return@withSessions SirAvailability.Unavailable("Has hidden ancestors")
+        }
+
+        if (!isAllContainingSymbolsExported()) {
+            return@withSessions SirAvailability.Hidden("Some containing symbol is hidden")
+        }
+
+        if (isFromTemporarilyIgnoredPackage()) {
+            return@withSessions SirAvailability.Unavailable("From ignored package")
+        }
+
+        if (typeParameters.any { it.upperBounds.size > 1 }) {
+            return@withSessions SirAvailability.Unavailable("Classes with multiple generic upper bounds are not supported yet")
+        }
+
+        // Any is exported as a KotlinBase class.
+        if (classId == KaStandardTypeClassIds.ANY) {
+            return@withSessions SirAvailability.Unavailable("ClassId = Any")
+        }
+        if (classKind == KaClassKind.ANNOTATION_CLASS || classKind == KaClassKind.ANONYMOUS_OBJECT) {
+            return@withSessions SirAvailability.Unavailable("Annotation or Anonymous")
+        }
+        if (classKind == KaClassKind.ENUM_CLASS) {
+            if (superTypes.any { it.symbol?.classId?.asSingleFqName() == FqName("kotlinx.cinterop.CEnum") }) {
+                unsupportedDeclarationReporter.report(this@isExported, "C enums are not supported yet.")
+                return@withSessions SirAvailability.Unavailable("C enums")
+            }
+            return@withSessions SirAvailability.Available(SirVisibility.PUBLIC)
+        }
+
+        if (!(isAllSuperTypesExported { this.isExported() is SirAvailability.Available })) {
+            return@withSessions SirAvailability.Hidden("Some super type isn't available")
+        }
+
+        return@withSessions SirAvailability.Available(SirVisibility.PUBLIC)
+    }
+
+    private fun KaVariableSymbol.isExported(): SirAvailability = sirSession.withSessions {
+        if (hasHiddenGetter) {
+            return@withSessions SirAvailability.Hidden("Property declaration has hidden accessors")
+        }
+        // TODO(KT-87720): Support companion blocks and extensions.
+        @OptIn(KaExperimentalApi::class)
+        if (isCompanion && this !is KaEnumEntrySymbol) {
+            return@withSessions SirAvailability.Hidden("companion blocks and extensions are not supported yet.")
+        }
+        return@withSessions SirAvailability.Available(SirVisibility.PUBLIC)
+    }
+
+    private fun KaType.availability(): SirAvailability = sirSession.withSessions {
+        (expandedSymbol as? KaDeclarationSymbol)?.sirAvailability()
+            ?: SirAvailability.Unavailable("Type is not a declaration")
+    }
+
+    private val KaVariableSymbol.hasHiddenGetter
+        get() = (this as? KaPropertySymbol)?.getter?.deprecatedAnnotation?.level == DeprecationLevel.HIDDEN
+
+    private fun KaClassSymbol.hasHiddenAncestors(): Boolean = sirSession.withSessions {
+        generateSequence(this@hasHiddenAncestors) { symbol ->
+            symbol.superTypes.map { it.symbol }.findIsInstanceAnd<KaClassSymbol> { it.classKind != KaClassKind.INTERFACE }
+        }.drop(1).any { symbol ->
+            symbol.deprecatedAnnotation?.level.let { it == DeprecationLevel.HIDDEN }
+        }
+    }
+
+    context(ka: KaSession)
+    private fun isValueOfOnEnum(function: KaNamedFunctionSymbol): Boolean {
+        with(function) {
+            val parent = containingSymbol as? KaClassSymbol ?: return false
+            return isStatic && name == StandardNames.ENUM_VALUE_OF && parent.classKind == KaClassKind.ENUM_CLASS
+        }
+    }
+
+    private fun KaNamedClassSymbol.isAllContainingSymbolsExported(): Boolean = sirSession.withSessions {
+        if (containingSymbol !is KaNamedClassSymbol) return@withSessions true
+        return@withSessions (containingSymbol as? KaNamedClassSymbol)?.isExported() is SirAvailability.Available
+    }
+}
+
+private val KaSymbolVisibility.isExposedToSwift: Boolean
+    get() = when (this) {
+        KaSymbolVisibility.PUBLIC, KaSymbolVisibility.PACKAGE_PROTECTED -> true
+        else -> false
+    }
+
+context(ka: KaSession)
+private fun containsHidesFromObjCAnnotation(symbol: KaAnnotatedSymbol): Boolean {
+    return symbol.annotations.any { annotation ->
+        val annotationClassId = annotation.classId ?: return@any false
+        val annotationClassSymbol = findClass(annotationClassId) ?: return@any false
+        ClassId.topLevel(FqName("kotlin.native.HidesFromObjC")) in annotationClassSymbol.annotations
+    }
+}
+
+
+private val SUPPORTED_SYMBOL_ORIGINS = setOf(KaSymbolOrigin.SOURCE, KaSymbolOrigin.LIBRARY)
+
+context(ka: KaSession, sirSession: SirSession)
+private fun hasUnsupportedInputTypeParameters(ktSymbol: KaCallableSymbol): Boolean =
+    ktSymbol.allParameters.map { it.returnType }.any {
+        hasUnboundInputTypeParameters(it, false)
+    } || hasUnboundInputTypeParameters(ktSymbol.returnType, true)
+
+context(ka: KaSession, sirSession: SirSession)
+private fun hasUnboundInputTypeParameters(
+    type: KaType,
+    isReturnType: Boolean
+): Boolean = (type.resolveUpperBound()?.fullyExpandedType as? KaClassType)?.let { classType ->
+    if (sirSession.isTypeSupported(classType)) return@let false
+    if (classType.classId in SirTypeProviderImpl.FLOW_CLASS_IDS) return@let false
+    if (classType is KaFunctionType) {
+        return@let buildList {
+            addAll(classType.contextParameterTypes)
+            classType.receiverType?.let(::add)
+            addAll(classType.parameterTypes)
+        }.any {
+            hasUnboundInputTypeParameters(it, false)
+        } || hasUnboundInputTypeParameters(classType.returnType, isReturnType)
+    } else if (isReturnType) {
+        return@let false
+    }
+    val typeParameters = classType.symbol.typeParameters
+    if (typeParameters.isEmpty()) return@let false
+    typeParameters.zipIfSizesAreEqual(classType.typeArguments)?.any { [param, arg] ->
+        if (param.variance == Variance.IN_VARIANCE) return@any false
+        val upperBound = param.resolveUpperBound() ?: ka.builtinTypes.nullableAny
+        val type = arg.type?.let { it.resolveUpperBound() ?: ka.builtinTypes.nullableAny }
+        type?.let { it != upperBound } ?: false // .type == null indicates star projection
+    } ?: false
+} ?: false
+
+private val KaCallableSymbol.allParameters: List<KaParameterSymbol>
+    get() = buildList {
+        addAll(contextParameters)
+        addIfNotNull(receiverParameter)
+        if (this@allParameters is KaFunctionSymbol) {
+            addAll(valueParameters)
+        }
+    }
+
+context(ka: KaSession)
+private fun isClone(symbol: KaNamedFunctionSymbol): Boolean = with(ka) { isClone(symbol) }
+
+private fun List<KaTypeParameterSymbol>.hasUnsupportedFBoundedTypeParameters(): Boolean = any {
+    it.resolveUpperBound().isUnsupportedFBoundedTypeParameter(it)
+}
+
+private fun KaType?.isUnsupportedFBoundedTypeParameter(typeParameterSymbol: KaTypeParameterSymbol): Boolean {
+    return when (this) {
+        null -> false
+        is KaTypeParameterType -> symbol == typeParameterSymbol
+        is KaClassType -> symbol.typeParameters.zip(typeArguments).any { [param, arg] ->
+            if (!arg.type.isUnsupportedFBoundedTypeParameter(typeParameterSymbol)) return@any false
+            // Fallback to the upper bound if this is an in variance parameter
+            if (param.variance != Variance.IN_VARIANCE) return@any true
+            param.resolveUpperBound().isUnsupportedFBoundedTypeParameter(typeParameterSymbol)
+        }
+        else -> false
+    }
+}

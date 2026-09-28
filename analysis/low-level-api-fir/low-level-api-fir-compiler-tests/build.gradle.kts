@@ -1,0 +1,94 @@
+import org.jetbrains.kotlin.testFederation.SmokeTestConfig
+import org.jetbrains.kotlin.testFederation.smokeTestConfig
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+    id("java-test-fixtures")
+    id("test-inputs-check")
+    id("test-data-manager")
+}
+
+dependencies {
+    testFixturesApi(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+
+    testFixturesApi(intellijCore())
+    testFixturesApi(project(":compiler:fir:resolve"))
+    testFixturesApi(testFixtures(project(":compiler:tests-common")))
+    testFixturesApi(testFixtures(project(":compiler:test-infrastructure")))
+    testFixturesApi(testFixtures(project(":analysis:analysis-test-framework")))
+    testFixturesApi(testFixtures(project(":analysis:low-level-api-fir")))
+    testFixturesImplementation(testFixtures(project(":js:js.tests")))
+    testFixturesImplementation(testFixtures(project(":compiler:tests-spec")))
+}
+
+sourceSets {
+    "main" { none() }
+    "test" { generatedTestDir() }
+    "testFixtures" { projectDefault() }
+}
+
+kotlin {
+    compilerOptions {
+        optIn.addAll(
+            "org.jetbrains.kotlin.fir.symbols.SymbolInternals",
+            "org.jetbrains.kotlin.fir.declarations.DirectDeclarationsAccess",
+            "org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirInternals",
+            "org.jetbrains.kotlin.analysis.api.KaImplementationDetail",
+            "org.jetbrains.kotlin.analysis.api.KaExperimentalApi",
+            "org.jetbrains.kotlin.analysis.api.KaContextParameterApi",
+            "org.jetbrains.kotlin.analysis.api.KaPlatformInterface",
+            "org.jetbrains.kotlin.analysis.api.KaSpiExtensionPoint",
+        )
+    }
+}
+
+projectTests {
+    testTask(
+        javaLauncher = JdkMajorVersion.JDK_1_8,
+        maxHeapSize = testMaxHeapSizeLarge,
+        // Use Parallel GC because this test runs on JDK 8.
+        garbageCollector = GarbageCollector.Parallel,
+        defineJDKEnvVariables = listOf(
+            JdkMajorVersion.JDK_11_0, // TestsWithJava11 and others
+            JdkMajorVersion.JDK_17_0, // TestsWithJava17 and others
+            JdkMajorVersion.JDK_21_0, // TestsWithJava21 and others
+            JdkMajorVersion.JDK_25_0, // TestsWithJava25 and others
+        )
+    ) {
+        smokeTestConfig = SmokeTestConfig.Enabled(autoSmokeTestPercentage = 1)
+    }
+
+    testGenerator("org.jetbrains.kotlin.analysis.low.level.api.fir.compiler.based.TestGeneratorKt", generateTestsInBuildDirectory = true)
+
+    testData(project(":compiler").isolated, "testData/diagnostics")
+    testData(project(":compiler").isolated, "testData/codegen")
+    testData(project(":compiler:tests-spec").isolated, "testData/diagnostics")
+    testData(project(":compiler:fir:raw-fir:psi2fir").isolated, "testData/rawBuilder")
+    testData(project(":compiler:fir:raw-fir:psi2fir").isolated, "testData/rawBuilder")
+    testData(project(":js:js.translator").isolated, "testData/_commonFiles")
+    testData(project(":plugins:scripting:scripting-tests").isolated, "testData/diagnostics")
+    testData(project(":plugins:scripting:scripting-tests").isolated, "testData/codegen")
+    testData(project(":plugins:plugin-sandbox").isolated, "testData/diagnostics")
+    testData(project(":plugins:plugin-sandbox").isolated, "testData/box")
+
+    withJvmStdlibAndReflect()
+    withStdlibCommon()
+    withStdlibWeb()
+    withJsRuntime()
+    withWasmRuntime()
+    withAnnotations()
+    withThirdPartyJava8Annotations()
+    withThirdPartyJsr305()
+    withTestJar()
+    withMockJdkRuntime()
+    withMockJDKModifiedRuntime()
+    withMockJdkAnnotationsJar()
+    withScriptRuntime()
+    withScriptingPlugin()
+    withTestScriptDefinition()
+    withPluginSandboxAnnotations()
+    withPluginSandboxJar()
+}

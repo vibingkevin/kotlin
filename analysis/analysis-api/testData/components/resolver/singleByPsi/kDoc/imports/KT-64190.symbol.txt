@@ -1,0 +1,5 @@
+KDocName(14,18): 'List'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/collections/List
+    ]

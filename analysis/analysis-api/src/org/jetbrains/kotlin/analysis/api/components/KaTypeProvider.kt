@@ -1,0 +1,1069 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.analysis.api.components
+
+import org.jetbrains.kotlin.analysis.api.*
+import org.jetbrains.kotlin.analysis.api.lifetime.withValidityAssertion
+import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassifierSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.types.KaFlexibleType
+import org.jetbrains.kotlin.analysis.api.types.KaStarTypeProjection
+import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
+import org.jetbrains.kotlin.psi.KtDoubleColonExpression
+import org.jetbrains.kotlin.psi.KtElement
+import org.jetbrains.kotlin.psi.KtTypeReference
+
+@KaSessionComponentImplementationDetail
+@SubclassOptInRequired(KaSessionComponentImplementationDetail::class)
+public interface KaTypeProvider : KaSessionComponent {
+    /**
+     * [KaType] instances for built-in types.
+     */
+    public val builtinTypes: KaBuiltinTypes
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype.
+     *
+     * The function returns `null` if the type is already denotable and does not need approximation. Otherwise, for a type `T`, returns a
+     * denotable type `S` such that `T <: S`, with all type arguments of `S` also being denotable.
+     *
+     * @param approximateLocalTypes Whether locally declared types should be approximated to non-local supertypes. Avoiding local type
+     *  approximation is sensible when the resulting [KaType] is analyzed in the same local context.
+     */
+    @KaExperimentalApi
+    @Deprecated(
+        "Use `approximateToDenotableSupertype` instead",
+        ReplaceWith("this.approximateToDenotableSupertype(!approximateLocalTypes)")
+    )
+    public fun KaType.approximateToSuperPublicDenotable(approximateLocalTypes: Boolean): KaType?
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype, or returns the given type itself if it is
+     * already denotable.
+     *
+     * @see approximateToSuperPublicDenotable
+     */
+    @KaExperimentalApi
+    @Deprecated(
+        "Use `approximateToDenotableSupertypeOrSelf` instead",
+        ReplaceWith("this.approximateToDenotableSupertypeOrSelf(!approximateLocalTypes)")
+    )
+    public fun KaType.approximateToSuperPublicDenotableOrSelf(approximateLocalTypes: Boolean): KaType = withValidityAssertion {
+        @Suppress("DEPRECATION")
+        return approximateToSuperPublicDenotable(approximateLocalTypes) ?: this
+    }
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype.
+     *
+     * The function returns `null` if the type is already denotable and does not need approximation. Otherwise, for a type `T`, returns a
+     * denotable type `S` such that `T <: S`, with all type arguments of `S` also being denotable.
+     *
+     * @param allowLocalDenotableTypes Whether locally declared types should be approximated to local supertypes instead of non-local ones.
+     * Local type approximation is sensible when the resulting [KaType] is analyzed in the same local context.
+     */
+    @KaExperimentalApi
+    public fun KaType.approximateToDenotableSupertype(allowLocalDenotableTypes: Boolean): KaType?
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype, or returns the given type itself if it is
+     * already denotable.
+     *
+     * @see approximateToDenotableSupertype
+     */
+    @KaExperimentalApi
+    public fun KaType.approximateToDenotableSupertypeOrSelf(allowLocalDenotableTypes: Boolean): KaType = withValidityAssertion {
+        return approximateToDenotableSupertype(allowLocalDenotableTypes) ?: this
+    }
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] subtype.
+     *
+     * The function returns `null` if the type is already denotable and does not need approximation. Otherwise, for a type `T`, returns a
+     * denotable type `S` such that `S <: T`, with all type arguments of `S` also being denotable.
+     */
+    @KaExperimentalApi
+    public fun KaType.approximateToDenotableSubtype(): KaType?
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] subtype, or returns the given type itself if it is
+     * already denotable.
+     *
+     * @see approximateToDenotableSupertype
+     */
+    @KaExperimentalApi
+    public fun KaType.approximateToDenotableSubtypeOrSelf(): KaType = withValidityAssertion {
+        return approximateToDenotableSubtype() ?: this
+    }
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype based on the given [position].
+     *
+     * This [position] is used when approximating local types.
+     * If the given type is local, then the function returns the first supertype, which is visible from the given [position].
+     * Note that [position] is required to be within [KaAnalysisScopeProvider.analysisScope],
+     * otherwise, an exception is thrown.
+     *
+     * The function returns `null` if the type is already denotable and does not need approximation.
+     * Otherwise, for a type `T`, returns a
+     * denotable type `S` such that `T <: S`, with all type arguments of `S` also being denotable.
+     *
+     * Example:
+     * ```kotlin
+     * <position_1>
+     * fun foo() {
+     *     open class <position_2> A
+     *
+     *     fun bar() = <expr>object: A() {}</expr>
+     * }
+     * ```
+     *
+     * In the example above we are trying to approximate the type of `object: A() {}` expression,
+     * which is a local type `<anonymous>: A`.
+     * When this type is approximated using `<position_2>` the function returns `A`, as this type is visible from this position.
+     * However, when approximating from `<position_1>`, the function returns `Any`, as `A` is not visible from this position,
+     * so the only option left is `Any`.
+     */
+    @KaExperimentalApi
+    public fun KaType.approximateToDenotableSupertype(position: KtElement): KaType?
+
+    /**
+     * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] subtype based on the given [position],
+     * or returns the given type itself if it is already denotable.
+     *
+     * @see approximateToDenotableSupertype
+     */
+    @KaExperimentalApi
+    public fun KaType.approximateToDenotableSupertypeOrSelf(position: KtElement): KaType = withValidityAssertion {
+        return approximateToDenotableSupertype(position) ?: this
+    }
+
+    /**
+     * A [KaType] derived from the given type by enforcing warning-level nullability annotations.
+     * If the derived type doesn't differ from the original type, the original type is used.
+     *
+     * In general, Java type enhancement allows the Kotlin compiler to infer a more specific nullability for a Java type based on its
+     * [nullability annotations](https://kotlinlang.org/docs/java-interop.html#nullability-annotations). Normally,
+     * only [strict][org.jetbrains.kotlin.load.java.ReportLevel.STRICT]
+     * nullability annotations have an impact on a resolved type's nullability.
+     * These annotations are already taken into account in [KaType].
+     *
+     * However, there are also [warning-level][org.jetbrains.kotlin.load.java.ReportLevel.WARN] nullability annotations,
+     * such as Android's `RecentlyNullable` and `RecentlyNonNull`.
+     * These annotations have weaker constraints and don't affect a resolved type's nullability.
+     * [augmentedByWarningLevelAnnotations] is a [KaType] with weak annotations treated as strict ones.
+     *
+     * See the list of default report levels for different nullability annotations in
+     * [NULLABILITY_ANNOTATION_SETTINGS][org.jetbrains.kotlin.load.java.NULLABILITY_ANNOTATION_SETTINGS]
+     *
+     * ### Examples
+     *
+     * - For `@androidx.annotation.RecentlyNullable X!` [augmentedByWarningLevelAnnotations] is `X?`.
+     * - For `@androidx.annotation.RecentlyNonNull X!` [augmentedByWarningLevelAnnotations] is `X`.
+     */
+    @KaExperimentalApi
+    public val KaType.augmentedByWarningLevelAnnotations: KaType
+
+    /**
+     * The representation of [this] in terms of [KaType].
+     *
+     * Type parameters are substituted with matching type parameter types, e.g. `List<T>` for the `List` class.
+     *
+     * @see KaTypeCreator
+     */
+    public val KaClassifierSymbol.defaultType: KaType
+
+    /**
+     * The representation of [this] in terms of [KaType].
+     *
+     * Type parameters are substituted with [KaStarTypeProjection], e.g. `List<*>` for the `List` class.
+     *
+     * @see KaTypeCreator
+     */
+    @KaExperimentalApi
+    public val KaClassifierSymbol.defaultTypeWithStarProjections: KaType
+
+    /**
+     * The array type that represents the list of arguments passed to this parameter if [this] is a
+     * [vararg](https://kotlinlang.org/docs/functions.html#variable-number-of-arguments-varargs) parameter.
+     *
+     * If [this] is not a `vararg` parameter, [varargArrayType] is `null`.
+     * If [this] is an invalid (e.g., in case of multiple `vararg` parameters) or useless (in anonymous functions) `vararg` parameter,
+     * [varargArrayType] still contains a type for it.
+     */
+    @KaExperimentalApi
+    public val KaValueParameterSymbol.varargArrayType: KaType?
+
+    /**
+     * The common supertype of the given [KaType]s.
+     *
+     * @throws IllegalArgumentException If the collection of types is empty.
+     */
+    public val Iterable<KaType>.commonSupertype: KaType
+
+    /**
+     * The common supertype of the given [KaType]s.
+     *
+     * @throws IllegalArgumentException If the array of types is empty.
+     */
+    public val Array<KaType>.commonSupertype: KaType
+        get() = asList().commonSupertype
+
+    /**
+     * Resolves the given [KtTypeReference] to its corresponding [KaType].
+     *
+     * This may raise an exception if the resolution ends up with an unexpected result.
+     */
+    public val KtTypeReference.type: KaType
+
+    /**
+     * Resolves the given [KtDoubleColonExpression] to the [KaType] of its receiver.
+     *
+     * The result may be `null` if the resolution fails or the resolved callable reference is not a reflection type.
+     *
+     * #### Example
+     *
+     * ```kotlin
+     * class Foo {
+     *     fun bar() { }
+     * }
+     *
+     * val foo = Foo()
+     * foo::bar
+     * ```
+     *
+     * Here, `receiverType` for `foo::bar` is `Foo` (the type of `foo`).
+     */
+    public val KtDoubleColonExpression.receiverType: KaType?
+
+    /**
+     * Creates a new [KaType] based on the given type with the updated nullability specified by [isMarkedNullable].
+     */
+    public fun KaType.withNullability(isMarkedNullable: Boolean): KaType
+
+    /**
+     * Creates a [KaType] based on the given type with the specified [newNullability].
+     */
+    @KaNoContextParameterBridgeRequired
+    @Deprecated(
+        "Use `withNullability(Boolean)` instead",
+        ReplaceWith("withNullability(newNullability.isNullable)"),
+        level = DeprecationLevel.HIDDEN
+    )
+    @Suppress("DEPRECATION_ERROR")
+    public fun KaType.withNullability(newNullability: KaTypeNullability): KaType =
+        withNullability(newNullability.isNullable)
+
+    /**
+     * Returns the [KaFlexibleType]'s upper bound, or the type itself if it is not flexible.
+     */
+    public fun KaType.upperBoundIfFlexible(): KaType = withValidityAssertion {
+        (this as? KaFlexibleType)?.upperBound ?: this
+    }
+
+    /**
+     * Returns the [KaFlexibleType]'s lower bound, or the type itself if it is not flexible.
+     */
+    public fun KaType.lowerBoundIfFlexible(): KaType = withValidityAssertion {
+        (this as? KaFlexibleType)?.lowerBound ?: this
+    }
+
+    /**
+     * Checks whether this [KaType] is compatible with [that] other type. If they are compatible, the types can have a common subtype.
+     */
+    public fun KaType.hasCommonSubtypeWith(that: KaType): Boolean
+
+    /**
+     * Collects all the implicit receiver types available at the given [position]. The resulting list is ordered from the outermost to the
+     * innermost receiver type.
+     */
+    @Deprecated(
+        message = "The API is obsolete. Use `scopeContext` instead.",
+        replaceWith = ReplaceWith(
+            expression = "position.containingKtFile.scopeContext(position).implicitReceivers.map { it.type }",
+        )
+    )
+    public fun collectImplicitReceiverTypes(position: KtElement): List<KaType>
+
+    /**
+     * Returns the direct supertypes of the given [KaType].
+     *
+     * For flexible types, direct supertypes of both the upper and lower bounds are returned. If that's not desirable, use
+     * [directSupertypes] on [KaFlexibleType.upperBound] or [KaFlexibleType.lowerBound].
+     *
+     * #### Example
+     *
+     * Given `MutableList<String>`, [directSupertypes] returns `List<String>` and `MutableCollection<String>`
+     *
+     * @param shouldApproximate Whether to approximate [non-denotable][KaTypeInformationProvider.isDenotable] types. For example, the
+     * supertype of `List<out String>` is `Collection<CAPTURED out String>`. With approximation set to `true`, `Collection<out String>` is
+     * returned instead.
+     */
+    public fun KaType.directSupertypes(shouldApproximate: Boolean): Sequence<KaType>
+
+    /**
+     * The direct supertypes of the given [KaType].
+     *
+     * For flexible types, direct supertypes of both the upper and lower bounds are included. If that's not desirable, use
+     * [directSupertypes] on [KaFlexibleType.upperBound] or [KaFlexibleType.lowerBound].
+     *
+     * [Denotable][KaTypeInformationProvider.isDenotable] types are not approximated.
+     *
+     * #### Example
+     *
+     * Given `MutableList<String>`, [directSupertypes] contains `List<String>` and `MutableCollection<String>`
+     */
+    public val KaType.directSupertypes: Sequence<KaType>
+        get() = directSupertypes(shouldApproximate = false)
+
+    /**
+     * Returns all supertypes of the given [KaType]. The resulting sequence is ordered by a breadth-first traversal of the class hierarchy,
+     * without duplicates.
+     *
+     * @param shouldApproximate Whether to approximate [non-denotable][KaTypeInformationProvider.isDenotable] types. See [directSupertypes]
+     *  for more information.
+     */
+    public fun KaType.allSupertypes(shouldApproximate: Boolean): Sequence<KaType>
+
+    /**
+     * All supertypes of the given [KaType]. The resulting sequence is ordered by a breadth-first traversal of the class hierarchy, without
+     * duplicates.
+     *
+     * [Denotable][KaTypeInformationProvider.isDenotable] types are not approximated.
+     */
+    public val KaType.allSupertypes: Sequence<KaType>
+        get() = allSupertypes(shouldApproximate = false)
+
+    /**
+     * A dispatch receiver type for this symbol if it has any.
+     *
+     * This property exists for a few use-cases where it's hard to go without it.
+     *
+     * **Please avoid using it**; it will probably be removed in the future.
+     *
+     * The property is instantly deprecated, so it's not shown in the completion.
+     *
+     * @receiver A target callable symbol.
+     */
+    @Suppress("DeprecatedCallableAddReplaceWith")
+    @Deprecated("Avoid using this function")
+    public val KaCallableSymbol.dispatchReceiverType: KaType?
+
+    /**
+     * The array type's element type if the given [KaType] is a primitive type array or [Array], and `null` otherwise.
+     */
+    public val KaType.arrayElementType: KaType?
+}
+
+/**
+ * **The type has been moved to a new package. Use [org.jetbrains.kotlin.analysis.api.types.KaBuiltinTypes] instead.**
+ */
+@KaObsoleteComponentApi
+@SubclassOptInRequired(KaImplementationDetail::class)
+public abstract class KaBuiltinTypes : org.jetbrains.kotlin.analysis.api.types.KaBuiltinTypes {
+    /** The [Int] class type. */
+    public abstract override val int: KaType
+
+    /** The [Long] class type. */
+    public abstract override val long: KaType
+
+    /** The [Short] class type. */
+    public abstract override val short: KaType
+
+    /** The [Byte] class type. */
+    public abstract override val byte: KaType
+
+    /** The [Float] class type. */
+    public abstract override val float: KaType
+
+    /** The [Double] class type. */
+    public abstract override val double: KaType
+
+    /** The [Boolean] class type. */
+    public abstract override val boolean: KaType
+
+    /** The [Char] class type. */
+    public abstract override val char: KaType
+
+    /** The [String] class type. */
+    public abstract override val string: KaType
+
+    /** The [Unit] class type. */
+    public abstract override val unit: KaType
+
+    /** The [Nothing] class type. */
+    public abstract override val nothing: KaType
+
+    /** The [Any] class type. */
+    public abstract override val any: KaType
+
+    /** The [Throwable] class type. */
+    public abstract override val throwable: KaType
+
+    /** The `Any?` type. */
+    public abstract override val nullableAny: KaType
+
+    /** The `Nothing?` type. */
+    public abstract override val nullableNothing: KaType
+
+    /** The [Annotation] type. */
+    public abstract override val annotationType: KaType
+}
+
+/**
+ * [KaType] instances for built-in types.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "builtinTypes",
+        "org.jetbrains.kotlin.analysis.api.types.builtinTypes",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val builtinTypes: KaBuiltinTypes
+    get() = with(session) { builtinTypes }
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype.
+ *
+ * The function returns `null` if the type is already denotable and does not need approximation. Otherwise, for a type `T`, returns a
+ * denotable type `S` such that `T <: S`, with all type arguments of `S` also being denotable.
+ *
+ * @param approximateLocalTypes Whether locally declared types should be approximated to non-local supertypes. Avoiding local type
+ *  approximation is sensible when the resulting [KaType] is analyzed in the same local context.
+ */
+@KaExperimentalApi
+@Deprecated(
+    "Use `approximateToDenotableSupertype` instead",
+    ReplaceWith("this.approximateToDenotableSupertype(!approximateLocalTypes)")
+)
+context(session: KaSession)
+public fun KaType.approximateToSuperPublicDenotable(approximateLocalTypes: Boolean): KaType? {
+    @Suppress("DEPRECATION")
+    return with(session) {
+        approximateToSuperPublicDenotable(
+            approximateLocalTypes = approximateLocalTypes,
+        )
+    }
+}
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype, or returns the given type itself if it is
+ * already denotable.
+ *
+ * @see approximateToSuperPublicDenotable
+ */
+@KaExperimentalApi
+@Deprecated(
+    "Use `approximateToDenotableSupertypeOrSelf` instead",
+    ReplaceWith("this.approximateToDenotableSupertypeOrSelf(!approximateLocalTypes)")
+)
+context(session: KaSession)
+public fun KaType.approximateToSuperPublicDenotableOrSelf(approximateLocalTypes: Boolean): KaType {
+    @Suppress("DEPRECATION")
+    return with(session) {
+        approximateToSuperPublicDenotableOrSelf(
+            approximateLocalTypes = approximateLocalTypes,
+        )
+    }
+}
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype.
+ *
+ * The function returns `null` if the type is already denotable and does not need approximation. Otherwise, for a type `T`, returns a
+ * denotable type `S` such that `T <: S`, with all type arguments of `S` also being denotable.
+ *
+ * @param allowLocalDenotableTypes Whether locally declared types should be approximated to local supertypes instead of non-local ones.
+ * Local type approximation is sensible when the resulting [KaType] is analyzed in the same local context.
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.approximateToDenotableSupertype(allowLocalDenotableTypes)",
+        "org.jetbrains.kotlin.analysis.api.types.approximateToDenotableSupertype",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.approximateToDenotableSupertype(allowLocalDenotableTypes: Boolean): KaType? {
+    return with(session) {
+        approximateToDenotableSupertype(
+            allowLocalDenotableTypes = allowLocalDenotableTypes,
+        )
+    }
+}
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype, or returns the given type itself if it is
+ * already denotable.
+ *
+ * @see approximateToDenotableSupertype
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.approximateToDenotableSupertypeOrSelf(allowLocalDenotableTypes)",
+        "org.jetbrains.kotlin.analysis.api.types.approximateToDenotableSupertypeOrSelf",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.approximateToDenotableSupertypeOrSelf(allowLocalDenotableTypes: Boolean): KaType {
+    return with(session) {
+        approximateToDenotableSupertypeOrSelf(
+            allowLocalDenotableTypes = allowLocalDenotableTypes,
+        )
+    }
+}
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] subtype.
+ *
+ * The function returns `null` if the type is already denotable and does not need approximation. Otherwise, for a type `T`, returns a
+ * denotable type `S` such that `S <: T`, with all type arguments of `S` also being denotable.
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.approximateToDenotableSubtype()",
+        "org.jetbrains.kotlin.analysis.api.types.approximateToDenotableSubtype",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.approximateToDenotableSubtype(): KaType? {
+    return with(session) {
+        approximateToDenotableSubtype()
+    }
+}
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] subtype, or returns the given type itself if it is
+ * already denotable.
+ *
+ * @see approximateToDenotableSupertype
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.approximateToDenotableSubtypeOrSelf()",
+        "org.jetbrains.kotlin.analysis.api.types.approximateToDenotableSubtypeOrSelf",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.approximateToDenotableSubtypeOrSelf(): KaType {
+    return with(session) {
+        approximateToDenotableSubtypeOrSelf()
+    }
+}
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] supertype based on the given [position].
+ *
+ * This [position] is used when approximating local types.
+ * If the given type is local, then the function returns the first supertype, which is visible from the given [position].
+ * Note that [position] is required to be within [KaAnalysisScopeProvider.analysisScope],
+ * otherwise, an exception is thrown.
+ *
+ * The function returns `null` if the type is already denotable and does not need approximation.
+ * Otherwise, for a type `T`, returns a
+ * denotable type `S` such that `T <: S`, with all type arguments of `S` also being denotable.
+ *
+ * Example:
+ * ```kotlin
+ * <position_1>
+ * fun foo() {
+ *     open class <position_2> A
+ *
+ *     fun bar() = <expr>object: A() {}</expr>
+ * }
+ * ```
+ *
+ * In the example above we are trying to approximate the type of `object: A() {}` expression,
+ * which is a local type `<anonymous>: A`.
+ * When this type is approximated using `<position_2>` the function returns `A`, as this type is visible from this position.
+ * However, when approximating from `<position_1>`, the function returns `Any`, as `A` is not visible from this position,
+ * so the only option left is `Any`.
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.approximateToDenotableSupertype(position)",
+        "org.jetbrains.kotlin.analysis.api.types.approximateToDenotableSupertype",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.approximateToDenotableSupertype(position: KtElement): KaType? {
+    return with(session) {
+        approximateToDenotableSupertype(
+            position = position,
+        )
+    }
+}
+
+/**
+ * Approximates [KaType] to a [denotable][KaTypeInformationProvider.isDenotable] subtype based on the given [position],
+ * or returns the given type itself if it is already denotable.
+ *
+ * @see approximateToDenotableSupertype
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.approximateToDenotableSupertypeOrSelf(position)",
+        "org.jetbrains.kotlin.analysis.api.types.approximateToDenotableSupertypeOrSelf",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.approximateToDenotableSupertypeOrSelf(position: KtElement): KaType {
+    return with(session) {
+        approximateToDenotableSupertypeOrSelf(
+            position = position,
+        )
+    }
+}
+
+/**
+ * A [KaType] derived from the given type by enforcing warning-level nullability annotations.
+ * If the derived type doesn't differ from the original type, the original type is used.
+ *
+ * In general, Java type enhancement allows the Kotlin compiler to infer a more specific nullability for a Java type based on its
+ * [nullability annotations](https://kotlinlang.org/docs/java-interop.html#nullability-annotations). Normally,
+ * only [strict][org.jetbrains.kotlin.load.java.ReportLevel.STRICT]
+ * nullability annotations have an impact on a resolved type's nullability.
+ * These annotations are already taken into account in [KaType].
+ *
+ * However, there are also [warning-level][org.jetbrains.kotlin.load.java.ReportLevel.WARN] nullability annotations,
+ * such as Android's `RecentlyNullable` and `RecentlyNonNull`.
+ * These annotations have weaker constraints and don't affect a resolved type's nullability.
+ * [augmentedByWarningLevelAnnotations] is a [KaType] with weak annotations treated as strict ones.
+ *
+ * See the list of default report levels for different nullability annotations in
+ * [NULLABILITY_ANNOTATION_SETTINGS][org.jetbrains.kotlin.load.java.NULLABILITY_ANNOTATION_SETTINGS]
+ *
+ * ### Examples
+ *
+ * - For `@androidx.annotation.RecentlyNullable X!` [augmentedByWarningLevelAnnotations] is `X?`.
+ * - For `@androidx.annotation.RecentlyNonNull X!` [augmentedByWarningLevelAnnotations] is `X`.
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "augmentedByWarningLevelAnnotations",
+        "org.jetbrains.kotlin.analysis.api.types.augmentedByWarningLevelAnnotations",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaType.augmentedByWarningLevelAnnotations: KaType
+    get() = with(session) { augmentedByWarningLevelAnnotations }
+
+/**
+ * The representation of [this] in terms of [KaType].
+ *
+ * Type parameters are substituted with matching type parameter types, e.g. `List<T>` for the `List` class.
+ *
+ * @see KaTypeCreator
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "defaultType",
+        "org.jetbrains.kotlin.analysis.api.types.defaultType",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaClassifierSymbol.defaultType: KaType
+    get() = with(session) { defaultType }
+
+/**
+ * The representation of [this] in terms of [KaType].
+ *
+ * Type parameters are substituted with [KaStarTypeProjection], e.g. `List<*>` for the `List` class.
+ *
+ * @see KaTypeCreator
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "defaultTypeWithStarProjections",
+        "org.jetbrains.kotlin.analysis.api.types.defaultTypeWithStarProjections",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaClassifierSymbol.defaultTypeWithStarProjections: KaType
+    get() = with(session) { defaultTypeWithStarProjections }
+
+/**
+ * The array type that represents the list of arguments passed to this parameter if [this] is a
+ * [vararg](https://kotlinlang.org/docs/functions.html#variable-number-of-arguments-varargs) parameter.
+ *
+ * If [this] is not a `vararg` parameter, [varargArrayType] is `null`.
+ * If [this] is an invalid (e.g., in case of multiple `vararg` parameters) or useless (in anonymous functions) `vararg` parameter,
+ * [varargArrayType] still contains a type for it.
+ */
+@KaExperimentalApi
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "varargArrayType",
+        "org.jetbrains.kotlin.analysis.api.types.varargArrayType",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaValueParameterSymbol.varargArrayType: KaType?
+    get() = with(session) { varargArrayType }
+
+/**
+ * The common supertype of the given [KaType]s.
+ *
+ * @throws IllegalArgumentException If the collection of types is empty.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "commonSupertype",
+        "org.jetbrains.kotlin.analysis.api.types.commonSupertype",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val Iterable<KaType>.commonSupertype: KaType
+    get() = with(session) { commonSupertype }
+
+/**
+ * The common supertype of the given [KaType]s.
+ *
+ * @throws IllegalArgumentException If the array of types is empty.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "commonSupertype",
+        "org.jetbrains.kotlin.analysis.api.types.commonSupertype",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val Array<KaType>.commonSupertype: KaType
+    get() = with(session) { commonSupertype }
+
+/**
+ * Resolves the given [KtTypeReference] to its corresponding [KaType].
+ *
+ * This may raise an exception if the resolution ends up with an unexpected result.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "type",
+        "org.jetbrains.kotlin.analysis.api.types.type",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KtTypeReference.type: KaType
+    get() = with(session) { type }
+
+/**
+ * Resolves the given [KtDoubleColonExpression] to the [KaType] of its receiver.
+ *
+ * The result may be `null` if the resolution fails or the resolved callable reference is not a reflection type.
+ *
+ * #### Example
+ *
+ * ```kotlin
+ * class Foo {
+ *     fun bar() { }
+ * }
+ *
+ * val foo = Foo()
+ * foo::bar
+ * ```
+ *
+ * Here, `receiverType` for `foo::bar` is `Foo` (the type of `foo`).
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "receiverType",
+        "org.jetbrains.kotlin.analysis.api.types.receiverType",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KtDoubleColonExpression.receiverType: KaType?
+    get() = with(session) { receiverType }
+
+/**
+ * Creates a new [KaType] based on the given type with the updated nullability specified by [isMarkedNullable].
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.withNullability(isMarkedNullable)",
+        "org.jetbrains.kotlin.analysis.api.types.withNullability",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.withNullability(isMarkedNullable: Boolean): KaType {
+    return with(session) {
+        withNullability(
+            isMarkedNullable = isMarkedNullable,
+        )
+    }
+}
+
+/**
+ * Returns the [KaFlexibleType]'s upper bound, or the type itself if it is not flexible.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.upperBoundIfFlexible()",
+        "org.jetbrains.kotlin.analysis.api.types.upperBoundIfFlexible",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.upperBoundIfFlexible(): KaType {
+    return with(session) {
+        upperBoundIfFlexible()
+    }
+}
+
+/**
+ * Returns the [KaFlexibleType]'s lower bound, or the type itself if it is not flexible.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.lowerBoundIfFlexible()",
+        "org.jetbrains.kotlin.analysis.api.types.lowerBoundIfFlexible",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.lowerBoundIfFlexible(): KaType {
+    return with(session) {
+        lowerBoundIfFlexible()
+    }
+}
+
+/**
+ * Checks whether this [KaType] is compatible with [that] other type. If they are compatible, the types can have a common subtype.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.hasCommonSubtypeWith(that)",
+        "org.jetbrains.kotlin.analysis.api.types.hasCommonSubtypeWith",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.hasCommonSubtypeWith(that: KaType): Boolean {
+    return with(session) {
+        hasCommonSubtypeWith(
+            that = that,
+        )
+    }
+}
+
+/**
+ * Collects all the implicit receiver types available at the given [position]. The resulting list is ordered from the outermost to the
+ * innermost receiver type.
+ */
+@Deprecated(
+    message = "The API is obsolete. Use `scopeContext` instead.",
+    replaceWith = ReplaceWith(
+        expression = "position.containingKtFile.scopeContext(position).implicitReceivers.map { it.type }",
+        imports = ["org.jetbrains.kotlin.analysis.api.components.scopeContext"],
+    )
+)
+context(session: KaSession)
+public fun collectImplicitReceiverTypes(position: KtElement): List<KaType> {
+    @Suppress("DEPRECATION")
+    return with(session) {
+        collectImplicitReceiverTypes(
+            position = position,
+        )
+    }
+}
+
+/**
+ * Returns the direct supertypes of the given [KaType].
+ *
+ * For flexible types, direct supertypes of both the upper and lower bounds are returned. If that's not desirable, use
+ * [directSupertypes] on [KaFlexibleType.upperBound] or [KaFlexibleType.lowerBound].
+ *
+ * #### Example
+ *
+ * Given `MutableList<String>`, [directSupertypes] returns `List<String>` and `MutableCollection<String>`
+ *
+ * @param shouldApproximate Whether to approximate [non-denotable][KaTypeInformationProvider.isDenotable] types. For example, the
+ * supertype of `List<out String>` is `Collection<CAPTURED out String>`. With approximation set to `true`, `Collection<out String>` is
+ * returned instead.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.directSupertypes(shouldApproximate)",
+        "org.jetbrains.kotlin.analysis.api.types.directSupertypes",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.directSupertypes(shouldApproximate: Boolean): Sequence<KaType> {
+    return with(session) {
+        directSupertypes(
+            shouldApproximate = shouldApproximate,
+        )
+    }
+}
+
+/**
+ * The direct supertypes of the given [KaType].
+ *
+ * For flexible types, direct supertypes of both the upper and lower bounds are included. If that's not desirable, use
+ * [directSupertypes] on [KaFlexibleType.upperBound] or [KaFlexibleType.lowerBound].
+ *
+ * [Denotable][KaTypeInformationProvider.isDenotable] types are not approximated.
+ *
+ * #### Example
+ *
+ * Given `MutableList<String>`, [directSupertypes] contains `List<String>` and `MutableCollection<String>`
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "directSupertypes",
+        "org.jetbrains.kotlin.analysis.api.types.directSupertypes",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaType.directSupertypes: Sequence<KaType>
+    get() = with(session) { directSupertypes }
+
+/**
+ * Returns all supertypes of the given [KaType]. The resulting sequence is ordered by a breadth-first traversal of the class hierarchy,
+ * without duplicates.
+ *
+ * @param shouldApproximate Whether to approximate [non-denotable][KaTypeInformationProvider.isDenotable] types. See [directSupertypes]
+ *  for more information.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "this.allSupertypes(shouldApproximate)",
+        "org.jetbrains.kotlin.analysis.api.types.allSupertypes",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public fun KaType.allSupertypes(shouldApproximate: Boolean): Sequence<KaType> {
+    return with(session) {
+        allSupertypes(
+            shouldApproximate = shouldApproximate,
+        )
+    }
+}
+
+/**
+ * All supertypes of the given [KaType]. The resulting sequence is ordered by a breadth-first traversal of the class hierarchy, without
+ * duplicates.
+ *
+ * [Denotable][KaTypeInformationProvider.isDenotable] types are not approximated.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "allSupertypes",
+        "org.jetbrains.kotlin.analysis.api.types.allSupertypes",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaType.allSupertypes: Sequence<KaType>
+    get() = with(session) { allSupertypes }
+
+/**
+ * A dispatch receiver type for this symbol if it has any.
+ *
+ * This property exists for a few use-cases where it's hard to go without it.
+ *
+ * **Please avoid using it**; it will probably be removed in the future.
+ *
+ * The property is instantly deprecated, so it's not shown in the completion.
+ *
+ * @receiver A target callable symbol.
+ */
+@Suppress("DeprecatedCallableAddReplaceWith")
+@Deprecated("Avoid using this function")
+context(session: KaSession)
+public val KaCallableSymbol.dispatchReceiverType: KaType?
+    @Suppress("DEPRECATION")
+    get() = with(session) { dispatchReceiverType }
+
+/**
+ * The array type's element type if the given [KaType] is a primitive type array or [Array], and `null` otherwise.
+ */
+@Deprecated(
+    message = "Use the 'org.jetbrains.kotlin.analysis.api.types' endpoint instead.",
+    replaceWith = ReplaceWith(
+        "arrayElementType",
+        "org.jetbrains.kotlin.analysis.api.types.arrayElementType",
+    ),
+    level = DeprecationLevel.ERROR,
+)
+@KaContextParameterApi
+context(session: KaSession)
+public val KaType.arrayElementType: KaType?
+    get() = with(session) { arrayElementType }

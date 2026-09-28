@@ -1,0 +1,75 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.cli.pipeline.web
+
+import org.jetbrains.kotlin.cli.common.diagnosticsCollector
+import org.jetbrains.kotlin.cli.pipeline.PipelinePhase
+import org.jetbrains.kotlin.config.CommonConfigurationKeys
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.perfManager
+import org.jetbrains.kotlin.fir.pipeline.Fir2KlibMetadataSerializer
+import org.jetbrains.kotlin.ir.KtDiagnosticReporterWithImplicitIrBasedContext
+import org.jetbrains.kotlin.ir.backend.js.getSerializedData
+import org.jetbrains.kotlin.ir.backend.js.serializeModuleIntoKlib
+import org.jetbrains.kotlin.js.config.*
+import org.jetbrains.kotlin.library.impl.BuiltInsPlatform
+import org.jetbrains.kotlin.library.loadSizeInfo
+import org.jetbrains.kotlin.wasm.config.wasmTarget
+import java.nio.file.Path
+import kotlin.io.path.absolute
+import kotlin.io.path.pathString
+
+object WebKlibSerializationPipelinePhase : PipelinePhase<WebFir2IrPipelineArtifact, WebSerializedKlibPipelineArtifact>(
+    name = "WebKlibSerializationPipelinePhase",
+) {
+    override fun executePhase(input: WebFir2IrPipelineArtifact): WebSerializedKlibPipelineArtifact {
+        (val fir2IrResult = result, val firResult = frontendOutput, val configuration) = input
+        val irDiagnosticReporter = KtDiagnosticReporterWithImplicitIrBasedContext(
+            configuration.diagnosticsCollector,
+            configuration.languageVersionSettings
+        )
+
+        val outputKlibPath = configuration.computeOutputKlibPath()
+        val fir2KlibMetadataSerializer = Fir2KlibMetadataSerializer(
+            configuration,
+            firOutputs = firResult.outputs,
+            fir2IrActualizedResult = fir2IrResult,
+            produceHeaderKlib = false,
+        )
+        val icData =
+            configuration.incrementalDataProvider?.getSerializedData(fir2KlibMetadataSerializer.sourceFiles)
+        serializeModuleIntoKlib(
+            moduleName = configuration[CommonConfigurationKeys.MODULE_NAME]!!,
+            configuration = configuration,
+            diagnosticReporter = irDiagnosticReporter,
+            metadataSerializer = fir2KlibMetadataSerializer,
+            klibPath = outputKlibPath,
+            moduleFragment = fir2IrResult.irModuleFragment,
+            irBuiltIns = fir2IrResult.irBuiltIns,
+            cleanFiles = icData ?: emptyList(),
+            nopack = configuration.produceKlibDir,
+            jsOutputName = configuration.perModuleOutputName,
+            builtInsPlatform = if (configuration.wasmCompilation) BuiltInsPlatform.WASM else BuiltInsPlatform.JS,
+            wasmTarget = configuration.wasmTarget,
+            performanceManager = configuration.perfManager,
+        )
+
+        loadSizeInfo(outputKlibPath)?.flatten()?.let { stats ->
+            configuration.perfManager?.registerKlibElementStats(stats)
+        }
+
+        return WebSerializedKlibPipelineArtifact(
+            outputKlibPath.pathString,
+            configuration
+        )
+    }
+}
+
+fun CompilerConfiguration.computeOutputKlibPath(): Path {
+    val basePath = if (produceKlibFile) outputDir!!.resolve("${outputName!!}.klib").normalize() else outputDir!!
+    return basePath.toPath().absolute()
+}

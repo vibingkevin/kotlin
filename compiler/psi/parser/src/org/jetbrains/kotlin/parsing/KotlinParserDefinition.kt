@@ -1,0 +1,114 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.parsing
+
+import com.intellij.extapi.psi.ASTWrapperPsiElement
+import com.intellij.lang.ASTNode
+import com.intellij.lang.LanguageParserDefinitions
+import com.intellij.lang.ParserDefinition
+import com.intellij.lang.ParserDefinition.SpaceRequirements.*
+import com.intellij.lang.PsiParser
+import com.intellij.lexer.Lexer
+import com.intellij.openapi.project.Project
+import com.intellij.psi.FileViewProvider
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.tree.IFileElementType
+import com.intellij.psi.tree.TokenSet
+import org.jetbrains.kotlin.KtNodeType
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.kdoc.lexer.KDocTokens
+import org.jetbrains.kotlin.kdoc.parser.KDocElementType
+import org.jetbrains.kotlin.kdoc.psi.impl.KDocLink
+import org.jetbrains.kotlin.lexer.KotlinLexer
+import org.jetbrains.kotlin.lexer.KtKeywordToken
+import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtImplementationDetail
+import org.jetbrains.kotlin.psi.KtWhenEntry
+import org.jetbrains.kotlin.psi.psiUtil.getNonStrictParentOfType
+
+/**
+ * Creates [org.jetbrains.kotlin.psi.KtCommonFile] when java psi is not available e.g. on JB Client.
+ * Otherwise, normal [KotlinParserDefinition] should be used.
+ */
+open class KotlinCommonParserDefinition : ParserDefinition {
+    override fun createLexer(project: Project): Lexer = KotlinLexer()
+
+    override fun createParser(project: Project): PsiParser = KotlinParser(project)
+
+    override fun getFileNodeType(): IFileElementType = KtNodeTypes.FILE
+
+    override fun getWhitespaceTokens(): TokenSet = KtTokens.WHITESPACES
+
+    override fun getCommentTokens(): TokenSet = KtTokens.COMMENTS
+
+    override fun getStringLiteralElements(): TokenSet = KtTokens.STRINGS
+
+    @OptIn(KtImplementationDetail::class)
+    override fun createElement(astNode: ASTNode): PsiElement = when (val elementType = astNode.elementType) {
+        KtNodeTypes.TYPE_CODE_FRAGMENT,
+        KtNodeTypes.EXPRESSION_CODE_FRAGMENT,
+        KtNodeTypes.BLOCK_CODE_FRAGMENT,
+            -> ASTWrapperPsiElement(astNode)
+
+        is KDocElementType -> elementType.createPsi(astNode)
+        KDocTokens.MARKDOWN_LINK -> KDocLink(astNode)
+        else -> (elementType as KtNodeType).createPsi(astNode)
+    }
+
+    @Suppress("DEPRECATION")
+    override fun createFile(fileViewProvider: FileViewProvider): PsiFile = org.jetbrains.kotlin.psi.KtCommonFile(fileViewProvider, false)
+
+    @Deprecated("Deprecated in Java")
+    override fun spaceExistanceTypeBetweenTokens(left: ASTNode, right: ASTNode): ParserDefinition.SpaceRequirements {
+        val rightTokenType = right.elementType
+
+        // get/set from a new line
+        if (rightTokenType == KtTokens.GET_KEYWORD || rightTokenType == KtTokens.SET_KEYWORD) {
+            return MUST_LINE_BREAK
+        }
+
+        val leftTokenType = left.elementType
+
+        if (leftTokenType is KtKeywordToken && rightTokenType is KtKeywordToken) return MUST
+
+        // When entry from a new line
+        val rightWhenEntry = right.psi.getNonStrictParentOfType<KtWhenEntry>()
+        if (rightWhenEntry != null) {
+            val leftWhenEntry = left.psi.getNonStrictParentOfType<KtWhenEntry>()
+            if (leftWhenEntry != null && leftWhenEntry != rightWhenEntry && leftTokenType != KtTokens.SEMICOLON) {
+                return MUST_LINE_BREAK
+            }
+        }
+
+        // Default
+        return MAY
+    }
+}
+
+/*
+ * The class is open, so it can have a custom implementation for the language injection in the IDE.
+ * See KTIJ-31032
+ */
+open class KotlinParserDefinition : KotlinCommonParserDefinition() {
+    override fun createFile(fileViewProvider: FileViewProvider): PsiFile {
+        return KtFile(fileViewProvider, false)
+    }
+
+    companion object {
+
+        @JvmField
+        val STD_SCRIPT_SUFFIX = "kts"
+
+        @JvmField
+        val STD_SCRIPT_EXT = "." + STD_SCRIPT_SUFFIX
+
+        val instance: KotlinParserDefinition
+            get() = LanguageParserDefinitions.INSTANCE.forLanguage(KotlinLanguage.INSTANCE) as KotlinParserDefinition
+    }
+}

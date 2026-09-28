@@ -1,0 +1,273 @@
+/*
+ * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.common.serialization
+
+import org.jetbrains.kotlin.backend.common.linkage.IrDeserializer
+import org.jetbrains.kotlin.backend.common.serialization.encodings.BinarySymbolData
+import org.jetbrains.kotlin.backend.common.serialization.signature.PublicIdSignatureComputer
+import org.jetbrains.kotlin.ir.*
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.symbols.*
+import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
+import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.library.KotlinAbiVersion
+import org.jetbrains.kotlin.library.KotlinLibrary
+import org.jetbrains.kotlin.library.KotlinLibraryProperResolverWithAttributes
+import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.StandardClassIds
+
+fun IrSymbol.kind(): BinarySymbolData.SymbolKind {
+    return when (this) {
+        is IrClassSymbol -> BinarySymbolData.SymbolKind.CLASS_SYMBOL
+        is IrConstructorSymbol -> BinarySymbolData.SymbolKind.CONSTRUCTOR_SYMBOL
+        is IrSimpleFunctionSymbol -> BinarySymbolData.SymbolKind.FUNCTION_SYMBOL
+        is IrPropertySymbol -> BinarySymbolData.SymbolKind.PROPERTY_SYMBOL
+        is IrFieldSymbol -> BinarySymbolData.SymbolKind.FIELD_SYMBOL
+        is IrEnumEntrySymbol -> BinarySymbolData.SymbolKind.ENUM_ENTRY_SYMBOL
+        is IrTypeAliasSymbol -> BinarySymbolData.SymbolKind.TYPEALIAS_SYMBOL
+        is IrTypeParameterSymbol -> BinarySymbolData.SymbolKind.TYPE_PARAMETER_SYMBOL
+        else -> error("Unexpected symbol kind $this")
+    }
+}
+
+// TODO: drop CompatibilityMode, KT-72100
+class CompatibilityMode(val abiVersion: KotlinAbiVersion) {
+
+    init {
+        require(abiVersion.isCompatible()) {
+            "Incompatible KLIB should have been discarded in ${KotlinLibraryProperResolverWithAttributes<Nothing>::libraryMatch.name}"
+        }
+    }
+
+    /** See comments for [LAST_WITH_LEGACY_SIGNATURES_FOR_PRIVATE_AND_LOCAL_DECLARATIONS]. */
+    val legacySignaturesForPrivateAndLocalDeclarations: Boolean
+        get() = abiVersion.isAtMost(LAST_WITH_LEGACY_SIGNATURES_FOR_PRIVATE_AND_LOCAL_DECLARATIONS)
+
+    /** See comments for [LAST_WITH_SWAPPED_KPROPERTY2_TYPE_PARAMETER_ORDER]. */
+    val swappedKProperty2TypeParameterOrder: Boolean
+        get() = abiVersion.isAtMost(LAST_WITH_SWAPPED_KPROPERTY2_TYPE_PARAMETER_ORDER)
+
+    companion object {
+        val CURRENT = CompatibilityMode(KotlinAbiVersion.CURRENT)
+
+        /**
+         * KLIBs with ABI version <= 1.5.0 had different rules for computing signatures for private and local declarations.
+         * See also [org.jetbrains.kotlin.backend.common.serialization.mangle.ir.IrExportCheckerVisitor.CompatibleChecker].
+         */
+        val LAST_WITH_LEGACY_SIGNATURES_FOR_PRIVATE_AND_LOCAL_DECLARATIONS = KotlinAbiVersion(1, 5, 0)
+
+        /**
+         * KLIBs with ABI version <= 1.201.0 (Kotlin <= 2.1.x) had swapped type parameter order for
+         * `KProperty2` and `KMutableProperty2` in delegated member extension properties:
+         * `KProperty2<ExtensionReceiver, DispatchReceiver, Value>` instead of
+         * `KProperty2<DispatchReceiver, ExtensionReceiver, Value>`.
+         * Fixed in KT-75112, which landed in Kotlin 2.2.0 (ABI version 2.2.0).
+         */
+        val LAST_WITH_SWAPPED_KPROPERTY2_TYPE_PARAMETER_ORDER = KotlinAbiVersion(1, 201, 0)
+    }
+}
+
+abstract class IrModuleDeserializer(
+    val moduleFragment: IrModuleFragment,
+    val libraryAbiVersion: KotlinAbiVersion,
+) {
+    /**
+     * All package FQ names of all declarations defined in this module.
+     *
+     * May include false positives.
+     * Does not need to include parent package names. I.e. if this module contains some declarations under `foo.bar` package,
+     * but no declaration under just `foo` package, then `foo` does not need to be included in this set.
+     *
+     * Null value means that the set of packages is unknown (or not feasible to be provided).
+     * In that case the module may be probed for every sought signature, just in case.
+     */
+    abstract fun getDefinedPackageNames(): Set<FqName>?
+
+    abstract operator fun contains(idSig: IdSignature): Boolean
+    abstract fun tryDeserializeIrSymbol(idSig: IdSignature, symbolKind: BinarySymbolData.SymbolKind): IrSymbol?
+    abstract fun deserializedSymbolNotFound(idSig: IdSignature): Nothing
+
+    open fun referenceSimpleFunctionByLocalSignature(file: IrFile, idSignature: IdSignature): IrSimpleFunctionSymbol =
+        error("Unsupported operation")
+
+    open fun referencePropertyByLocalSignature(file: IrFile, idSignature: IdSignature): IrPropertySymbol =
+        error("Unsupported operation")
+
+    open fun declareIrSymbol(symbol: IrSymbol) {
+        val signature = symbol.signature
+        require(signature != null) { "Symbol is not public API" }
+        deserializeIrSymbolOrFail(signature, symbol.kind())
+    }
+
+    abstract val klib: KotlinLibrary
+
+    open fun postProcess() {}
+
+    /**
+     * Schedule deserialization of the top-level declaration with the given signature in the given file.
+     */
+    open fun addModuleReachableTopLevel(topLevelDeclarationSignature: IdSignature) {
+        error("Unsupported Operation (sig: $topLevelDeclarationSignature")
+    }
+
+    /**
+     * Run deserialization of top-level declarations previously scheduled for deserialization in the current module.
+     */
+    open fun deserializeReachableDeclarations() { error("Unsupported Operation") }
+
+    open val strategyResolver: (String) -> DeserializationStrategy = { DeserializationStrategy.ONLY_DECLARATION_HEADERS }
+
+    open fun fileDeserializers(): Collection<IrFileDeserializer> = emptyList()
+
+    val compatibilityMode: CompatibilityMode get() = CompatibilityMode(libraryAbiVersion)
+
+    open fun getAllMatchingSignatures(callableId: CallableId, signatureKind: IrDeserializer.TopLevelSymbolKind): List<IdSignature> {
+        return this.fileDeserializers().flatMap {
+            it.getAllMatchingSignatures(callableId, signatureKind)
+        }
+    }
+}
+
+fun IrModuleDeserializer.deserializeIrSymbolOrFail(idSig: IdSignature, symbolKind: BinarySymbolData.SymbolKind): IrSymbol =
+    tryDeserializeIrSymbol(idSig, symbolKind) ?: deserializedSymbolNotFound(idSig)
+
+// Used to resolve built in symbols like `kotlin.ir.internal.*` or `kotlin.FunctionN`
+@OptIn(InternalSymbolFinderAPI::class)
+class IrModuleDeserializerWithBuiltIns(
+    moduleFragment: IrModuleFragment,
+    private val symbolTable: SymbolTable,
+    mangler: KotlinMangler.IrMangler,
+    onDeserializedClass: (IrClass, IdSignature) -> Unit,
+    val delegate: IrModuleDeserializer
+) : IrModuleDeserializer(moduleFragment, delegate.libraryAbiVersion) {
+    private val signatureComputer = PublicIdSignatureComputer(mangler)
+    private val syntheticProvider = IrSyntheticProvider(
+        module = moduleFragment,
+        symbolTable = symbolTable,
+        signatureComputer = signatureComputer::computeSignature
+    )
+
+    private val syntheticFunctionClassGenerator = run {
+        IrBasedFunctionFactory(
+            moduleFragment,
+            symbolTable.referenceClass(StandardClassIds.Function.toIdSignature()),
+            symbolTable.referenceClass(StandardClassIds.KFunction.toIdSignature()),
+            symbolTable.referenceClass(StandardClassIds.Any.toIdSignature()),
+            symbolTable,
+            signatureComputer::computeSignature,
+            onDeserializedClass
+        )
+    }
+
+    private val irBuiltInsMap = syntheticProvider.operatorsPackageFragment.declarations.associate {
+        val symbol = (it as IrSymbolOwner).symbol
+        symbol.signature to symbol
+    }
+
+    private val builtinPackageNames: Set<FqName> =
+        syntheticProvider.operatorsPackageFragment.declarations
+            .map { it.getPackageFragment().packageFqName }
+            .toSet()
+
+    override fun getDefinedPackageNames() = delegate.getDefinedPackageNames()?.plus(builtinPackageNames)
+
+    private val irBuiltInsCallableIdMap: Map<CallableId, MutableList<IdSignature>> by lazy {
+        buildMap {
+            syntheticProvider.operatorsPackageFragment.declarations.forEach {
+                val symbol = (it as IrSymbolOwner).symbol
+                val callableId = CallableId(it.getPackageFragment().packageFqName, (it as IrDeclarationWithName).name)
+                getOrPut(callableId) { mutableListOf() } += symbol.signature!!
+            }
+        }
+    }
+
+    override operator fun contains(idSig: IdSignature): Boolean {
+        val topLevel = idSig.topLevelSignature()
+        if (topLevel in irBuiltInsMap) return true
+
+        return checkIsFunctionInterface(topLevel) || idSig in delegate
+    }
+
+    override fun referenceSimpleFunctionByLocalSignature(file: IrFile, idSignature: IdSignature) : IrSimpleFunctionSymbol =
+        delegate.referenceSimpleFunctionByLocalSignature(file, idSignature)
+
+    override fun referencePropertyByLocalSignature(file: IrFile, idSignature: IdSignature): IrPropertySymbol =
+        delegate.referencePropertyByLocalSignature(file, idSignature)
+
+    override fun deserializeReachableDeclarations() {
+        delegate.deserializeReachableDeclarations()
+    }
+
+    private fun computeFunctionClass(idSig: IdSignature): IrClass {
+        val publicSig = idSig.asPublic() ?: error("$idSig has to be public")
+        val fqnParts = publicSig.nameSegments
+        val className = fqnParts.firstOrNull() ?: error("Expected class name for $idSig")
+
+        val isK = className[0] == 'K'
+        val isSuspend = (if (isK) className[1] else className[0]) == 'S'
+        val arity = className.run { substring(indexOfFirst { it.isDigit() }).toInt(10) }
+        return syntheticFunctionClassGenerator.run {
+            when {
+                isK && isSuspend -> kSuspendFunctionN(arity)
+                isK -> kFunctionN(arity)
+                isSuspend -> suspendFunctionN(arity)
+                else -> functionN(arity)
+            }
+        }
+    }
+
+    override fun tryDeserializeIrSymbol(idSig: IdSignature, symbolKind: BinarySymbolData.SymbolKind): IrSymbol? {
+        irBuiltInsMap[idSig]?.let { return it }
+
+        val topLevel = idSig.topLevelSignature()
+        if (checkIsFunctionInterface(topLevel)) {
+            computeFunctionClass(topLevel)
+            return referenceDeserializedSymbol(symbolTable, null, symbolKind, idSig)
+        }
+
+        return delegate.tryDeserializeIrSymbol(idSig, symbolKind)
+    }
+
+    override fun deserializedSymbolNotFound(idSig: IdSignature): Nothing = delegate.deserializedSymbolNotFound(idSig)
+
+    override fun declareIrSymbol(symbol: IrSymbol) {
+        val signature = symbol.signature
+        if (signature != null && checkIsFunctionInterface(signature))
+            computeFunctionClass(signature)
+        else delegate.declareIrSymbol(symbol)
+    }
+
+    override val klib: KotlinLibrary
+        get() = delegate.klib
+
+    override val strategyResolver: (String) -> DeserializationStrategy
+        get() = delegate.strategyResolver
+
+    override fun addModuleReachableTopLevel(topLevelDeclarationSignature: IdSignature) {
+        delegate.addModuleReachableTopLevel(topLevelDeclarationSignature)
+    }
+
+    override fun fileDeserializers(): Collection<IrFileDeserializer> {
+        return delegate.fileDeserializers()
+    }
+
+    override fun postProcess() {
+        delegate.postProcess()
+    }
+
+    internal fun finish(irBuiltIns: IrBuiltIns) {
+        if (syntheticFunctionClassGenerator.typeSystem != null) return
+        syntheticFunctionClassGenerator.typeSystem = IrTypeSystemContextImpl(irBuiltIns)
+        @OptIn(UnstableBuiltInsApi::class)
+        irBuiltIns.functionFactory = syntheticFunctionClassGenerator
+    }
+
+    override fun getAllMatchingSignatures(callableId: CallableId, signatureKind: IrDeserializer.TopLevelSymbolKind): List<IdSignature> {
+        irBuiltInsCallableIdMap[callableId]?.let { return it }
+        return super.getAllMatchingSignatures(callableId, signatureKind)
+    }
+}

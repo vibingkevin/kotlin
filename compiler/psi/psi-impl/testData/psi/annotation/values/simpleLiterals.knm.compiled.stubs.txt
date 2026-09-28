@@ -1,0 +1,265 @@
+0_.knm:
+  FILE[kind=File[packageFqName=<root>]]
+    PACKAGE_DIRECTIVE
+    IMPORT_LIST
+    CLASS[classId=/Simple, fqName=Simple, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=Simple, superNames=[Annotation]]
+      MODIFIER_LIST[public final annotation]
+      PRIMARY_CONSTRUCTOR[fqName=null, hasBody=false, hasNoExpressionBody=true, isDelegatedCallToThis=false, isExplicitDelegationCall=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=Simple]
+        MODIFIER_LIST[public]
+        VALUE_PARAMETER_LIST
+          VALUE_PARAMETER[fqName=Simple.i, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=i]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Int]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Simple.l, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=l]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Long]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Simple.b, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=b]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Byte]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Simple.d, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=d]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Double]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Simple.f, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=f]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Float]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Simple.c, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=c]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Char]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Simple.b1, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=b1]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Boolean]
+                  isClassRef: true
+          VALUE_PARAMETER[fqName=Simple.b2, hasDefaultValue=false, hasValOrVar=true, isMutable=false, name=b2]
+            MODIFIER_LIST[public final]
+            TYPE_REFERENCE
+              USER_TYPE
+                USER_TYPE
+                  REFERENCE_EXPRESSION[referencedName=kotlin]
+                REFERENCE_EXPRESSION[referencedName=Boolean]
+                  isClassRef: true
+      SUPER_TYPE_LIST
+        SUPER_TYPE_ENTRY
+          TYPE_REFERENCE
+            USER_TYPE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=kotlin]
+              REFERENCE_EXPRESSION[referencedName=Annotation]
+                isClassRef: true
+      CLASS_BODY
+
+
+1_.knm:
+  FILE[kind=File[packageFqName=<root>]]
+    PACKAGE_DIRECTIVE
+    IMPORT_LIST
+    CLASS[classId=/WithNamedSimple, fqName=WithNamedSimple, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=WithNamedSimple, superNames=[]]
+      MODIFIER_LIST[public final]
+        ANNOTATION_ENTRY[hasValueArguments=true, shortName=Simple]
+          valueArguments: [
+            i -> 12
+            l -> 12.toLong()
+            b -> 12.toByte()
+            d -> 3.3.toDouble()
+            f -> 3.3.toFloat()
+            c -> \u0061 ('a')
+            b1 -> true
+            b2 -> false
+          ]
+          CONSTRUCTOR_CALLEE
+            TYPE_REFERENCE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=Simple]
+                  isClassRef: true
+          VALUE_ARGUMENT_LIST
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=i]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=12]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=l]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=12L]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=12]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=d]
+              FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=3.3]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=f]
+              FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=3.3F]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=c]
+              CHARACTER_CONSTANT[kind=CHARACTER_CONSTANT, value='a']
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b1]
+              BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=true]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b2]
+              BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=false]
+      PRIMARY_CONSTRUCTOR[fqName=null, hasBody=false, hasNoExpressionBody=true, isDelegatedCallToThis=false, isExplicitDelegationCall=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=WithNamedSimple]
+        MODIFIER_LIST[public]
+        VALUE_PARAMETER_LIST
+      CLASS_BODY
+
+
+2_.knm:
+  FILE[kind=File[packageFqName=<root>]]
+    PACKAGE_DIRECTIVE
+    IMPORT_LIST
+    CLASS[classId=/WithSimple, fqName=WithSimple, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=WithSimple, superNames=[]]
+      MODIFIER_LIST[public final]
+        ANNOTATION_ENTRY[hasValueArguments=true, shortName=Simple]
+          valueArguments: [
+            i -> 12
+            l -> 12.toLong()
+            b -> 12.toByte()
+            d -> 3.3.toDouble()
+            f -> 3.3.toFloat()
+            c -> \u0061 ('a')
+            b1 -> true
+            b2 -> false
+          ]
+          CONSTRUCTOR_CALLEE
+            TYPE_REFERENCE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=Simple]
+                  isClassRef: true
+          VALUE_ARGUMENT_LIST
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=i]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=12]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=l]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=12L]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=12]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=d]
+              FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=3.3]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=f]
+              FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=3.3F]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=c]
+              CHARACTER_CONSTANT[kind=CHARACTER_CONSTANT, value='a']
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b1]
+              BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=true]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b2]
+              BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=false]
+      PRIMARY_CONSTRUCTOR[fqName=null, hasBody=false, hasNoExpressionBody=true, isDelegatedCallToThis=false, isExplicitDelegationCall=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=WithSimple]
+        MODIFIER_LIST[public]
+        VALUE_PARAMETER_LIST
+      CLASS_BODY
+
+
+3_.knm:
+  FILE[kind=File[packageFqName=<root>]]
+    PACKAGE_DIRECTIVE
+    IMPORT_LIST
+    CLASS[classId=/WithSimpleOperations, fqName=WithSimpleOperations, isClsStubCompiledToJvmDefaultImplementation=false, isInterface=false, isLocal=false, isTopLevel=true, name=WithSimpleOperations, superNames=[]]
+      MODIFIER_LIST[public final]
+        ANNOTATION_ENTRY[hasValueArguments=true, shortName=Simple]
+          valueArguments: [
+            i -> 2
+            l -> 2.toLong()
+            b -> 12.toByte()
+            d -> 0.2999999999999998.toDouble()
+            f -> 6.6.toFloat()
+            c -> \u0061 ('a')
+            b1 -> false
+            b2 -> true
+          ]
+          CONSTRUCTOR_CALLEE
+            TYPE_REFERENCE
+              USER_TYPE
+                REFERENCE_EXPRESSION[referencedName=Simple]
+                  isClassRef: true
+          VALUE_ARGUMENT_LIST
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=i]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=2]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=l]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=2L]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b]
+              INTEGER_CONSTANT[kind=INTEGER_CONSTANT, value=12]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=d]
+              FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=0.2999999999999998]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=f]
+              FLOAT_CONSTANT[kind=FLOAT_CONSTANT, value=6.6F]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=c]
+              CHARACTER_CONSTANT[kind=CHARACTER_CONSTANT, value='a']
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b1]
+              BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=false]
+            VALUE_ARGUMENT[isSpread=false]
+              VALUE_ARGUMENT_NAME
+                REFERENCE_EXPRESSION[referencedName=b2]
+              BOOLEAN_CONSTANT[kind=BOOLEAN_CONSTANT, value=true]
+      PRIMARY_CONSTRUCTOR[fqName=null, hasBody=false, hasNoExpressionBody=true, isDelegatedCallToThis=false, isExplicitDelegationCall=false, isExtension=false, isTopLevel=false, mayHaveContract=false, name=WithSimpleOperations]
+        MODIFIER_LIST[public]
+        VALUE_PARAMETER_LIST
+      CLASS_BODY

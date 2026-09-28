@@ -1,0 +1,3 @@
+expression: break
+expression PSI: KtBreakExpression
+type: kotlin.Nothing

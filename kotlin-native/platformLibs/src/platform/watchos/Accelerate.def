@@ -1,0 +1,8 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase CoreGraphics CoreVideo darwin posix
+language = Objective-C
+package = platform.Accelerate
+modules = Accelerate
+apiNotesSwiftName = true
+
+compilerOpts = -framework Accelerate
+linkerOpts = -framework Accelerate

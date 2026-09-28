@@ -1,0 +1,7 @@
+depends = CFCGTypes CFNetwork CoreFoundation CoreFoundationBase CoreGraphics CoreLocation CoreServices DiskArbitration Foundation IOKit Security UserNotifications _LocationEssentials darwin libkern osx posix
+language = Objective-C
+package = platform.Intents
+modules = Intents
+apiNotesSwiftName = true
+compilerOpts = -framework Intents
+linkerOpts = -framework Intents

@@ -1,0 +1,20 @@
+// RUN_PIPELINE_TILL: BACKEND
+// FULL_JDK
+// WITH_STDLIB
+// FILE: PyTokenTypes.java
+public class PyTokenTypes {
+    public static final PyTokenTypes LT = new PyTokenTypes();
+}
+
+// FILE: main.kt
+private val comparisonStrings = hashMapOf(
+    PyTokenTypes.LT to "<",
+)
+
+fun findComparisonNegationOperators(x: PyTokenTypes?): Pair<String, String>? {
+    return comparisonStrings.getValue(x) to
+            comparisonStrings.getValue(x)
+}
+
+/* GENERATED_FIR_TAGS: flexibleType, functionDeclaration, javaProperty, javaType, nullableType, propertyDeclaration,
+stringLiteral */

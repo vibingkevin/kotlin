@@ -1,0 +1,12 @@
+// RUN_PIPELINE_TILL: BACKEND
+import kotlin.coroutines.*
+
+fun <T> foo(): Continuation<T> = null!!
+
+fun bar() {
+    suspend {
+        println()
+    }.startCoroutine(foo<Unit>())
+}
+
+/* GENERATED_FIR_TAGS: checkNotNullCall, functionDeclaration, lambdaLiteral, nullableType, typeParameter */

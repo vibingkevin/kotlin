@@ -1,0 +1,29 @@
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+}
+
+dependencies {
+    api(project(":examples:scripting-jvm-simple-script"))
+    compileOnly(project(":kotlin-scripting-jvm-host-unshaded"))
+    testRuntimeOnly(project(":kotlin-compiler-embeddable"))
+    testRuntimeOnly(project(":kotlin-scripting-compiler-embeddable"))
+    testRuntimeOnly(project(":kotlin-scripting-jvm-host"))
+    testRuntimeOnly(libs.guava)
+
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" { projectDefault() }
+}
+
+tasks.test {
+    useJUnitPlatform()
+}

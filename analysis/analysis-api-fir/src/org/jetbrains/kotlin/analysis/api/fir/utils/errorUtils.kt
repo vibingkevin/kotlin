@@ -1,0 +1,41 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.analysis.api.fir.utils
+
+import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.fir.symbols.KaFirSymbol
+import org.jetbrains.kotlin.analysis.api.impl.base.util.withPsiEntry
+import org.jetbrains.kotlin.analysis.api.projectStructure.kaModule
+import org.jetbrains.kotlin.analysis.api.symbols.KaDebugRenderer
+import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
+import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
+import org.jetbrains.kotlin.utils.exceptions.ExceptionAttachmentBuilder
+
+private val recursionGuard = ThreadLocal.withInitial { false }
+
+internal fun ExceptionAttachmentBuilder.withSymbolAttachment(name: String, analysisSession: KaSession, symbol: KaSymbol) {
+    withEntry(name, symbol) { symbol ->
+        if (recursionGuard.get()) {
+            return@withEntry "Recursion detected"
+        }
+
+        recursionGuard.set(true)
+        try {
+            KaDebugRenderer(renderExtra = true).render(analysisSession, symbol)
+        } finally {
+            recursionGuard.set(false)
+        }
+    }
+
+    val psi = symbol.psi
+    val psiModule = psi?.let { context(analysisSession) { it.kaModule } }
+    withPsiEntry("${name}Psi", psi, psiModule)
+
+    if (symbol is KaFirSymbol<*>) {
+        val symbolFir = symbol.firSymbol.fir
+        withFirEntry("${name}Fir", symbolFir)
+    }
+}

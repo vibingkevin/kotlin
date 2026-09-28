@@ -1,0 +1,46 @@
+/*
+ * Copyright 2010-2024 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.common.serialization
+
+import org.jetbrains.kotlin.ir.expressions.IrAnnotation
+import org.jetbrains.kotlin.ir.expressions.IrErrorExpression
+import org.jetbrains.kotlin.ir.types.IrErrorType
+import org.jetbrains.kotlin.ir.types.IrType
+
+/**
+ * Various settings used during deserialization of IR modules and IR files.
+ *
+ * @property allowErrorNodes Whether serialization of [IrErrorType] and [IrErrorExpression] is permitted.
+ *   Caution: This setting is not safe to use, as it can lead to crashes in the frontend or backend.
+ *   The only legal case for using this setting is the `dump-ir` command of the `klib` command-line tool.
+ * @property allowAlreadyBoundSymbols Don't attempt to create a new declaration (IR entity) during deserialization
+ *   if it turns out that the symbol is already bound. This is needed for specific JVM-related scenarios when it's
+ *   necessary to deserialize IR for already existing declarations.
+ * @property deserializeFunctionBodies Whether to deserialize bodies of all functions ([DeserializeFunctionBodies.ALL]),
+ *   only inline functions and their local functions ([DeserializeFunctionBodies.ONLY_INLINE]), or don't deserialize
+ *   function bodies at all ([DeserializeFunctionBodies.NONE]).
+ * @property nullableAnyAsAnnotationConstructorCallType If set, then this type will be used as the type of the
+ *   annotation [IrAnnotation] instead of the lazy type that is computed by [IrAnnotation.symbol].
+ *   This setting is necessary for deserialization of unbound IR, where [IrAnnotation.symbol] can happen
+ *   to be unbound resulting in "X is unbound" crash on the first attempt to read annotation's type.
+ *   See [org.jetbrains.kotlin.backend.common.serialization.IrBodyDeserializer.IrAnnotationType] for more details.
+ * @property fixSwappedKProperty2TypeParameterOrder If `true`, the type parameter order of `KProperty2`/`KMutableProperty2`
+ *   in deserialized property references is swapped to compensate for the legacy order that was used in KLIBs
+ *   compiled with Kotlin <= 2.1 (ABI version <= 1.201.0). See KT-75112, KT-86180.
+ * @property deserializeTypeAliases Whether to deserialize [org.jetbrains.kotlin.ir.declarations.IrTypeAlias] declarations.
+ *   Type aliases don't need to be (de)serialized anymore. See KT-86632.
+ *   The only case for enabling it is the klib tool and its ability to dump (even older) KLIBs.
+ */
+class IrDeserializationSettings(
+    val allowErrorNodes: Boolean = false,
+    val allowAlreadyBoundSymbols: Boolean = false,
+    val deserializeFunctionBodies: DeserializeFunctionBodies = DeserializeFunctionBodies.ALL,
+    val nullableAnyAsAnnotationConstructorCallType: IrType? = null,
+    val fixSwappedKProperty2TypeParameterOrder: Boolean = false,
+    val deserializeTypeAliases: Boolean = false,
+) {
+    enum class DeserializeFunctionBodies { ALL, ONLY_INLINE, NONE }
+}

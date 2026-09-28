@@ -1,0 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
+<!NON_MEMBER_FUNCTION_NO_BODY!>fun bar()<!>
+
+/* GENERATED_FIR_TAGS: functionDeclaration */

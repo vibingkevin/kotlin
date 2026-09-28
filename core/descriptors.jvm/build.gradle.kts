@@ -1,0 +1,22 @@
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+}
+
+dependencies {
+    api(project(":kotlin-annotations-jvm"))
+    implementation(project(":core:descriptors"))
+    implementation(project(":core:deserialization"))
+    api(project(":core:compiler.common.jvm"))
+    api(project(":core:deserialization.common.jvm"))
+    api(project(":core:util.runtime"))
+    api(commonDependency("javax.inject"))
+}
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" {}
+}
+
+optInToK1Deprecation()

@@ -1,0 +1,64 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.tree.IElementType;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderWithTextStub;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a string template entry that interpolates an expression, using either the {@code $name} or the {@code ${...}} syntax.
+ *
+ * <p>This is the common base for the concrete node types {@link KtSimpleNameStringTemplateEntry} ({@code $name}) and
+ * {@link KtBlockStringTemplateEntry} ({@code ${expression}}).
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * "Total: ${price * count}"
+ * //      ^______________^
+ * // A block string template entry
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public abstract class KtStringTemplateEntryWithExpression extends KtStringTemplateEntry {
+    @KtImplementationDetail
+    public KtStringTemplateEntryWithExpression(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtStringTemplateEntryWithExpression(
+            @NotNull KotlinPlaceHolderWithTextStub<? extends KtStringTemplateEntryWithExpression> stub,
+            @NotNull IElementType elementType
+    ) {
+        super(stub, elementType);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitStringTemplateEntryWithExpression(this, data);
+    }
+
+    /**
+     * Returns a list of expressions from this entry.
+     * <p>
+     * The list size is 1 for valid code, so {@link #getExpression } should be preferred
+     * and this method should be used only to process potentially error code.
+     *
+     * @return list with expressions or empty
+     * @see #getExpression
+     */
+    @NotNull
+    public List<KtExpression> getExpressions() {
+        KtExpression expression = getExpression();
+        return expression != null ? Collections.singletonList(expression) : Collections.emptyList();
+    }
+}

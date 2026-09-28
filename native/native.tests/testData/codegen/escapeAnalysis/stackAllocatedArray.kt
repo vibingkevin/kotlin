@@ -1,0 +1,56 @@
+/*
+ * Copyright 2010-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
+ * that can be found in the LICENSE file.
+ */
+// DISABLE_NATIVE: optimizationMode=DEBUG
+// DISABLE_NATIVE: optimizationMode=NO
+// DISABLE_NATIVE: cacheMode=STATIC_ONLY_DIST
+// DISABLE_NATIVE: cacheMode=STATIC_EVERYWHERE
+// DISABLE_NATIVE: cacheMode=STATIC_PER_FILE_EVERYWHERE
+// IGNORE_KLIB_RUNTIME_ERRORS_WITH_CUSTOM_FIRST_STAGE: Native:*
+// IGNORE_KLIB_RUNTIME_ERRORS_WITH_CUSTOM_SECOND_STAGE: Native:*
+
+import kotlin.test.*
+import kotlin.native.internal.*
+
+class C(val x: Int)
+
+fun stackArray1(x: Int): Int {
+    val c1 = C(x + 42)
+    val c2 = C(x + 117)
+    val c3 = C(x - 1)
+    val allC = arrayOf(c1, c2, c3)
+    val array = Array(10) { allC[it % 3] }
+
+    assertTrue(c1.isStack())
+    assertTrue(c2.isStack())
+    assertTrue(c3.isStack())
+    assertTrue(allC.isStack())
+    assertTrue(array.isStack())
+    return array[5].x
+}
+
+fun stackArray2(x: Int): Int {
+    val c1 = C(x + 42)
+    val c2 = C(x + 117)
+    val c3 = C(x - 1)
+    val allC = arrayOf(c1, c2, c3)
+    val size = 42
+    val a = size
+    val b = if (x > 10) size else a
+    val array = Array(b) { allC[it % 3] }
+
+    assertTrue(c1.isStack())
+    assertTrue(c2.isStack())
+    assertTrue(c3.isStack())
+    assertTrue(allC.isStack())
+    assertTrue(array.isStack())
+    return array[5].x
+}
+
+fun box(): String {
+    assertEquals(stackArray1(43), 42)
+    assertEquals(stackArray2(43), 42)
+
+    return "OK"
+}

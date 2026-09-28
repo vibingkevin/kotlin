@@ -1,0 +1,3 @@
+EnumEntryCase(/MyEnum.A)
+EnumEntryCase(/MyEnum.B)
+EnumEntryCase(/MyEnum.C)

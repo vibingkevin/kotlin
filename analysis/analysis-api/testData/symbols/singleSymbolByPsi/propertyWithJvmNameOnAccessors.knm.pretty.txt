@@ -1,0 +1,5 @@
+var x: kotlin.Int
+  @ERROR_ANNOTATION
+  get()
+  @ERROR_ANNOTATION
+  set(value: kotlin.Int)

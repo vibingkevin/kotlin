@@ -1,0 +1,22 @@
+// RUN_PIPELINE_TILL: BACKEND
+
+// FILE: JavaClass.java
+
+@FunctionalInterface
+public interface JavaClass<T> {
+    public T invoke();
+}
+
+// FILE: main.kt
+
+fun main() {
+    JavaClass {
+        if (true) {
+            return@JavaClass
+        } else {
+            return@JavaClass
+        }
+    }
+}
+
+/* GENERATED_FIR_TAGS: flexibleType, functionDeclaration, ifExpression, javaType, lambdaLiteral */

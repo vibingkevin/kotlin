@@ -1,0 +1,947 @@
+org.jetbrains.kotlin.KotlinElementTypeProvider
+org.jetbrains.kotlin.KotlinElementTypeProvider.Companion.instance
+org.jetbrains.kotlin.KotlinElementTypeProvider.annotationEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.annotationTargetType
+org.jetbrains.kotlin.KotlinElementTypeProvider.annotationType
+org.jetbrains.kotlin.KotlinElementTypeProvider.backingFieldType
+org.jetbrains.kotlin.KotlinElementTypeProvider.binaryExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.blockCodeFragmentType
+org.jetbrains.kotlin.KotlinElementTypeProvider.blockExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.booleanConstantType
+org.jetbrains.kotlin.KotlinElementTypeProvider.callExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.characterConstantType
+org.jetbrains.kotlin.KotlinElementTypeProvider.classBodyType
+org.jetbrains.kotlin.KotlinElementTypeProvider.classInitializerType
+org.jetbrains.kotlin.KotlinElementTypeProvider.classLiteralExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.classType
+org.jetbrains.kotlin.KotlinElementTypeProvider.collectionLiteralExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.companionBlockType
+org.jetbrains.kotlin.KotlinElementTypeProvider.constructorCalleeType
+org.jetbrains.kotlin.KotlinElementTypeProvider.contextParameterListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.contextReceiverType
+org.jetbrains.kotlin.KotlinElementTypeProvider.contractEffectListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.contractEffectType
+org.jetbrains.kotlin.KotlinElementTypeProvider.delegatedSuperTypeEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.destructuringDeclarationType
+org.jetbrains.kotlin.KotlinElementTypeProvider.dotQualifiedExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.dynamicTypeType
+org.jetbrains.kotlin.KotlinElementTypeProvider.enumEntrySuperclassReferenceExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.enumEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.escapeStringTemplateEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.expressionCodeFragmentType
+org.jetbrains.kotlin.KotlinElementTypeProvider.fileAnnotationListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.fileType
+org.jetbrains.kotlin.KotlinElementTypeProvider.floatConstantType
+org.jetbrains.kotlin.KotlinElementTypeProvider.functionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.functionTypeReceiverType
+org.jetbrains.kotlin.KotlinElementTypeProvider.functionTypeType
+org.jetbrains.kotlin.KotlinElementTypeProvider.importAliasType
+org.jetbrains.kotlin.KotlinElementTypeProvider.importDirectiveType
+org.jetbrains.kotlin.KotlinElementTypeProvider.importListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.initializerListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.integerConstantType
+org.jetbrains.kotlin.KotlinElementTypeProvider.intersectionTypeType
+org.jetbrains.kotlin.KotlinElementTypeProvider.kdocMarkdownLinkType
+org.jetbrains.kotlin.KotlinElementTypeProvider.kdocType
+org.jetbrains.kotlin.KotlinElementTypeProvider.lambdaArgumentType
+org.jetbrains.kotlin.KotlinElementTypeProvider.lambdaExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.literalStringTemplateEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.longStringTemplateEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.modifierListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.nullType
+org.jetbrains.kotlin.KotlinElementTypeProvider.nullableTypeType
+org.jetbrains.kotlin.KotlinElementTypeProvider.objectLiteralType
+org.jetbrains.kotlin.KotlinElementTypeProvider.objectType
+org.jetbrains.kotlin.KotlinElementTypeProvider.operationReferenceType
+org.jetbrains.kotlin.KotlinElementTypeProvider.packageDirectiveType
+org.jetbrains.kotlin.KotlinElementTypeProvider.parenthesizedExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.postfixExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.prefixExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.primaryConstructorType
+org.jetbrains.kotlin.KotlinElementTypeProvider.propertyAccessorType
+org.jetbrains.kotlin.KotlinElementTypeProvider.propertyType
+org.jetbrains.kotlin.KotlinElementTypeProvider.referenceExpressionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.scriptInitializerType
+org.jetbrains.kotlin.KotlinElementTypeProvider.scriptType
+org.jetbrains.kotlin.KotlinElementTypeProvider.secondaryConstructorType
+org.jetbrains.kotlin.KotlinElementTypeProvider.shortStringTemplateEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.stringInterpolationPrefixType
+org.jetbrains.kotlin.KotlinElementTypeProvider.stringTemplateType
+org.jetbrains.kotlin.KotlinElementTypeProvider.superTypeCallEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.superTypeEntryType
+org.jetbrains.kotlin.KotlinElementTypeProvider.superTypeListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeAliasType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeArgumentListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeCodeFragmentType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeConstraintListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeConstraintType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeParameterListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeParameterType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeProjectionType
+org.jetbrains.kotlin.KotlinElementTypeProvider.typeReferenceType
+org.jetbrains.kotlin.KotlinElementTypeProvider.unionTypeType
+org.jetbrains.kotlin.KotlinElementTypeProvider.userTypeType
+org.jetbrains.kotlin.KotlinElementTypeProvider.valueArgumentListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.valueArgumentNameType
+org.jetbrains.kotlin.KotlinElementTypeProvider.valueArgumentType
+org.jetbrains.kotlin.KotlinElementTypeProvider.valueParameterListType
+org.jetbrains.kotlin.KotlinElementTypeProvider.valueParameterType
+org.jetbrains.kotlin.KtNodeType
+org.jetbrains.kotlin.KtNodeType.KtLeftBoundNodeType
+org.jetbrains.kotlin.KtNodeType.KtLeftBoundNodeType:constructor(String, Function<ASTNode, KtElement>)
+org.jetbrains.kotlin.KtNodeType:constructor(String, Function<ASTNode, KtElement>)
+org.jetbrains.kotlin.KtNodeType:createPsi(ASTNode)
+org.jetbrains.kotlin.KtNodeTypes
+org.jetbrains.kotlin.KtNodeTypes:ANNOTATED_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:ANNOTATION
+org.jetbrains.kotlin.KtNodeTypes:ANNOTATION_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:ANNOTATION_TARGET
+org.jetbrains.kotlin.KtNodeTypes:ARRAY_ACCESS_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:BACKING_FIELD
+org.jetbrains.kotlin.KtNodeTypes:BINARY_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:BINARY_WITH_TYPE
+org.jetbrains.kotlin.KtNodeTypes:BLOCK
+org.jetbrains.kotlin.KtNodeTypes:BLOCK_CODE_FRAGMENT
+org.jetbrains.kotlin.KtNodeTypes:BODY
+org.jetbrains.kotlin.KtNodeTypes:BOOLEAN_CONSTANT
+org.jetbrains.kotlin.KtNodeTypes:BREAK
+org.jetbrains.kotlin.KtNodeTypes:CALLABLE_REFERENCE_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:CALL_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:CATCH
+org.jetbrains.kotlin.KtNodeTypes:CHARACTER_CONSTANT
+org.jetbrains.kotlin.KtNodeTypes:CLASS
+org.jetbrains.kotlin.KtNodeTypes:CLASS_BODY
+org.jetbrains.kotlin.KtNodeTypes:CLASS_INITIALIZER
+org.jetbrains.kotlin.KtNodeTypes:CLASS_LITERAL_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:COLLECTION_LITERAL_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:COMPANION_BLOCK
+org.jetbrains.kotlin.KtNodeTypes:CONDITION
+org.jetbrains.kotlin.KtNodeTypes:CONSTRUCTOR_CALLEE
+org.jetbrains.kotlin.KtNodeTypes:CONSTRUCTOR_DELEGATION_CALL
+org.jetbrains.kotlin.KtNodeTypes:CONSTRUCTOR_DELEGATION_REFERENCE
+org.jetbrains.kotlin.KtNodeTypes:CONTEXT_PARAMETER_LIST
+org.jetbrains.kotlin.KtNodeTypes:CONTEXT_RECEIVER
+org.jetbrains.kotlin.KtNodeTypes:CONTINUE
+org.jetbrains.kotlin.KtNodeTypes:CONTRACT_EFFECT
+org.jetbrains.kotlin.KtNodeTypes:CONTRACT_EFFECT_LIST
+org.jetbrains.kotlin.KtNodeTypes:DELEGATED_SUPER_TYPE_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:DESTRUCTURING_DECLARATION
+org.jetbrains.kotlin.KtNodeTypes:DESTRUCTURING_DECLARATION_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:DOT_QUALIFIED_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:DO_WHILE
+org.jetbrains.kotlin.KtNodeTypes:DYNAMIC_TYPE
+org.jetbrains.kotlin.KtNodeTypes:ELSE
+org.jetbrains.kotlin.KtNodeTypes:ENUM_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:ENUM_ENTRY_SUPERCLASS_REFERENCE_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:ERROR_SAFE_ACCESS_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:ESCAPE_STRING_TEMPLATE_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:EXPRESSION_CODE_FRAGMENT
+org.jetbrains.kotlin.KtNodeTypes:FILE
+org.jetbrains.kotlin.KtNodeTypes:FILE_ANNOTATION_LIST
+org.jetbrains.kotlin.KtNodeTypes:FINALLY
+org.jetbrains.kotlin.KtNodeTypes:FLOAT_CONSTANT
+org.jetbrains.kotlin.KtNodeTypes:FOR
+org.jetbrains.kotlin.KtNodeTypes:FUN
+org.jetbrains.kotlin.KtNodeTypes:FUNCTION_LITERAL
+org.jetbrains.kotlin.KtNodeTypes:FUNCTION_TYPE
+org.jetbrains.kotlin.KtNodeTypes:FUNCTION_TYPE_RECEIVER
+org.jetbrains.kotlin.KtNodeTypes:IF
+org.jetbrains.kotlin.KtNodeTypes:IMPORT_ALIAS
+org.jetbrains.kotlin.KtNodeTypes:IMPORT_DIRECTIVE
+org.jetbrains.kotlin.KtNodeTypes:IMPORT_LIST
+org.jetbrains.kotlin.KtNodeTypes:INDICES
+org.jetbrains.kotlin.KtNodeTypes:INITIALIZER_LIST
+org.jetbrains.kotlin.KtNodeTypes:INTEGER_CONSTANT
+org.jetbrains.kotlin.KtNodeTypes:INTERSECTION_TYPE
+org.jetbrains.kotlin.KtNodeTypes:IS_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:LABEL
+org.jetbrains.kotlin.KtNodeTypes:LABELED_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:LABEL_QUALIFIER
+org.jetbrains.kotlin.KtNodeTypes:LAMBDA_ARGUMENT
+org.jetbrains.kotlin.KtNodeTypes:LAMBDA_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:LITERAL_STRING_TEMPLATE_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:LONG_STRING_TEMPLATE_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:LOOP_RANGE
+org.jetbrains.kotlin.KtNodeTypes:MODIFIER_LIST
+org.jetbrains.kotlin.KtNodeTypes:NULL
+org.jetbrains.kotlin.KtNodeTypes:NULLABLE_TYPE
+org.jetbrains.kotlin.KtNodeTypes:OBJECT_DECLARATION
+org.jetbrains.kotlin.KtNodeTypes:OBJECT_LITERAL
+org.jetbrains.kotlin.KtNodeTypes:OPERATION_REFERENCE
+org.jetbrains.kotlin.KtNodeTypes:PACKAGE_DIRECTIVE
+org.jetbrains.kotlin.KtNodeTypes:PARENTHESIZED
+org.jetbrains.kotlin.KtNodeTypes:POSTFIX_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:PREFIX_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:PRIMARY_CONSTRUCTOR
+org.jetbrains.kotlin.KtNodeTypes:PROPERTY
+org.jetbrains.kotlin.KtNodeTypes:PROPERTY_ACCESSOR
+org.jetbrains.kotlin.KtNodeTypes:PROPERTY_DELEGATE
+org.jetbrains.kotlin.KtNodeTypes:REFERENCE_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:RETURN
+org.jetbrains.kotlin.KtNodeTypes:SAFE_ACCESS_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:SCRIPT
+org.jetbrains.kotlin.KtNodeTypes:SCRIPT_INITIALIZER
+org.jetbrains.kotlin.KtNodeTypes:SECONDARY_CONSTRUCTOR
+org.jetbrains.kotlin.KtNodeTypes:SHORT_STRING_TEMPLATE_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:STRING_INTERPOLATION_PREFIX
+org.jetbrains.kotlin.KtNodeTypes:STRING_TEMPLATE
+org.jetbrains.kotlin.KtNodeTypes:SUPER_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:SUPER_TYPE_CALL_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:SUPER_TYPE_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:SUPER_TYPE_LIST
+org.jetbrains.kotlin.KtNodeTypes:THEN
+org.jetbrains.kotlin.KtNodeTypes:THIS_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:THROW
+org.jetbrains.kotlin.KtNodeTypes:TRY
+org.jetbrains.kotlin.KtNodeTypes:TYPEALIAS
+org.jetbrains.kotlin.KtNodeTypes:TYPE_ARGUMENT_LIST
+org.jetbrains.kotlin.KtNodeTypes:TYPE_CODE_FRAGMENT
+org.jetbrains.kotlin.KtNodeTypes:TYPE_CONSTRAINT
+org.jetbrains.kotlin.KtNodeTypes:TYPE_CONSTRAINT_LIST
+org.jetbrains.kotlin.KtNodeTypes:TYPE_PARAMETER
+org.jetbrains.kotlin.KtNodeTypes:TYPE_PARAMETER_LIST
+org.jetbrains.kotlin.KtNodeTypes:TYPE_PROJECTION
+org.jetbrains.kotlin.KtNodeTypes:TYPE_REFERENCE
+org.jetbrains.kotlin.KtNodeTypes:UNION_TYPE
+org.jetbrains.kotlin.KtNodeTypes:USER_TYPE
+org.jetbrains.kotlin.KtNodeTypes:VALUE_ARGUMENT
+org.jetbrains.kotlin.KtNodeTypes:VALUE_ARGUMENT_LIST
+org.jetbrains.kotlin.KtNodeTypes:VALUE_ARGUMENT_NAME
+org.jetbrains.kotlin.KtNodeTypes:VALUE_PARAMETER
+org.jetbrains.kotlin.KtNodeTypes:VALUE_PARAMETER_LIST
+org.jetbrains.kotlin.KtNodeTypes:WHEN
+org.jetbrains.kotlin.KtNodeTypes:WHEN_CONDITION_EXPRESSION
+org.jetbrains.kotlin.KtNodeTypes:WHEN_CONDITION_IN_RANGE
+org.jetbrains.kotlin.KtNodeTypes:WHEN_CONDITION_IS_PATTERN
+org.jetbrains.kotlin.KtNodeTypes:WHEN_ENTRY
+org.jetbrains.kotlin.KtNodeTypes:WHEN_ENTRY_GUARD
+org.jetbrains.kotlin.KtNodeTypes:WHILE
+org.jetbrains.kotlin.analysis.decompiler.psi.KotlinLabelProviderService.getLabelForKotlinJavaScriptMetaFileType()
+org.jetbrains.kotlin.diagnostics.PsiDiagnosticUtils.LineAndColumn:constructor(int, int, String)
+org.jetbrains.kotlin.diagnostics.PsiDiagnosticUtils.LineAndColumnRange:constructor(LineAndColumn, LineAndColumn)
+org.jetbrains.kotlin.idea.references.KtReference
+org.jetbrains.kotlin.idea.references.KtReference.resolver
+org.jetbrains.kotlin.kdoc.psi.impl.KDocElementImpl:constructor(ASTNode)
+org.jetbrains.kotlin.kdoc.psi.impl.KDocLink:constructor(ASTNode)
+org.jetbrains.kotlin.kdoc.psi.impl.KDocName:constructor(ASTNode)
+org.jetbrains.kotlin.kdoc.psi.impl.KDocSection:constructor(ASTNode)
+org.jetbrains.kotlin.kdoc.psi.impl.KDocTag:constructor(ASTNode)
+org.jetbrains.kotlin.psi.EditCommaSeparatedListHelper
+org.jetbrains.kotlin.psi.EditCommaSeparatedListHelper.addItem(KtElement, List<TItem>, TItem, KtToken)
+org.jetbrains.kotlin.psi.EditCommaSeparatedListHelper.addItemAfter(KtElement, List<TItem>, TItem, TItem?, KtToken)
+org.jetbrains.kotlin.psi.EditCommaSeparatedListHelper.addItemBefore(KtElement, List<TItem>, TItem, TItem?, KtToken)
+org.jetbrains.kotlin.psi.EditCommaSeparatedListHelper.removeItem(TItem)
+org.jetbrains.kotlin.psi.KtAnnotatedExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtAnnotation:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtAnnotation:constructor(KotlinPlaceHolderStub<KtAnnotation>)
+org.jetbrains.kotlin.psi.KtAnnotationEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtAnnotationEntry:constructor(KotlinAnnotationEntryStub)
+org.jetbrains.kotlin.psi.KtAnnotationUseSiteTarget:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtAnnotationUseSiteTarget:constructor(KotlinAnnotationUseSiteTargetStub)
+org.jetbrains.kotlin.psi.KtArrayAccessExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtBackingField.returnTypeReference
+org.jetbrains.kotlin.psi.KtBackingField:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtBackingField:constructor(KotlinBackingFieldStub)
+org.jetbrains.kotlin.psi.KtBinaryExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtBinaryExpression:constructor(KotlinPlaceHolderStub<KtBinaryExpression>)
+org.jetbrains.kotlin.psi.KtBinaryExpressionWithTypeRHS:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtBlockCodeFragment:constructor(Project, String, CharSequence, String?, PsiElement?)
+org.jetbrains.kotlin.psi.KtBlockExpression:constructor(CharSequence)
+org.jetbrains.kotlin.psi.KtBlockExpression:shouldChangeModificationCount(PsiElement)
+org.jetbrains.kotlin.psi.KtBlockStringTemplateEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtBlockStringTemplateEntry:constructor(KotlinBlockStringTemplateEntryStub)
+org.jetbrains.kotlin.psi.KtBreakExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtCallExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtCallExpression:constructor(KotlinPlaceHolderStub<KtCallExpression>)
+org.jetbrains.kotlin.psi.KtCallableReferenceExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtCatchClause:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtClass:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtClass:constructor(KotlinClassStub)
+org.jetbrains.kotlin.psi.KtClass:constructor(KotlinClassStub, IElementType)
+org.jetbrains.kotlin.psi.KtClassBody:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtClassBody:constructor(KotlinPlaceHolderStub<KtClassBody>)
+org.jetbrains.kotlin.psi.KtClassInitializer:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtClassInitializer:constructor(KotlinPlaceHolderStub<KtClassInitializer>)
+org.jetbrains.kotlin.psi.KtClassLiteralExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtClassLiteralExpression:constructor(KotlinPlaceHolderStub<KtClassLiteralExpression>)
+org.jetbrains.kotlin.psi.KtClassOrObject.addDeclaration(T)
+org.jetbrains.kotlin.psi.KtClassOrObject.addDeclarationAfter(T, PsiElement?)
+org.jetbrains.kotlin.psi.KtClassOrObject.addDeclarationBefore(T, PsiElement?)
+org.jetbrains.kotlin.psi.KtClassOrObject.addSuperTypeListEntry(KtSuperTypeListEntry)
+org.jetbrains.kotlin.psi.KtClassOrObject.removeSuperTypeListEntry(KtSuperTypeListEntry)
+org.jetbrains.kotlin.psi.KtClassOrObject:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtClassOrObject:constructor(KotlinClassOrObjectStub<out KtClassOrObject>, IElementType)
+org.jetbrains.kotlin.psi.KtCodeFragment.Companion.IMPORT_MODIFICATION
+org.jetbrains.kotlin.psi.KtCodeFragment.addImport(String)
+org.jetbrains.kotlin.psi.KtCodeFragment:constructor(Project, String, CharSequence, String?, IElementType, PsiElement?)
+org.jetbrains.kotlin.psi.KtCollectionLiteralExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtCollectionLiteralExpression:constructor(KotlinCollectionLiteralExpressionStub)
+org.jetbrains.kotlin.psi.KtCommonFile.greenStub
+org.jetbrains.kotlin.psi.KtCommonFile.importLists
+org.jetbrains.kotlin.psi.KtCompanionBlock:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtCompanionBlock:constructor(KotlinPlaceHolderStub<KtCompanionBlock>)
+org.jetbrains.kotlin.psi.KtConstantExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtConstantExpression:constructor(KotlinConstantExpressionStub)
+org.jetbrains.kotlin.psi.KtConstructor:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtConstructor:constructor(KotlinConstructorStub<T>, IElementType)
+org.jetbrains.kotlin.psi.KtConstructorCalleeExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtConstructorCalleeExpression:constructor(KotlinPlaceHolderStub<KtConstructorCalleeExpression>)
+org.jetbrains.kotlin.psi.KtConstructorDelegationCall:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtConstructorDelegationReferenceExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContainerNode:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContainerNodeForControlStructureBody:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContextParameterList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContextParameterList:constructor(KotlinPlaceHolderStub<KtContextParameterList>)
+org.jetbrains.kotlin.psi.KtContextReceiver:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContextReceiver:constructor(KotlinContextReceiverStub)
+org.jetbrains.kotlin.psi.KtContextReceiverList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContextReceiverList:constructor(KotlinPlaceHolderStub<KtContextParameterList>)
+org.jetbrains.kotlin.psi.KtContinueExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContractEffect:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContractEffect:constructor(KotlinPlaceHolderStub<KtContractEffect>)
+org.jetbrains.kotlin.psi.KtContractEffectList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtContractEffectList:constructor(KotlinPlaceHolderStub<KtContractEffectList>)
+org.jetbrains.kotlin.psi.KtDeclarationImpl:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDeclarationModifierList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDeclarationModifierList:constructor(KotlinModifierListStub)
+org.jetbrains.kotlin.psi.KtDeclarationStub:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDeclarationStub:constructor(T, IElementType)
+org.jetbrains.kotlin.psi.KtDelegatedSuperTypeEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDelegatedSuperTypeEntry:constructor(KotlinPlaceHolderStub<? extends KtSuperTypeListEntry>)
+org.jetbrains.kotlin.psi.KtDestructuringDeclaration:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDestructuringDeclaration:constructor(KotlinDestructuringDeclarationStub)
+org.jetbrains.kotlin.psi.KtDestructuringDeclarationEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDoWhileExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDotQualifiedExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDotQualifiedExpression:constructor(KotlinPlaceHolderStub<KtDotQualifiedExpression>)
+org.jetbrains.kotlin.psi.KtDoubleColonExpression.setReceiverExpression(KtExpression)
+org.jetbrains.kotlin.psi.KtDynamicType:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtDynamicType:constructor(KotlinPlaceHolderStub<KtDynamicType>)
+org.jetbrains.kotlin.psi.KtElementImpl:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtElementImplStub:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtElementImplStub:constructor(T, IElementType)
+org.jetbrains.kotlin.psi.KtEnumEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtEnumEntry:constructor(KotlinClassStub)
+org.jetbrains.kotlin.psi.KtEnumEntrySuperclassReferenceExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtEnumEntrySuperclassReferenceExpression:constructor(KotlinEnumEntrySuperclassReferenceExpressionStub)
+org.jetbrains.kotlin.psi.KtEscapeStringTemplateEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtEscapeStringTemplateEntry:constructor(KotlinPlaceHolderWithTextStub<KtEscapeStringTemplateEntry>)
+org.jetbrains.kotlin.psi.KtExpressionImpl.Companion.replaceExpression(KtExpression, PsiElement, Boolean, (PsiElement) -> PsiElement)
+org.jetbrains.kotlin.psi.KtExpressionImpl.findExpressionUnder(IElementType)
+org.jetbrains.kotlin.psi.KtExpressionImpl:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtExpressionImplStub:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtExpressionImplStub:constructor(T, IElementType)
+org.jetbrains.kotlin.psi.KtExpressionWithLabel:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtFileAnnotationList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtFileAnnotationList:constructor(KotlinPlaceHolderStub<KtFileAnnotationList>)
+org.jetbrains.kotlin.psi.KtFinallySection:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtForExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtFunctionLiteral:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtFunctionNotStubbed:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtFunctionType:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtFunctionType:constructor(KotlinFunctionTypeStub)
+org.jetbrains.kotlin.psi.KtFunctionTypeReceiver:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtFunctionTypeReceiver:constructor(KotlinPlaceHolderStub<KtFunctionTypeReceiver>)
+org.jetbrains.kotlin.psi.KtIfExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtImportAlias:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtImportAlias:constructor(KotlinImportAliasStub)
+org.jetbrains.kotlin.psi.KtImportDirective:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtImportDirective:constructor(KotlinImportDirectiveStub)
+org.jetbrains.kotlin.psi.KtImportList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtImportList:constructor(KotlinPlaceHolderStub<KtImportList>)
+org.jetbrains.kotlin.psi.KtImportsFactory:constructor(Project)
+org.jetbrains.kotlin.psi.KtImportsFactory:createImportDirectives(Collection<ImportPath>)
+org.jetbrains.kotlin.psi.KtImportsFactory:createImportDirectivesNotCached(Collection<ImportPath>)
+org.jetbrains.kotlin.psi.KtInitializerList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtInitializerList:constructor(KotlinPlaceHolderStub<KtInitializerList>)
+org.jetbrains.kotlin.psi.KtInstanceExpressionWithLabel:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtIntersectionType:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtIntersectionType:constructor(KotlinPlaceHolderStub<KtIntersectionType>)
+org.jetbrains.kotlin.psi.KtIsExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtLabelReferenceExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtLabeledExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtLambdaArgument:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtLambdaArgument:constructor(KotlinValueArgumentStub<KtLambdaArgument>)
+org.jetbrains.kotlin.psi.KtLambdaExpression:constructor(CharSequence)
+org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry:constructor(KotlinPlaceHolderWithTextStub<KtLiteralStringTemplateEntry>)
+org.jetbrains.kotlin.psi.KtLoopExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtModifierList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtModifierList:constructor(KotlinModifierListStub, IElementType)
+org.jetbrains.kotlin.psi.KtModifierListOwnerStub:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtModifierListOwnerStub:constructor(T, IElementType)
+org.jetbrains.kotlin.psi.KtNameReferenceExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtNameReferenceExpression:constructor(KotlinNameReferenceExpressionStub)
+org.jetbrains.kotlin.psi.KtNamedDeclarationStub:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtNamedDeclarationStub:constructor(T, IElementType)
+org.jetbrains.kotlin.psi.KtNamedFunction:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtNamedFunction:constructor(KotlinFunctionStub)
+org.jetbrains.kotlin.psi.KtNullableType:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtNullableType:constructor(KotlinPlaceHolderStub<KtNullableType>)
+org.jetbrains.kotlin.psi.KtObjectDeclaration:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtObjectDeclaration:constructor(KotlinObjectStub)
+org.jetbrains.kotlin.psi.KtObjectLiteralExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtObjectLiteralExpression:constructor(KotlinPlaceHolderStub<KtObjectLiteralExpression>)
+org.jetbrains.kotlin.psi.KtOperationReferenceExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtOperationReferenceExpression:constructor(KotlinOperationReferenceExpressionStub)
+org.jetbrains.kotlin.psi.KtPackageDirective:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtPackageDirective:constructor(KotlinPlaceHolderStub<KtPackageDirective>)
+org.jetbrains.kotlin.psi.KtParameter:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtParameter:constructor(KotlinParameterStub)
+org.jetbrains.kotlin.psi.KtParameterList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtParameterList:constructor(KotlinPlaceHolderStub<KtParameterList>)
+org.jetbrains.kotlin.psi.KtParenthesizedExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtParenthesizedExpression:constructor(KotlinPlaceHolderStub<KtParenthesizedExpression>)
+org.jetbrains.kotlin.psi.KtPostfixExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtPostfixExpression:constructor(KotlinPlaceHolderStub<KtPostfixExpression>)
+org.jetbrains.kotlin.psi.KtPrefixExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtPrefixExpression:constructor(KotlinPlaceHolderStub<KtPrefixExpression>)
+org.jetbrains.kotlin.psi.KtPrimaryConstructor.removeRedundantConstructorKeywordAndSpace()
+org.jetbrains.kotlin.psi.KtPrimaryConstructor:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtPrimaryConstructor:constructor(KotlinConstructorStub<KtPrimaryConstructor>)
+org.jetbrains.kotlin.psi.KtProjectionKind:valueOf
+org.jetbrains.kotlin.psi.KtProjectionKind:values
+org.jetbrains.kotlin.psi.KtProperty:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtProperty:constructor(KotlinPropertyStub)
+org.jetbrains.kotlin.psi.KtPropertyAccessor.leftParenthesis
+org.jetbrains.kotlin.psi.KtPropertyAccessor.returnTypeReference
+org.jetbrains.kotlin.psi.KtPropertyAccessor.rightParenthesis
+org.jetbrains.kotlin.psi.KtPropertyAccessor:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtPropertyAccessor:constructor(KotlinPropertyAccessorStub)
+org.jetbrains.kotlin.psi.KtPropertyDelegate:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtPsiFactory(Project?, Boolean)
+org.jetbrains.kotlin.psi.KtPsiFactory(PsiElement, Boolean)
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.BODY
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.DONE
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.FIRST_PARAM
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.MODIFIERS
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.NAME
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.RECEIVER
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.REST_PARAMS
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.State.TYPE_CONSTRAINTS
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.Target.CONSTRUCTOR
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.Target.FUNCTION
+org.jetbrains.kotlin.psi.KtPsiFactory.CallableBuilder.Target.READ_ONLY_PROPERTY
+org.jetbrains.kotlin.psi.KtPsiFactory.ClassHeaderBuilder.State.BASE_CLASS
+org.jetbrains.kotlin.psi.KtPsiFactory.ClassHeaderBuilder.State.DONE
+org.jetbrains.kotlin.psi.KtPsiFactory.ClassHeaderBuilder.State.MODIFIERS
+org.jetbrains.kotlin.psi.KtPsiFactory.ClassHeaderBuilder.State.NAME
+org.jetbrains.kotlin.psi.KtPsiFactory.ClassHeaderBuilder.State.TYPE_CONSTRAINTS
+org.jetbrains.kotlin.psi.KtPsiFactory.ClassHeaderBuilder.State.TYPE_PARAMETERS
+org.jetbrains.kotlin.psi.KtPsiFactory.createAnalyzableFile(String, String, PsiElement)
+org.jetbrains.kotlin.psi.KtPsiFactory.createFileWithLightClassSupport(String, String, PsiElement)
+org.jetbrains.kotlin.psi.KtPsiFactory.createImportDirectives(Collection<ImportPath>)
+org.jetbrains.kotlin.psi.KtPsiFactory:constructor(KtElement, Boolean)
+org.jetbrains.kotlin.psi.KtPsiFactory:constructor(Project, Boolean)
+org.jetbrains.kotlin.psi.KtPsiFactory:constructor(Project, Boolean, Boolean)
+org.jetbrains.kotlin.psi.KtReturnExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSafeQualifiedExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtScript:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtScript:constructor(KotlinScriptStub)
+org.jetbrains.kotlin.psi.KtScriptInitializer:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtScriptInitializer:constructor(KotlinPlaceHolderStub<KtScriptInitializer>)
+org.jetbrains.kotlin.psi.KtSecondaryConstructor.replaceImplicitDelegationCallWithExplicit(Boolean)
+org.jetbrains.kotlin.psi.KtSecondaryConstructor:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSecondaryConstructor:constructor(KotlinConstructorStub<KtSecondaryConstructor>)
+org.jetbrains.kotlin.psi.KtSelfType:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSimpleNameExpressionImpl.Companion.getReferencedNameAsNameImpl(KtSimpleNameExpression)
+org.jetbrains.kotlin.psi.KtSimpleNameExpressionImpl.Companion.getReferencedNameElementTypeImpl(KtSimpleNameExpression)
+org.jetbrains.kotlin.psi.KtSimpleNameExpressionImpl.Companion.getReferencedNameImpl(KtSimpleNameExpression)
+org.jetbrains.kotlin.psi.KtSimpleNameExpressionImpl:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSimpleNameStringTemplateEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSimpleNameStringTemplateEntry:constructor(KotlinPlaceHolderWithTextStub<KtSimpleNameStringTemplateEntry>)
+org.jetbrains.kotlin.psi.KtStringInterpolationPrefix:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtStringInterpolationPrefix:constructor(KotlinStringInterpolationPrefixStub)
+org.jetbrains.kotlin.psi.KtStringTemplateEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtStringTemplateEntry:constructor(KotlinPlaceHolderWithTextStub<? extends KtStringTemplateEntry>, IElementType)
+org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression:constructor(KotlinPlaceHolderWithTextStub<? extends KtStringTemplateEntryWithExpression>, IElementType)
+org.jetbrains.kotlin.psi.KtStringTemplateExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtStringTemplateExpression:constructor(KotlinPlaceHolderStub<KtStringTemplateExpression>)
+org.jetbrains.kotlin.psi.KtSuperExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSuperTypeCallEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSuperTypeCallEntry:constructor(KotlinPlaceHolderStub<? extends KtSuperTypeListEntry>)
+org.jetbrains.kotlin.psi.KtSuperTypeEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSuperTypeEntry:constructor(KotlinPlaceHolderStub<? extends KtSuperTypeListEntry>)
+org.jetbrains.kotlin.psi.KtSuperTypeList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSuperTypeList:constructor(KotlinPlaceHolderStub<KtSuperTypeList>)
+org.jetbrains.kotlin.psi.KtSuperTypeListEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtSuperTypeListEntry:constructor(KotlinPlaceHolderStub<? extends KtSuperTypeListEntry>, IElementType)
+org.jetbrains.kotlin.psi.KtThisExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtThrowExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTryExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeAlias:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeAlias:constructor(KotlinTypeAliasStub)
+org.jetbrains.kotlin.psi.KtTypeArgumentList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeArgumentList:constructor(KotlinPlaceHolderStub<KtTypeArgumentList>)
+org.jetbrains.kotlin.psi.KtTypeConstraint:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeConstraint:constructor(KotlinPlaceHolderStub<KtTypeConstraint>)
+org.jetbrains.kotlin.psi.KtTypeConstraintList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeConstraintList:constructor(KotlinPlaceHolderStub<KtTypeConstraintList>)
+org.jetbrains.kotlin.psi.KtTypeParameter:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeParameter:constructor(KotlinTypeParameterStub)
+org.jetbrains.kotlin.psi.KtTypeParameterList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeParameterList:constructor(KotlinPlaceHolderStub<KtTypeParameterList>)
+org.jetbrains.kotlin.psi.KtTypeParameterListOwnerStub:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeParameterListOwnerStub:constructor(T, IElementType)
+org.jetbrains.kotlin.psi.KtTypeProjection:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeProjection:constructor(KotlinTypeProjectionStub)
+org.jetbrains.kotlin.psi.KtTypeReference:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtTypeReference:constructor(KotlinPlaceHolderStub<KtTypeReference>)
+org.jetbrains.kotlin.psi.KtUnaryExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtUserType:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtUserType:constructor(KotlinUserTypeStub)
+org.jetbrains.kotlin.psi.KtValueArgument:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtValueArgument:constructor(KotlinValueArgumentStub<KtValueArgument>)
+org.jetbrains.kotlin.psi.KtValueArgumentList:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtValueArgumentList:constructor(KotlinPlaceHolderStub<KtValueArgumentList>)
+org.jetbrains.kotlin.psi.KtValueArgumentName:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtValueArgumentName:constructor(KotlinPlaceHolderStub<KtValueArgumentName>)
+org.jetbrains.kotlin.psi.KtVisitor:visitAnnotatedExpression(KtAnnotatedExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitAnnotation(KtAnnotation, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitAnnotationEntry(KtAnnotationEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitAnnotationUseSiteTarget(KtAnnotationUseSiteTarget, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitAnonymousInitializer(KtAnonymousInitializer, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitArgument(KtValueArgument, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitArrayAccessExpression(KtArrayAccessExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitBackingField(KtBackingField, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitBinaryWithTypeRHSExpression(KtBinaryExpressionWithTypeRHS, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitBlockExpression(KtBlockExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitBlockStringTemplateEntry(KtBlockStringTemplateEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitBreakExpression(KtBreakExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitCallExpression(KtCallExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitCallableReferenceExpression(KtCallableReferenceExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitCatchSection(KtCatchClause, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitClass(KtClass, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitClassBody(KtClassBody, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitClassInitializer(KtClassInitializer, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitClassLiteralExpression(KtClassLiteralExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitClassOrObject(KtClassOrObject, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitCollectionLiteralExpression(KtCollectionLiteralExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitCompanionBlock(KtCompanionBlock, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitConstantExpression(KtConstantExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitConstructor(KtConstructor<?>, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitConstructorCalleeExpression(KtConstructorCalleeExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitConstructorDelegationCall(KtConstructorDelegationCall, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitContextParameterList(KtContextParameterList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitContextReceiver(KtContextReceiver, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitContinueExpression(KtContinueExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDeclaration(KtDeclaration, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDelegatedSuperTypeEntry(KtDelegatedSuperTypeEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDestructuringDeclaration(KtDestructuringDeclaration, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDestructuringDeclarationEntry(KtDestructuringDeclarationEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDoWhileExpression(KtDoWhileExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDotQualifiedExpression(KtDotQualifiedExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDoubleColonExpression(KtDoubleColonExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitDynamicType(KtDynamicType, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitEnumEntry(KtEnumEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitErrorSafeQualifiedExpression(KtErrorSafeQualifiedExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitEscapeStringTemplateEntry(KtEscapeStringTemplateEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitExpression(KtExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitExpressionWithLabel(KtExpressionWithLabel, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitFileAnnotationList(KtFileAnnotationList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitFinallySection(KtFinallySection, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitForExpression(KtForExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitFunctionType(KtFunctionType, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitIfExpression(KtIfExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitImportAlias(KtImportAlias, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitImportDirective(KtImportDirective, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitImportList(KtImportList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitInitializerList(KtInitializerList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitIntersectionType(KtIntersectionType, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitIsExpression(KtIsExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitKtElement(KtElement, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitKtFile(KtFile, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitLabeledExpression(KtLabeledExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitLambdaExpression(KtLambdaExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitLiteralStringTemplateEntry(KtLiteralStringTemplateEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitLoopExpression(KtLoopExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitModifierList(KtModifierList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitNamedDeclaration(KtNamedDeclaration, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitNamedFunction(KtNamedFunction, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitNullableType(KtNullableType, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitObjectDeclaration(KtObjectDeclaration, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitObjectLiteralExpression(KtObjectLiteralExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitPackageDirective(KtPackageDirective, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitParameter(KtParameter, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitParameterList(KtParameterList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitParenthesizedExpression(KtParenthesizedExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitPostfixExpression(KtPostfixExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitPrefixExpression(KtPrefixExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitPrimaryConstructor(KtPrimaryConstructor, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitProperty(KtProperty, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitPropertyAccessor(KtPropertyAccessor, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitPropertyDelegate(KtPropertyDelegate, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitQualifiedExpression(KtQualifiedExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitReferenceExpression(KtReferenceExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitReturnExpression(KtReturnExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSafeQualifiedExpression(KtSafeQualifiedExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitScript(KtScript, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitScriptInitializer(KtScriptInitializer, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSecondaryConstructor(KtSecondaryConstructor, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSimpleNameExpression(KtSimpleNameExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSimpleNameStringTemplateEntry(KtSimpleNameStringTemplateEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitStringTemplateEntry(KtStringTemplateEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitStringTemplateEntryWithExpression(KtStringTemplateEntryWithExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitStringTemplateExpression(KtStringTemplateExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSuperExpression(KtSuperExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSuperTypeCallEntry(KtSuperTypeCallEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSuperTypeEntry(KtSuperTypeEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSuperTypeList(KtSuperTypeList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitSuperTypeListEntry(KtSuperTypeListEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitThisExpression(KtThisExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitThrowExpression(KtThrowExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTryExpression(KtTryExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeAlias(KtTypeAlias, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeArgumentList(KtTypeArgumentList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeConstraint(KtTypeConstraint, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeConstraintList(KtTypeConstraintList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeParameter(KtTypeParameter, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeParameterList(KtTypeParameterList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeProjection(KtTypeProjection, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitTypeReference(KtTypeReference, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitUnaryExpression(KtUnaryExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitUnionType(KtUnionType, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitUserType(KtUserType, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitValueArgumentList(KtValueArgumentList, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitWhenConditionInRange(KtWhenConditionInRange, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitWhenConditionIsPattern(KtWhenConditionIsPattern, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitWhenConditionWithExpression(KtWhenConditionWithExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitWhenEntry(KtWhenEntry, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitWhenExpression(KtWhenExpression, D)
+org.jetbrains.kotlin.psi.KtVisitor:visitWhileExpression(KtWhileExpression, D)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitAnnotatedExpression(KtAnnotatedExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitAnnotation(KtAnnotation)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitAnnotationEntry(KtAnnotationEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitAnonymousInitializer(KtAnonymousInitializer)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitArgument(KtValueArgument)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitArrayAccessExpression(KtArrayAccessExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitBinaryExpression(KtBinaryExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitBinaryWithTypeRHSExpression(KtBinaryExpressionWithTypeRHS)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitBlockExpression(KtBlockExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitBlockStringTemplateEntry(KtBlockStringTemplateEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitBreakExpression(KtBreakExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitCallExpression(KtCallExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitCallableReferenceExpression(KtCallableReferenceExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitCatchSection(KtCatchClause)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitClass(KtClass)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitClassBody(KtClassBody)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitClassInitializer(KtClassInitializer)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitClassLiteralExpression(KtClassLiteralExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitClassOrObject(KtClassOrObject)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitCollectionLiteralExpression(KtCollectionLiteralExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitCompanionBlock(KtCompanionBlock)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitConstantExpression(KtConstantExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitConstructor(KtConstructor<?>)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitConstructorCalleeExpression(KtConstructorCalleeExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitConstructorDelegationCall(KtConstructorDelegationCall)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitContextParameterList(KtContextParameterList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitContextReceiver(KtContextReceiver)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitContinueExpression(KtContinueExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDeclaration(KtDeclaration)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDelegatedSuperTypeEntry(KtDelegatedSuperTypeEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDestructuringDeclaration(KtDestructuringDeclaration)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDestructuringDeclarationEntry(KtDestructuringDeclarationEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDoWhileExpression(KtDoWhileExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDotQualifiedExpression(KtDotQualifiedExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDoubleColonExpression(KtDoubleColonExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitDynamicType(KtDynamicType)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitEnumEntry(KtEnumEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitErrorSafeQualifiedExpression(KtErrorSafeQualifiedExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitEscapeStringTemplateEntry(KtEscapeStringTemplateEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitExpression(KtExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitExpressionWithLabel(KtExpressionWithLabel)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitFinallySection(KtFinallySection)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitForExpression(KtForExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitFunctionType(KtFunctionType)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitIfExpression(KtIfExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitImportAlias(KtImportAlias)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitImportDirective(KtImportDirective)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitImportList(KtImportList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitInitializerList(KtInitializerList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitIntersectionType(KtIntersectionType)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitIsExpression(KtIsExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitKtElement(KtElement)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitKtFile(KtFile)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitLabeledExpression(KtLabeledExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitLambdaExpression(KtLambdaExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitLiteralStringTemplateEntry(KtLiteralStringTemplateEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitLoopExpression(KtLoopExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitModifierList(KtModifierList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitNamedDeclaration(KtNamedDeclaration)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitNamedFunction(KtNamedFunction)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitNullableType(KtNullableType)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitObjectDeclaration(KtObjectDeclaration)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitObjectLiteralExpression(KtObjectLiteralExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitPackageDirective(KtPackageDirective)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitParameter(KtParameter)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitParameterList(KtParameterList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitParenthesizedExpression(KtParenthesizedExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitPostfixExpression(KtPostfixExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitPrefixExpression(KtPrefixExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitPrimaryConstructor(KtPrimaryConstructor)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitProperty(KtProperty)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitPropertyAccessor(KtPropertyAccessor)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitPropertyDelegate(KtPropertyDelegate)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitQualifiedExpression(KtQualifiedExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitReferenceExpression(KtReferenceExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitReturnExpression(KtReturnExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSafeQualifiedExpression(KtSafeQualifiedExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitScript(KtScript)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitScriptInitializer(KtScriptInitializer)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSecondaryConstructor(KtSecondaryConstructor)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSimpleNameExpression(KtSimpleNameExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSimpleNameStringTemplateEntry(KtSimpleNameStringTemplateEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitStringTemplateEntry(KtStringTemplateEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitStringTemplateEntryWithExpression(KtStringTemplateEntryWithExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitStringTemplateExpression(KtStringTemplateExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSuperExpression(KtSuperExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSuperTypeCallEntry(KtSuperTypeCallEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSuperTypeEntry(KtSuperTypeEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSuperTypeList(KtSuperTypeList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitSuperTypeListEntry(KtSuperTypeListEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitThisExpression(KtThisExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitThrowExpression(KtThrowExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTryExpression(KtTryExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeAlias(KtTypeAlias)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeArgumentList(KtTypeArgumentList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeConstraint(KtTypeConstraint)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeConstraintList(KtTypeConstraintList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeParameter(KtTypeParameter)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeParameterList(KtTypeParameterList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeProjection(KtTypeProjection)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitTypeReference(KtTypeReference)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitUnaryExpression(KtUnaryExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitUnionType(KtUnionType)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitUserType(KtUserType)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitValueArgumentList(KtValueArgumentList)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitWhenConditionInRange(KtWhenConditionInRange)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitWhenConditionIsPattern(KtWhenConditionIsPattern)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitWhenConditionWithExpression(KtWhenConditionWithExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitWhenEntry(KtWhenEntry)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitWhenExpression(KtWhenExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoid:visitWhileExpression(KtWhileExpression)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitAnnotatedExpressionVoid(KtAnnotatedExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitAnnotationEntryVoid(KtAnnotationEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitAnnotationVoid(KtAnnotation, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitAnonymousInitializerVoid(KtAnonymousInitializer, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitArgumentVoid(KtValueArgument, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitArrayAccessExpressionVoid(KtArrayAccessExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitBinaryExpressionVoid(KtBinaryExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitBinaryWithTypeRHSExpressionVoid(KtBinaryExpressionWithTypeRHS, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitBlockExpressionVoid(KtBlockExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitBlockStringTemplateEntryVoid(KtBlockStringTemplateEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitBreakExpressionVoid(KtBreakExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitCallExpressionVoid(KtCallExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitCallableReferenceExpressionVoid(KtCallableReferenceExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitCatchSectionVoid(KtCatchClause, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitClassBodyVoid(KtClassBody, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitClassLiteralExpressionVoid(KtClassLiteralExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitClassVoid(KtClass, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitCollectionLiteralExpressionVoid(KtCollectionLiteralExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitCompanionBlockVoid(KtCompanionBlock, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitConstantExpressionVoid(KtConstantExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitConstructorCalleeExpressionVoid(KtConstructorCalleeExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitConstructorDelegationCallVoid(KtConstructorDelegationCall, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitContinueExpressionVoid(KtContinueExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDeclarationVoid(KtDeclaration, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDelegatedSuperTypeEntryVoid(KtDelegatedSuperTypeEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDestructuringDeclarationEntryVoid(KtDestructuringDeclarationEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDestructuringDeclarationVoid(KtDestructuringDeclaration, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDoWhileExpressionVoid(KtDoWhileExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDotQualifiedExpressionVoid(KtDotQualifiedExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDoubleColonExpressionVoid(KtDoubleColonExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitDynamicTypeVoid(KtDynamicType, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitEnumEntryVoid(KtEnumEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitErrorSafeQualifiedExpressionVoid(KtErrorSafeQualifiedExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitEscapeStringTemplateEntryVoid(KtEscapeStringTemplateEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitExpressionVoid(KtExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitExpressionWithLabelVoid(KtExpressionWithLabel, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitFinallySectionVoid(KtFinallySection, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitForExpressionVoid(KtForExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitFunctionTypeVoid(KtFunctionType, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitIfExpressionVoid(KtIfExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitImportAliasVoid(KtImportAlias, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitImportDirectiveVoid(KtImportDirective, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitImportListVoid(KtImportList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitInitializerListVoid(KtInitializerList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitIsExpressionVoid(KtIsExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitKtElementVoid(KtElement, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitKtFileVoid(KtFile, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitLabeledExpressionVoid(KtLabeledExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitLambdaExpressionVoid(KtLambdaExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitLiteralStringTemplateEntryVoid(KtLiteralStringTemplateEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitLoopExpressionVoid(KtLoopExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitModifierListVoid(KtModifierList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitNamedDeclarationVoid(KtNamedDeclaration, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitNamedFunctionVoid(KtNamedFunction, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitNullableTypeVoid(KtNullableType, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitObjectDeclarationVoid(KtObjectDeclaration, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitObjectLiteralExpressionVoid(KtObjectLiteralExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitParameterListVoid(KtParameterList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitParameterVoid(KtParameter, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitParenthesizedExpressionVoid(KtParenthesizedExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitPostfixExpressionVoid(KtPostfixExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitPrefixExpressionVoid(KtPrefixExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitPrimaryConstructorVoid(KtPrimaryConstructor, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitPropertyAccessorVoid(KtPropertyAccessor, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitPropertyDelegateVoid(KtPropertyDelegate, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitPropertyVoid(KtProperty, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitQualifiedExpressionVoid(KtQualifiedExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitReferenceExpressionVoid(KtReferenceExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitReturnExpressionVoid(KtReturnExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSafeQualifiedExpressionVoid(KtSafeQualifiedExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitScriptVoid(KtScript, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSecondaryConstructorVoid(KtSecondaryConstructor, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSimpleNameExpressionVoid(KtSimpleNameExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSimpleNameStringTemplateEntryVoid(KtSimpleNameStringTemplateEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitStringTemplateEntryVoid(KtStringTemplateEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitStringTemplateEntryWithExpressionVoid(KtStringTemplateEntryWithExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitStringTemplateExpressionVoid(KtStringTemplateExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSuperExpressionVoid(KtSuperExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSuperTypeCallEntryVoid(KtSuperTypeCallEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSuperTypeEntryVoid(KtSuperTypeEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSuperTypeListEntryVoid(KtSuperTypeListEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitSuperTypeListVoid(KtSuperTypeList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitThisExpressionVoid(KtThisExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitThrowExpressionVoid(KtThrowExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTryExpressionVoid(KtTryExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTypeArgumentListVoid(KtTypeArgumentList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTypeConstraintListVoid(KtTypeConstraintList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTypeConstraintVoid(KtTypeConstraint, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTypeParameterListVoid(KtTypeParameterList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTypeParameterVoid(KtTypeParameter, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTypeProjectionVoid(KtTypeProjection, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitTypeReferenceVoid(KtTypeReference, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitUnaryExpressionVoid(KtUnaryExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitUserTypeVoid(KtUserType, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitValueArgumentListVoid(KtValueArgumentList, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitWhenConditionInRangeVoid(KtWhenConditionInRange, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitWhenConditionIsPatternVoid(KtWhenConditionIsPattern, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitWhenConditionWithExpressionVoid(KtWhenConditionWithExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitWhenEntryVoid(KtWhenEntry, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitWhenExpressionVoid(KtWhenExpression, P)
+org.jetbrains.kotlin.psi.KtVisitorVoidWithParameter:visitWhileExpressionVoid(KtWhileExpression, P)
+org.jetbrains.kotlin.psi.KtWhenCondition:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhenConditionInRange:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhenConditionIsPattern:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhenConditionWithExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhenEntry:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhenEntryGuard:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhenExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhileExpression:constructor(ASTNode)
+org.jetbrains.kotlin.psi.KtWhileExpressionBase:constructor(ASTNode)
+org.jetbrains.kotlin.psi.addRemoveModifier.MODIFIERS_ORDER
+org.jetbrains.kotlin.psi.addRemoveModifier.addAnnotationEntry(KtModifierListOwner, KtAnnotationEntry)
+org.jetbrains.kotlin.psi.addRemoveModifier.addModifier(KtModifierListOwner, KtModifierKeywordToken)
+org.jetbrains.kotlin.psi.addRemoveModifier.removeModifier(KtModifierListOwner, KtModifierKeywordToken)
+org.jetbrains.kotlin.psi.addRemoveModifier.setModifierList(KtModifierList)
+org.jetbrains.kotlin.psi.createPrimaryConstructorIfAbsent()
+org.jetbrains.kotlin.psi.createPrimaryConstructorParameterListIfAbsent()
+org.jetbrains.kotlin.psi.getOrCreateBody()
+org.jetbrains.kotlin.psi.psiUtil.addTypeArgument(KtTypeProjection)
+org.jetbrains.kotlin.psi.psiUtil.astReplace(PsiElement)
+org.jetbrains.kotlin.psi.psiUtil.createSmartPointer()
+org.jetbrains.kotlin.psi.psiUtil.getOrCreateParameterList()
+org.jetbrains.kotlin.psi.psiUtil.getOrCreateValueArgumentList()
+org.jetbrains.kotlin.psi.psiUtil.replaceFileAnnotationList(KtFile, KtFileAnnotationList)
+org.jetbrains.kotlin.psi.stubs.ConstantValueKind
+org.jetbrains.kotlin.psi.stubs.ConstantValueKind.BOOLEAN_CONSTANT
+org.jetbrains.kotlin.psi.stubs.ConstantValueKind.CHARACTER_CONSTANT
+org.jetbrains.kotlin.psi.stubs.ConstantValueKind.FLOAT_CONSTANT
+org.jetbrains.kotlin.psi.stubs.ConstantValueKind.INTEGER_CONSTANT
+org.jetbrains.kotlin.psi.stubs.ConstantValueKind.NULL
+org.jetbrains.kotlin.psi.stubs.KotlinAnnotationEntryStub
+org.jetbrains.kotlin.psi.stubs.KotlinAnnotationEntryStub.hasValueArguments
+org.jetbrains.kotlin.psi.stubs.KotlinAnnotationEntryStub.shortName
+org.jetbrains.kotlin.psi.stubs.KotlinAnnotationUseSiteTargetStub
+org.jetbrains.kotlin.psi.stubs.KotlinAnnotationUseSiteTargetStub.useSiteTarget
+org.jetbrains.kotlin.psi.stubs.KotlinBackingFieldStub
+org.jetbrains.kotlin.psi.stubs.KotlinBackingFieldStub.hasInitializer
+org.jetbrains.kotlin.psi.stubs.KotlinBlockStringTemplateEntryStub
+org.jetbrains.kotlin.psi.stubs.KotlinCallableStubBase
+org.jetbrains.kotlin.psi.stubs.KotlinCallableStubBase.isExtension
+org.jetbrains.kotlin.psi.stubs.KotlinCallableStubBase.isTopLevel
+org.jetbrains.kotlin.psi.stubs.KotlinClassOrObjectStub
+org.jetbrains.kotlin.psi.stubs.KotlinClassOrObjectStub.isLocal
+org.jetbrains.kotlin.psi.stubs.KotlinClassOrObjectStub.isTopLevel
+org.jetbrains.kotlin.psi.stubs.KotlinClassOrObjectStub.superNames
+org.jetbrains.kotlin.psi.stubs.KotlinClassStub
+org.jetbrains.kotlin.psi.stubs.KotlinClassStub.isInterface
+org.jetbrains.kotlin.psi.stubs.KotlinClassifierStub
+org.jetbrains.kotlin.psi.stubs.KotlinClassifierStub.classId
+org.jetbrains.kotlin.psi.stubs.KotlinCollectionLiteralExpressionStub
+org.jetbrains.kotlin.psi.stubs.KotlinConstantExpressionStub
+org.jetbrains.kotlin.psi.stubs.KotlinConstantExpressionStub.kind
+org.jetbrains.kotlin.psi.stubs.KotlinConstantExpressionStub.value
+org.jetbrains.kotlin.psi.stubs.KotlinConstructorStub
+org.jetbrains.kotlin.psi.stubs.KotlinConstructorStub.isDelegatedCallToThis
+org.jetbrains.kotlin.psi.stubs.KotlinConstructorStub.isExplicitDelegationCall
+org.jetbrains.kotlin.psi.stubs.KotlinContextReceiverStub
+org.jetbrains.kotlin.psi.stubs.KotlinContextReceiverStub.label
+org.jetbrains.kotlin.psi.stubs.KotlinDestructuringDeclarationStub
+org.jetbrains.kotlin.psi.stubs.KotlinDestructuringDeclarationStub.hasInitializer
+org.jetbrains.kotlin.psi.stubs.KotlinDestructuringDeclarationStub.isVar
+org.jetbrains.kotlin.psi.stubs.KotlinEnumEntrySuperclassReferenceExpressionStub
+org.jetbrains.kotlin.psi.stubs.KotlinEnumEntrySuperclassReferenceExpressionStub.referencedName
+org.jetbrains.kotlin.psi.stubs.KotlinFileStub
+org.jetbrains.kotlin.psi.stubs.KotlinFileStub.findImportsByAlias(String)
+org.jetbrains.kotlin.psi.stubs.KotlinFileStub.getPackageFqName()
+org.jetbrains.kotlin.psi.stubs.KotlinFileStub.isScript()
+org.jetbrains.kotlin.psi.stubs.KotlinFunctionStub
+org.jetbrains.kotlin.psi.stubs.KotlinFunctionStub.hasTypeParameterListBeforeFunctionName
+org.jetbrains.kotlin.psi.stubs.KotlinFunctionTypeStub
+org.jetbrains.kotlin.psi.stubs.KotlinImportAliasStub
+org.jetbrains.kotlin.psi.stubs.KotlinImportDirectiveStub
+org.jetbrains.kotlin.psi.stubs.KotlinImportDirectiveStub.importedFqName
+org.jetbrains.kotlin.psi.stubs.KotlinImportDirectiveStub.isAllUnder
+org.jetbrains.kotlin.psi.stubs.KotlinImportDirectiveStub.isValid
+org.jetbrains.kotlin.psi.stubs.KotlinModifierListStub
+org.jetbrains.kotlin.psi.stubs.KotlinModifierListStub.hasModifier(KtModifierKeywordToken)
+org.jetbrains.kotlin.psi.stubs.KotlinNameReferenceExpressionStub
+org.jetbrains.kotlin.psi.stubs.KotlinNameReferenceExpressionStub.referencedName
+org.jetbrains.kotlin.psi.stubs.KotlinObjectStub
+org.jetbrains.kotlin.psi.stubs.KotlinObjectStub.isObjectLiteral
+org.jetbrains.kotlin.psi.stubs.KotlinOperationReferenceExpressionStub
+org.jetbrains.kotlin.psi.stubs.KotlinParameterStub
+org.jetbrains.kotlin.psi.stubs.KotlinParameterStub.hasDefaultValue
+org.jetbrains.kotlin.psi.stubs.KotlinParameterStub.hasValOrVar
+org.jetbrains.kotlin.psi.stubs.KotlinParameterStub.isMutable
+org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub
+org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderWithTextStub
+org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderWithTextStub.text
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyAccessorStub
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyAccessorStub.isGetter
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyStub
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyStub.hasDelegate
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyStub.hasDelegateExpression
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyStub.hasInitializer
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyStub.hasReturnTypeRef
+org.jetbrains.kotlin.psi.stubs.KotlinPropertyStub.isVar
+org.jetbrains.kotlin.psi.stubs.KotlinScriptStub
+org.jetbrains.kotlin.psi.stubs.KotlinStringInterpolationPrefixStub
+org.jetbrains.kotlin.psi.stubs.KotlinStubVersions
+org.jetbrains.kotlin.psi.stubs.KotlinStubVersions.JS_STUB_VERSION
+org.jetbrains.kotlin.psi.stubs.KotlinStubWithFqName
+org.jetbrains.kotlin.psi.stubs.KotlinStubWithFqName.fqName
+org.jetbrains.kotlin.psi.stubs.KotlinTypeAliasStub
+org.jetbrains.kotlin.psi.stubs.KotlinTypeAliasStub.isTopLevel
+org.jetbrains.kotlin.psi.stubs.KotlinTypeParameterStub
+org.jetbrains.kotlin.psi.stubs.KotlinTypeProjectionStub
+org.jetbrains.kotlin.psi.stubs.KotlinTypeProjectionStub.projectionKind
+org.jetbrains.kotlin.psi.stubs.KotlinUserTypeStub
+org.jetbrains.kotlin.psi.stubs.KotlinValueArgumentStub
+org.jetbrains.kotlin.psi.stubs.KotlinValueArgumentStub.isSpread
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets:DECLARATION_AND_COMPANION_BLOCK_TYPES
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets:DECLARATION_TYPES
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets:INSIDE_DIRECTIVE_EXPRESSIONS
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets:POSTFIX_OPERATIONS
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets:PREFIX_OPERATIONS
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets:SUPER_TYPE_LIST_ENTRIES
+org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets:TYPE_ELEMENT_TYPES
+org.jetbrains.kotlin.psi.typeRefHelpers.setReceiverTypeReference(KtTypeReference?)
+org.jetbrains.kotlin.psi.typeRefHelpers.setReceiverTypeReference(KtTypeReference?)
+org.jetbrains.kotlin.psi.typeRefHelpers.setTypeReference(KtCallableDeclaration, PsiElement?, KtTypeReference?)
+org.jetbrains.kotlin.references.utils.KotlinKDocResolutionStrategyProviderService.Companion.getService(Project)
+org.jetbrains.kotlin.references.utils.KotlinKDocResolutionStrategyProviderService.shouldUseExperimentalStrategy()

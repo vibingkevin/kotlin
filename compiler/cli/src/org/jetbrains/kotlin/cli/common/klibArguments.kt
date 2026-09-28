@@ -1,0 +1,216 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.cli.common
+
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.util.Disposer
+import org.jetbrains.kotlin.cli.CliDiagnostics.COMPILER_ARGUMENTS_ERROR
+import org.jetbrains.kotlin.cli.CliDiagnostics.COMPILER_ARGUMENTS_WARNING
+import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.CommonKlibBasedCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.cliArgument
+import org.jetbrains.kotlin.cli.report
+import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.config.CommonConfigurationKeys.LANGUAGE_VERSION_SETTINGS
+import org.jetbrains.kotlin.io.ZipFileSystemAccessor
+import org.jetbrains.kotlin.io.ZipFileSystemCacheableAccessor
+import org.jetbrains.kotlin.io.ZipFileSystemInPlaceAccessor
+import org.jetbrains.kotlin.library.KotlinAbiVersion
+import kotlin.reflect.KProperty1
+
+/**
+ * Important: If you add or remove some argument from [setupCommonKlibArguments],
+ * please remember to update it in [copyCommonKlibArgumentsFrom] correspondingly.
+ */
+fun CompilerConfiguration.setupCommonKlibArguments(
+    arguments: CommonKlibBasedCompilerArguments,
+    canBeMetadataKlibCompilation: Boolean,
+    rootDisposable: Disposable,
+) {
+    val isKlibMetadataCompilation = canBeMetadataKlibCompilation && arguments.metadataKlib
+
+    // Paths.
+    arguments.relativePathBases?.let { klibRelativePathBases += it }
+
+    // Diagnostics & checks.
+    produceKlibSignaturesClashChecks = arguments.enableSignatureClashChecks
+    renderDiagnosticInternalName = arguments.renderInternalDiagnosticNames
+    skipLibrarySpecialCompatibilityChecks = arguments.skipLibrarySpecialCompatibilityChecks
+
+    duplicatedUniqueNameStrategy = DuplicatedUniqueNameStrategy.parseOrDefault(
+        arguments.duplicatedUniqueNameStrategy,
+        default = if (isKlibMetadataCompilation) DuplicatedUniqueNameStrategy.ALLOW_ALL else DuplicatedUniqueNameStrategy.DENY
+    )
+
+    // Set up the custom ABI version (the one that has no effect on the KLIB serialization, though will be written to manifest).
+    customKlibAbiVersion = parseCustomKotlinAbiVersion(arguments.customKlibAbiVersion)
+
+    // Set up the ABI compatibility level (the one that actually affects the KLIB serialization).
+    if (!isKlibMetadataCompilation) {
+        setupKlibAbiCompatibilityLevel()
+    }
+
+    zipFileSystemAccessor = arguments.getZipFileSystemAccessor(
+        zipFileAccessorCacheLimitArgument = CommonKlibBasedCompilerArguments::klibZipFileAccessorCacheLimit,
+        configuration = this,
+        rootDisposable = rootDisposable
+    )
+}
+
+/**
+ * Important: If you add or remove some argument from [copyCommonKlibArgumentsFrom],
+ * please remember to update it in [setupCommonKlibArguments] correspondingly.
+ */
+fun CompilerConfiguration.copyCommonKlibArgumentsFrom(source: CompilerConfiguration) {
+    // Paths.
+    klibRelativePathBases = source.klibRelativePathBases
+
+    // Diagnostics & checks.
+    produceKlibSignaturesClashChecks = source.produceKlibSignaturesClashChecks
+    renderDiagnosticInternalName = source.renderDiagnosticInternalName
+    skipLibrarySpecialCompatibilityChecks = source.skipLibrarySpecialCompatibilityChecks
+    source.duplicatedUniqueNameStrategy?.let { duplicatedUniqueNameStrategy = it }
+
+    // Custom ABI version (the one that has no effect on the KLIB serialization, though will be written to manifest).
+    customKlibAbiVersion = source.customKlibAbiVersion
+
+    // ABI compatibility level (the one that actually affects the KLIB serialization).
+    klibAbiCompatibilityLevel = source.klibAbiCompatibilityLevel
+
+    zipFileSystemAccessor = source.zipFileSystemAccessor
+}
+
+private fun CompilerConfiguration.parseCustomKotlinAbiVersion(customKlibAbiVersion: String?): KotlinAbiVersion? {
+    val versionParts = customKlibAbiVersion?.split('.') ?: return null
+    if (versionParts.size != 3) {
+        report(
+            COMPILER_ARGUMENTS_ERROR,
+            "Invalid ABI version format. Expected format: <major>.<minor>.<patch>"
+        )
+        return null
+    }
+    val version = versionParts.mapNotNull { it.toIntOrNull() }
+    val validNumberRegex = Regex("(0|[1-9]\\d{0,2})")
+    if (versionParts.any { !it.matches(validNumberRegex) } || version.any { it !in 0..255 }) {
+        report(
+            COMPILER_ARGUMENTS_ERROR,
+            "Invalid ABI version numbers. Each part must be in the range 0..255."
+        )
+        return null
+    }
+    return KotlinAbiVersion(version[0], version[1], version[2])
+}
+
+fun <A : CommonCompilerArguments> A.getZipFileSystemAccessor(
+    zipFileAccessorCacheLimitArgument: KProperty1<A, String>,
+    configuration: CompilerConfiguration,
+    rootDisposable: Disposable,
+): ZipFileSystemAccessor? {
+    val cacheLimitRawValue: String = zipFileAccessorCacheLimitArgument.get(this)
+    val cacheLimit: Int? = cacheLimitRawValue.toIntOrNull()
+
+    if (cacheLimit == null || cacheLimit < 0) {
+        configuration.report(
+            COMPILER_ARGUMENTS_ERROR,
+            buildString {
+                append("Cannot parse ${zipFileAccessorCacheLimitArgument.cliArgument} value: \"$cacheLimitRawValue\". ")
+                append("It must be an integer >= 0.")
+            }
+        )
+        return null
+    }
+    return if (cacheLimit > 0) {
+        DisposableZipFileSystemAccessor(cacheLimit).also { Disposer.register(rootDisposable, it) }
+    } else {
+        ZipFileSystemInPlaceAccessor
+    }
+}
+
+private class DisposableZipFileSystemAccessor(
+    private val zipAccessor: ZipFileSystemCacheableAccessor,
+) : Disposable, ZipFileSystemAccessor by zipAccessor {
+    constructor(cacheLimit: Int) : this(ZipFileSystemCacheableAccessor(cacheLimit))
+
+    override fun dispose() {
+        zipAccessor.reset()
+    }
+}
+
+fun CompilerConfiguration.setupKlibAbiCompatibilityLevel() {
+    val languageVersionSettings = this[LANGUAGE_VERSION_SETTINGS]
+        ?: error("Language version settings should be already set up")
+
+    klibAbiCompatibilityLevel = if (languageVersionSettings.supportsFeature(LanguageFeature.ExportKlibToOlderAbiVersion)) {
+        val languageVersion = languageVersionSettings.languageVersion
+
+        val abiCompatibilityLevel = LANGUAGE_VERSION_TO_ABI_COMPATIBILITY_LEVEL[languageVersion]
+        if (abiCompatibilityLevel == null) {
+            report(
+                COMPILER_ARGUMENTS_ERROR,
+                buildString {
+                    append("Exporting KLIBs in older ABI format is only supported for the following language versions: ")
+                    // Show all LVs that are less than the current LV. Because otherwise it could lead to confusion.
+                    LANGUAGE_VERSION_TO_ABI_COMPATIBILITY_LEVEL.keys.takeWhile { it < LanguageVersion.LATEST_STABLE }.joinTo(this)
+                    append(". The current language version is ")
+                    append(languageVersion)
+                }
+            )
+            return
+        }
+
+        abiCompatibilityLevel
+    } else
+        KlibAbiCompatibilityLevel.LATEST_STABLE
+}
+
+private val LANGUAGE_VERSION_TO_ABI_COMPATIBILITY_LEVEL: Map<LanguageVersion, KlibAbiCompatibilityLevel> =
+    buildMap {
+        this[LanguageVersion.KOTLIN_2_4] = KlibAbiCompatibilityLevel.ABI_LEVEL_2_4
+        this[LanguageVersion.KOTLIN_2_5] = KlibAbiCompatibilityLevel.ABI_LEVEL_2_5
+
+        check(size == KlibAbiCompatibilityLevel.entries.size) {
+            "All declared ${KlibAbiCompatibilityLevel::class.java.simpleName} entries should be mapped to language versions"
+        }
+
+        for (languageVersion in LanguageVersion.entries) {
+            if (languageVersion > LanguageVersion.LATEST_STABLE) {
+                // A new language version, for which we don't have the matching ABI compatibility level yet.
+                // So, use the latest stable ABI compatibility level.
+                // Skip old, unsupported language versions - not having them in the map will cause an error to be reported.
+                // Also, skip supported language versions - they're already added to the mapping.
+                this[languageVersion] = KlibAbiCompatibilityLevel.LATEST_STABLE
+            }
+        }
+    }
+
+fun CompilerConfiguration.checkForUnexpectedKlibLibraries(
+    librariesToCheck: List<String>,
+    librariesToCheckArgument: String,
+    allLibraries: List<String>,
+    allLibrariesArgument: String,
+) {
+    if (librariesToCheck.isEmpty()) return
+
+    val unexpectedLibraries = librariesToCheck subtract allLibraries.toSet()
+    if (unexpectedLibraries.isNotEmpty()) {
+        report(
+            COMPILER_ARGUMENTS_WARNING,
+            "There are libraries in $librariesToCheckArgument CLI argument " +
+                    "that are not included in $allLibrariesArgument CLI argument: " +
+                    unexpectedLibraries.joinToString()
+        )
+    }
+}
+
+fun CompilerConfiguration.prohibitExportKlibToOlderAbiVersionAtSecondStage() {
+    if (languageVersionSettings.supportsFeature(LanguageFeature.ExportKlibToOlderAbiVersion)) {
+        report(
+            COMPILER_ARGUMENTS_ERROR,
+            "The language feature 'ExportKlibToOlderAbiVersion' is only intended for producing KLIBs " +
+                    "and cannot be used during the second stage of compilation (KLIB to executable/binary)."
+        )
+    }
+}

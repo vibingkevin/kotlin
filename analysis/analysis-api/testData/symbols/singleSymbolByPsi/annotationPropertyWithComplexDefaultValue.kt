@@ -1,0 +1,5 @@
+package pack
+
+annotation class Anno(
+    val valu<caret>e: Int = 0 + 1 + 2
+)

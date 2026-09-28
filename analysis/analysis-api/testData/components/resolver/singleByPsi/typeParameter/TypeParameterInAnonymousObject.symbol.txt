@@ -1,0 +1,8 @@
+KtNameReferenceExpression(47,48): 'K'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: true
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      K
+    ]

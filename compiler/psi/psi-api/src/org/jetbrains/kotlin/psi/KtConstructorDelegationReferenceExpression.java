@@ -1,0 +1,39 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.resolution.KtResolvableCall;
+
+/**
+ * Represents the {@code this} or {@code super} reference in a constructor delegation call.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * class SimpleClass(i: Int) {
+ *     constructor(s: String) : this(s.toInt())
+ * //                           ^__^
+ * }
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtConstructorDelegationReferenceExpression extends KtExpressionImpl implements KtReferenceExpression, KtResolvableCall {
+    @KtImplementationDetail
+    public KtConstructorDelegationReferenceExpression(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    /**
+     * Returns {@code true} if this reference is {@code this} (delegating to a constructor of the same class), or {@code false} if it is
+     * {@code super} (delegating to a superclass constructor).
+     */
+    public boolean isThis() {
+        return findChildByType(KtTokens.THIS_KEYWORD) != null;
+    }
+}

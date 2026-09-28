@@ -1,0 +1,56 @@
+ /*
+ * Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package kotlin.jvm.internal;
+
+import kotlin.ExperimentalContextParameters;
+import kotlin.SinceKotlin;
+import kotlin.reflect.KClass;
+import kotlin.reflect.KDeclarationContainer;
+
+@SuppressWarnings({"unused", "rawtypes"})
+public class MutablePropertyReference0Impl extends MutablePropertyReference0 {
+    public MutablePropertyReference0Impl(KDeclarationContainer owner, String name, String signature) {
+        super(
+                NO_RECEIVER,
+                ((ClassBasedDeclarationContainer) owner).getJClass(), name, signature,
+                owner instanceof KClass ? 0 : 1
+        );
+    }
+
+    @SinceKotlin(version = "1.4")
+    public MutablePropertyReference0Impl(Class owner, String name, String signature, int flags) {
+        super(NO_RECEIVER, owner, name, signature, flags);
+    }
+
+    @SinceKotlin(version = "1.4")
+    public MutablePropertyReference0Impl(Object receiver, Class owner, String name, String signature, int flags) {
+        super(receiver, owner, name, signature, flags);
+    }
+
+    @SinceKotlin(version = "2.5")
+    @ExperimentalContextParameters
+    public MutablePropertyReference0Impl(Object[] contextArguments, Class owner, String name, String signature, int flags) {
+        this(owner, name, signature, flags);
+        this.boundContextArguments = contextArguments;
+    }
+
+    @SinceKotlin(version = "2.5")
+    @ExperimentalContextParameters
+    public MutablePropertyReference0Impl(Object[] contextArguments, Object receiver, Class owner, String name, String signature, int flags) {
+        this(receiver, owner, name, signature, flags);
+        this.boundContextArguments = contextArguments;
+    }
+
+    @Override
+    public Object get() {
+        return getGetter().call();
+    }
+
+    @Override
+    public void set(Object value) {
+        getSetter().call(value);
+    }
+}

@@ -1,0 +1,27 @@
+/* anchor (KtScript) --> *//* anchor (KtClass) --> */class Builder {
+    /* anchor (KtProperty) --> */var version: String = ""/* <-- */
+
+    /* anchor (KtNamedFunction) --> */fun execute() {
+        println(version)
+    }/* <-- */
+}/* <-- */
+
+/* anchor (KtNamedFunction) --> */fun build(/* anchor (KtParameter) --> */action: Builder.() -> Unit/* <-- */) = Builder().apply(action)/* <-- */
+
+/* anchor (KtScriptInitializer) --> */build {
+    version = "123"
+    class A {
+        fun doo() {
+
+        }
+    }
+
+    execute()
+}/* <-- */
+
+/* anchor (KtProperty) --> */val builder = build {
+    version = "321"
+}/* <-- */
+
+/* anchor (KtScriptInitializer) --> */builder.execute()/* <-- */
+/* <-- */

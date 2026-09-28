@@ -1,0 +1,2 @@
+
+val test = try { } catch (e : Throwable) { }

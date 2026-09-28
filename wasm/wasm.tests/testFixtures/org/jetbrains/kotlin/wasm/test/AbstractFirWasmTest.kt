@@ -1,0 +1,213 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.wasm.test
+
+import org.jetbrains.kotlin.platform.TargetPlatform
+import org.jetbrains.kotlin.platform.wasm.WasmPlatforms
+import org.jetbrains.kotlin.platform.wasm.WasmTarget
+import org.jetbrains.kotlin.test.Constructor
+import org.jetbrains.kotlin.test.FirParser
+import org.jetbrains.kotlin.test.TargetBackend
+import org.jetbrains.kotlin.test.TestInfrastructureInternals
+import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
+import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
+import org.jetbrains.kotlin.test.builders.configureFirHandlersStep
+import org.jetbrains.kotlin.test.builders.configureIrHandlersStep
+import org.jetbrains.kotlin.test.builders.firHandlersStep
+import org.jetbrains.kotlin.test.configuration.commonFirHandlersForCodegenTest
+import org.jetbrains.kotlin.test.configuration.commonIrHandlersForCodegenTest
+import org.jetbrains.kotlin.test.directives.*
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.IGNORE_BACKEND_K2_MULTI_MODULE
+import org.jetbrains.kotlin.test.directives.model.ValueDirective
+import org.jetbrains.kotlin.test.frontend.fir.FirMetaInfoDiffSuppressor
+import org.jetbrains.kotlin.test.frontend.fir.FirOutputArtifact
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirCfgConsistencyHandler
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirCfgDumpHandler
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirDumpHandler
+import org.jetbrains.kotlin.test.frontend.fir.handlers.FirResolvedTypesVerifier
+import org.jetbrains.kotlin.test.model.AbstractTestFacade
+import org.jetbrains.kotlin.test.model.AnalysisHandler
+import org.jetbrains.kotlin.test.model.BinaryArtifacts
+import org.jetbrains.kotlin.test.model.FrontendKinds
+import org.jetbrains.kotlin.test.services.AdditionalSourceProvider
+import org.jetbrains.kotlin.test.services.SplittingModuleTransformerForBoxTests
+import org.jetbrains.kotlin.test.services.SplittingTestConfigurator
+import org.jetbrains.kotlin.test.services.configuration.JsEnvironmentConfigurator
+import org.jetbrains.kotlin.wasm.test.converters.WasmBackendFacade
+import org.jetbrains.kotlin.wasm.test.handlers.WasiBoxRunner
+import org.jetbrains.kotlin.wasm.test.handlers.WasmBoxRunner
+import org.jetbrains.kotlin.wasm.test.handlers.WasmDebugRunner
+import org.jetbrains.kotlin.wasm.test.handlers.WasmLocalVariableDebugRunner
+import org.jetbrains.kotlin.wasm.test.providers.WasmJsSteppingTestAdditionalSourceProvider
+import org.jetbrains.kotlin.wasm.test.utils.configureIgnoredTestSuppressor
+
+fun TestConfigurationBuilder.configureCodegenFirHandlerSteps() {
+    configureFirHandlersStep {
+        commonFirHandlersForCodegenTest()
+    }
+    useFailureSuppressors(
+        ::FirMetaInfoDiffSuppressor
+    )
+}
+
+fun TestConfigurationBuilder.configureCodegenIrHandlerSteps() {
+    configureIrHandlersStep {
+        commonIrHandlersForCodegenTest()
+    }
+}
+
+abstract class AbstractFirWasmTest(
+    targetBackend: TargetBackend,
+    targetPlatform: TargetPlatform,
+    pathToTestDir: String,
+    testGroupOutputDirPrefix: String,
+) : AbstractWasmBlackBoxCodegenTestBase<FirOutputArtifact, IrBackendInput, BinaryArtifacts.KLib>(
+    FrontendKinds.FIR, targetBackend, targetPlatform, pathToTestDir, testGroupOutputDirPrefix
+) {
+    override val afterBackendFacade: Constructor<AbstractTestFacade<BinaryArtifacts.KLib, BinaryArtifacts.Wasm>>
+        get() = ::WasmBackendFacade
+
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        with(builder) {
+            defaultDirectives {
+                +LanguageSettingsDirectives.ALLOW_KOTLIN_PACKAGE
+                DiagnosticsDirectives.DIAGNOSTICS with listOf("-infos")
+                FirDiagnosticsDirectives.FIR_PARSER with FirParser.Psi
+            }
+
+            firHandlersStep {
+                useHandlers(
+                    ::FirDumpHandler,
+                    ::FirCfgDumpHandler,
+                    ::FirCfgConsistencyHandler,
+                    ::FirResolvedTypesVerifier,
+                )
+            }
+
+            configureIgnoredTestSuppressor()
+        }
+    }
+}
+
+open class AbstractFirWasmJsTest(
+    pathToTestDir: String,
+    testGroupOutputDirPrefix: String,
+) : AbstractFirWasmTest(TargetBackend.WASM_JS, WasmPlatforms.wasmJs, pathToTestDir, testGroupOutputDirPrefix) {
+    override val wasmBoxTestRunner: Constructor<AnalysisHandler<BinaryArtifacts.Wasm>>
+        get() = ::WasmBoxRunner
+
+    override val wasmTarget: WasmTarget
+        get() = WasmTarget.JS
+}
+
+open class AbstractFirWasmJsCodegenInteropTest : AbstractFirWasmJsTest(
+    "compiler/testData/codegen/boxWasmJsInterop",
+    "codegen/firWasmJsInterop"
+) {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.configureCodegenFirHandlerSteps()
+        builder.configureCodegenIrHandlerSteps()
+    }
+}
+
+open class AbstractFirWasmJsSteppingTest(
+    pathToTestDir: String = "compiler/testData/debug/stepping/",
+    testGroupOutputDirPrefix: String = "debug/stepping/firBox"
+) : AbstractFirWasmJsTest(
+    pathToTestDir,
+    testGroupOutputDirPrefix
+) {
+    override val wasmBoxTestRunner: Constructor<AnalysisHandler<BinaryArtifacts.Wasm>>
+        get() = ::WasmDebugRunner
+
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        with(builder) {
+            useAdditionalSourceProviders(::WasmJsSteppingTestAdditionalSourceProvider)
+            defaultDirectives {
+                +WasmEnvironmentConfigurationDirectives.GENERATE_SOURCE_MAP
+                +WasmEnvironmentConfigurationDirectives.FORCE_DEBUG_FRIENDLY_COMPILATION
+                +WasmEnvironmentConfigurationDirectives.SOURCE_MAP_INCLUDE_MAPPINGS_FROM_UNAVAILABLE_FILES
+            }
+        }
+    }
+}
+
+open class AbstractFirWasmJsSteppingSplitTest : AbstractFirWasmJsSteppingTest(
+    testGroupOutputDirPrefix = "debug/firSteppingSplit/"
+) {
+    override val additionalIgnoreDirectives: List<ValueDirective<TargetBackend>>?
+        get() = listOf(IGNORE_BACKEND_K2_MULTI_MODULE)
+
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        with(builder) {
+            @OptIn(TestInfrastructureInternals::class)
+            useModuleStructureTransformers(
+                ::SplittingModuleTransformerForBoxTests
+            )
+            useMetaTestConfigurators(::SplittingTestConfigurator)
+        }
+    }
+}
+
+open class AbstractFirWasmJsLocalVariableTest : AbstractFirWasmJsSteppingTest(
+    pathToTestDir = "compiler/testData/debug/localVariables/",
+    testGroupOutputDirPrefix = "debug/localVariables/firBox"
+) {
+    override val wasmBoxTestRunner: Constructor<AnalysisHandler<BinaryArtifacts.Wasm>>
+        get() = ::WasmLocalVariableDebugRunner
+}
+
+open class AbstractFirWasmWasiTest(
+    pathToTestDir: String,
+    testGroupOutputDirPrefix: String,
+) : AbstractFirWasmTest(TargetBackend.WASM_WASI, WasmPlatforms.wasmWasi, pathToTestDir, testGroupOutputDirPrefix) {
+    override val wasmBoxTestRunner: Constructor<AnalysisHandler<BinaryArtifacts.Wasm>>
+        get() = ::WasiBoxRunner
+
+    override val wasmTarget: WasmTarget
+        get() = WasmTarget.WASI
+
+    override val additionalSourceProvider: Constructor<AdditionalSourceProvider>?
+        get() = ::WasmWasiBoxTestHelperSourceProvider
+
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.defaultDirectives {
+            +WasmEnvironmentConfigurationDirectives.GENERATE_DWARF
+        }
+    }
+}
+
+open class AbstractFirWasmWasiCodegenBoxTest(
+    testGroupOutputDirPrefix: String = "codegen/wasi/"
+) : AbstractFirWasmWasiTest(
+    pathToTestDir = "compiler/testData/codegen/",
+    testGroupOutputDirPrefix = testGroupOutputDirPrefix
+) {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.configureCodegenFirHandlerSteps()
+        builder.configureCodegenIrHandlerSteps()
+    }
+}
+
+open class AbstractFirWasmTypeScriptExportTest(
+    pathToTestDir: String = "${JsEnvironmentConfigurator.TEST_DATA_DIR_PATH}/typescript-export/wasm/",
+    testGroupOutputDirPrefix: String = "typescript-export/"
+) : AbstractFirWasmJsTest(pathToTestDir, testGroupOutputDirPrefix) {
+    override fun configure(builder: TestConfigurationBuilder) {
+        super.configure(builder)
+        builder.defaultDirectives {
+            +WasmEnvironmentConfigurationDirectives.CHECK_TYPESCRIPT_DECLARATIONS
+            JsEnvironmentConfigurationDirectives.TSC_TARGET with "es2020"
+            JsEnvironmentConfigurationDirectives.TSC_MODULE with "es2020"
+        }
+    }
+}

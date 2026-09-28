@@ -1,0 +1,112 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.test.backend.handlers
+
+import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.IrFileEntry
+import org.jetbrains.kotlin.ir.SourceRangeInfo
+import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
+import org.jetbrains.kotlin.ir.util.DumpIrTreeOptions
+import org.jetbrains.kotlin.ir.util.RenderIrElementVisitor
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
+import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.test.backend.handlers.IrTextDumpHandler.Companion.groupWithTestFiles
+import org.jetbrains.kotlin.test.backend.handlers.IrTextDumpHandler.Companion.renderFilePathForIrFile
+import org.jetbrains.kotlin.test.backend.ir.IrBackendInput
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives
+import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.DUMP_SOURCE_RANGES_IR
+import org.jetbrains.kotlin.test.directives.TestDumpDirectives
+import org.jetbrains.kotlin.test.directives.assertEqualsToDump
+import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
+import org.jetbrains.kotlin.test.model.BackendKind
+import org.jetbrains.kotlin.test.model.TestModule
+import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.utils.MultiModuleInfoDumper
+import org.jetbrains.kotlin.utils.Printer
+
+class IrSourceRangesDumpHandler(
+    testServices: TestServices,
+    artifactKind: BackendKind<IrBackendInput>,
+) : AbstractIrHandler(testServices, artifactKind) {
+    companion object {
+        const val DUMP_EXTENSION = "ranges.txt"
+    }
+
+    override val directiveContainers: List<DirectivesContainer>
+        get() = listOf(TestDumpDirectives, CodegenTestDirectives)
+
+    private val baseDumper = MultiModuleInfoDumper()
+
+    override fun processModule(module: TestModule, info: IrBackendInput) {
+        if (DUMP_SOURCE_RANGES_IR !in module.directives) return
+        val builder = baseDumper.builderForModule(module.name)
+        val testFileToIrFile = info.irModuleFragment.files.groupWithTestFiles(testServices, ordered = true)
+        val dumpOptions = DumpIrTreeOptions(
+            filePathRenderer = { irFileEntry, fullPath ->
+                renderFilePathForIrFile(testFileToIrFile, testServices, irFileEntry, fullPath)
+            }
+        )
+        for (irFile in info.irModuleFragment.files) {
+            builder.append(irFile.dumpWithSourceLocations(irFile.fileEntry, dumpOptions))
+        }
+    }
+
+    private fun IrElement.dumpWithSourceLocations(fileEntry: IrFileEntry, dumpOptions: DumpIrTreeOptions): String =
+        StringBuilder().also {
+            acceptVoid(DumpSourceLocations(it, fileEntry, dumpOptions))
+        }.toString()
+
+    private class DumpSourceLocations(
+        out: Appendable,
+        val fileEntry: IrFileEntry,
+        dumpOptions: DumpIrTreeOptions,
+    ) : IrVisitorVoid() {
+        val printer = Printer(out, "  ")
+        val elementRenderer = RenderIrElementVisitor(dumpOptions)
+
+        private fun printElement(element: IrElement) {
+            var sourceRangeInfo = fileEntry.getSourceRangeInfo(element.startOffset, element.endOffset)
+            if (element.startOffset < 0) {
+                sourceRangeInfo = sourceRangeInfo.copy(startLineNumber = -1, startColumnNumber = -1)
+            }
+            if (element.endOffset < 0) {
+                sourceRangeInfo = sourceRangeInfo.copy(endLineNumber = -1, endColumnNumber = -1)
+            }
+            printer.println("@${sourceRangeInfo.render()} ${element.accept(elementRenderer, null)}")
+        }
+
+        override fun visitElement(element: IrElement) {
+            printElement(element)
+            printer.pushIndent()
+            if (element is IrAnnotationContainer && element.annotations.isNotEmpty()) {
+                printer.println("annotations:")
+                printer.pushIndent()
+                for (annotation in element.annotations) {
+                    printElement(annotation)
+                    printer.pushIndent()
+                    annotation.acceptChildrenVoid(this)
+                    printer.popIndent()
+                }
+                printer.popIndent()
+            }
+            element.acceptChildrenVoid(this)
+            printer.popIndent()
+        }
+
+        private fun SourceRangeInfo.render() =
+            if (startLineNumber == endLineNumber)
+                "$startLineNumber:$startColumnNumber..$endColumnNumber"
+            else
+                "$startLineNumber:$startColumnNumber..$endLineNumber:$endColumnNumber"
+    }
+
+
+    override fun processAfterAllModules(someAssertionWasFailed: Boolean) {
+        val actualDump = if (baseDumper.isEmpty()) null else baseDumper.generateResultingDump()
+        assertEqualsToDump(DUMP_EXTENSION, actualDump)
+    }
+}

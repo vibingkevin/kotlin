@@ -1,0 +1,39 @@
+FILE: 1.kt
+    public final const [EvaluatedValue=String(OK)] val name: R|kotlin/String| = Q|E|.R|/E.OK|.R|SubstitutionOverride</E.name: R|kotlin/String|>|
+        public get(): R|kotlin/String|
+    public final fun box(): R|kotlin/String| {
+        ^box R|/name|
+    }
+FILE: 2.kt
+    public final enum class E : R|kotlin/Enum<E>| {
+        private constructor(parent: R|E?|): R|E| {
+            super<R|kotlin/Enum<E>|>()
+        }
+
+        public final val parent: R|E?| = R|<local>/parent|
+            public get(): R|E?|
+
+        public final static enum entry X: R|E| = object : R|E| {
+            private constructor(): R|<anonymous>| {
+                super<R|E|>(Null(null))
+            }
+
+        }
+
+        public final static enum entry OK: R|E| = object : R|E| {
+            private constructor(): R|<anonymous>| {
+                super<R|E|>(Q|E|.R|/E.X|)
+            }
+
+        }
+
+        public final static fun values(): R|kotlin/Array<E>| {
+        }
+
+        public final static fun valueOf(value: R|kotlin/String|): R|E| {
+        }
+
+        public final static val entries: R|kotlin/enums/EnumEntries<E>|
+            public static get(): R|kotlin/enums/EnumEntries<E>|
+
+    }

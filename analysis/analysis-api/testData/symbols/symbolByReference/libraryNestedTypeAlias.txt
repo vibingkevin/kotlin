@@ -1,0 +1,23 @@
+KaTypeAliasSymbol:
+  anchorPsi: KtTypeAlias
+  annotations: []
+  classId: Foo.TA
+  expandedType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: C
+  isActual: false
+  isExpect: false
+  isExternal: false
+  location: CLASS
+  modality: FINAL
+  name: TA
+  origin: LIBRARY
+  psi: KtTypeAlias
+  realPsi: KtTypeAlias
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: null
+  getContainingModule: KaLibraryModule "Library lib"
+  deprecation: null
+  importableFqName: Foo.TA

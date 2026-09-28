@@ -1,0 +1,3 @@
+expression: arr
+expression PSI: KtNameReferenceExpression
+type: kotlin.Array<kotlin.collections.List<*>?>

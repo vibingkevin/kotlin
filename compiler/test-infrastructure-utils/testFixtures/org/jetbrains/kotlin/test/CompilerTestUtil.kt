@@ -1,0 +1,100 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.test
+
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.util.applyIf
+import org.jetbrains.kotlin.cli.common.CLICompiler
+import org.jetbrains.kotlin.cli.common.ExitCode
+import org.jetbrains.kotlin.cli.common.Usage
+import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
+import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
+import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
+import org.jetbrains.kotlin.config.KotlinCompilerVersion
+import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
+import org.jetbrains.kotlin.test.util.KtTestUtil
+import org.jetbrains.kotlin.utils.PathUtil.kotlinPathsForDistDirectory
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.PrintStream
+import kotlin.io.path.Path
+import kotlin.io.path.absolutePathString
+
+object CompilerTestUtil {
+    @JvmStatic
+    fun executeCompilerAssertSuccessful(compiler: CLICompiler<*>, args: List<String>, messageRenderer: MessageRenderer? = null) {
+        val [output, exitCode] = executeCompiler(compiler, args, messageRenderer)
+        KtAssert.assertEquals(output, ExitCode.OK, exitCode)
+    }
+
+    @JvmStatic
+    fun executeCompiler(compiler: CLICompiler<*>, args: List<String>, messageRenderer: MessageRenderer? = null): Pair<String, ExitCode> {
+        val bytes = ByteArrayOutputStream()
+        val origErr = System.err
+        try {
+            System.setErr(PrintStream(bytes))
+            val exitCode =
+                if (messageRenderer == null) CLICompiler.doMainNoExit(compiler, args.toTypedArray())
+                else CLICompiler.doMainNoExit(compiler, args.toTypedArray(), messageRenderer)
+            return Pair(String(bytes.toByteArray()), exitCode)
+        } finally {
+            System.setErr(origErr)
+        }
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun compileJvmLibrary(
+            src: File,
+            libraryName: String = "library",
+            extraOptions: List<String> = emptyList(),
+            extraClasspath: List<File> = emptyList(),
+            messageRenderer: MessageRenderer? = null,
+    ): File {
+        val destination = File(KtTestUtil.tmpDir("testLibrary"), "$libraryName.jar")
+        val args = mutableListOf<String>().apply {
+            add(src.path)
+            add("-d")
+            add(destination.path)
+            if (extraClasspath.isNotEmpty()) {
+                add("-cp")
+                add(extraClasspath.joinToString(":") { it.path })
+            }
+            addAll(extraOptions)
+        }
+        executeCompilerAssertSuccessful(K2JVMCompiler(), args, messageRenderer)
+        return destination
+    }
+
+    @JvmStatic
+    fun normalizeCompilerOutput(output: String, tmpdir: String): String {
+        val tmpDirAbsoluteDir = File(tmpdir).absolutePath
+        val formattedOutput = StringUtil.convertLineSeparators(output)
+        val allOpenPluginPath = runCatching { ForTestCompileRuntime.allOpenCompilerPluginForTests().path }.getOrNull()
+        val noArgCompilerPluginPath = runCatching { ForTestCompileRuntime.noArgCompilerPluginForTests().path }.getOrNull()
+        val reflectJarPath = runCatching { ForTestCompileRuntime.reflectJarForTests().path }.getOrNull()
+        return formattedOutput
+            .applyIf(allOpenPluginPath != null) { replace(allOpenPluginPath!!, "\$ALLOPEN-COMPILER-PLUGIN-JAR$") }
+            .applyIf(noArgCompilerPluginPath != null) { replace(noArgCompilerPluginPath!!, "\$NOARG-COMPILER-PLUGIN-JAR$") }
+            .applyIf(reflectJarPath != null) { replace(reflectJarPath!!, "\$KOTLIN-REFLECT-JAR$") }
+            .replace(tmpDirAbsoluteDir, "\$TMP_DIR$")
+            .replace("\\", "/")
+            .replace(KtTestUtil.getJdk8Home().absolutePath.replace("\\", "/"), "\$JDK_1_8")
+            .replace(KtTestUtil.getJdk11Home().absolutePath.replace("\\", "/"), "\$JDK_11")
+            .replace(KtTestUtil.getJdk17Home().absolutePath.replace("\\", "/"), "\$JDK_17")
+            .replace(KtTestUtil.getJdk21Home().absolutePath.replace("\\", "/"), "\$JDK_21")
+            .replace("info: executable production duration: \\d+ms".toRegex(), "info: executable production duration: [time]")
+            .replace(System.getProperty("java.runtime.version"), "\$JVM_VERSION$")
+            .replace((" " + MetadataVersion.INSTANCE.toString().replace(".", "\\.") + "(?!\\-)").toRegex(), " \\\$ABI_VERSION\\\$")
+            .replace(KotlinCompilerVersion.VERSION, "\$VERSION$")
+            .replace(" " + MetadataVersion.INSTANCE_NEXT, " \$ABI_VERSION_NEXT$")
+            .replace("\n" + Usage.BAT_DELIMITER_CHARACTERS_NOTE + "\n", "")
+            .replace("log4j:WARN.*\n".toRegex(), "")
+            .replace(kotlinPathsForDistDirectory.homePath.absolutePath, "\$PROJECT_DIR$")
+            .replace(kotlinPathsForDistDirectory.homePath.parentFile.absolutePath, "\$DIST_DIR$")
+            .replace(Path(System.getProperty("user.dir")).absolutePathString(), "\$USER_DIR$")
+    }
+}

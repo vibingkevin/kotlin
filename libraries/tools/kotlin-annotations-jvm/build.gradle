@@ -1,0 +1,31 @@
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    id("org.jetbrains.kotlin.jvm")
+}
+
+description = 'Kotlin annotations for JVM'
+
+jvmToolchains {
+    targetBytecodeVersion.set(JdkMajorVersion.JDK_1_8)
+}
+
+RepoArtifacts.publish(project)
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+}
+
+RepoArtifacts.sourcesJar(project)
+RepoArtifacts.javadocJar(project)
+
+compileKotlin {
+    compilerOptions.freeCompilerArgs = [
+            "-Xallow-kotlin-package",
+    ]
+    compilerOptions.moduleName = project.name
+}

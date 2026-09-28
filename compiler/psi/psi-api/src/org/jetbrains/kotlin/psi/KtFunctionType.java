@@ -1,0 +1,181 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.google.common.collect.Lists;
+import com.intellij.lang.ASTNode;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtToken;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.stubs.KotlinFunctionTypeStub;
+import org.jetbrains.kotlin.resolution.KtResolvable;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a function type with parameters and return type.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * val action: (Int, String) -> Boolean = { _, _ -> true }
+ * //          ^______________________^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtFunctionType extends KtElementImplStub<KotlinFunctionTypeStub> implements KtTypeElement, KtResolvable {
+
+    /** The token that separates the parameter list from the return type in a function type (the {@code ->} arrow). */
+    public static final KtToken RETURN_TYPE_SEPARATOR = KtTokens.ARROW;
+
+    @KtImplementationDetail
+    public KtFunctionType(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtFunctionType(@NotNull KotlinFunctionTypeStub stub) {
+        super(stub, KtNodeTypes.FUNCTION_TYPE);
+    }
+
+    @NotNull
+    @Override
+    public List<KtTypeReference> getTypeArgumentsAsTypes() {
+        List<KtTypeReference> result = Lists.newArrayList();
+        List<KtTypeReference> contextReceiversTypeRefs = getContextReceiversTypeReferences();
+        if (contextReceiversTypeRefs != null) {
+            result.addAll(contextReceiversTypeRefs);
+        }
+        KtTypeReference receiverTypeRef = getReceiverTypeReference();
+        if (receiverTypeRef != null) {
+            result.add(receiverTypeRef);
+        }
+        for (KtParameter ktParameter : getParameters()) {
+            result.add(ktParameter.getTypeReference());
+        }
+        KtTypeReference returnTypeRef = getReturnTypeReference();
+        if (returnTypeRef != null) {
+            result.add(returnTypeRef);
+        }
+        return result;
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitFunctionType(this, data);
+    }
+
+    /** Returns the parenthesized list of the function type's parameters, or {@code null} if it is absent in incomplete code. */
+    @Nullable
+    public KtParameterList getParameterList() {
+        return getStubOrPsiChild(KtNodeTypes.VALUE_PARAMETER_LIST, KtParameterList.class);
+    }
+
+    /** Returns the function type's parameters, or an empty list if it takes no parameters. */
+    @NotNull
+    public List<KtParameter> getParameters() {
+        KtParameterList list = getParameterList();
+        return list != null ? list.getParameters() : Collections.emptyList();
+    }
+
+    /**
+     * Returns the receiver declaration of a function type with receiver (as in {@code String.() -> Unit}), or {@code null} if the function
+     * type has no receiver.
+     */
+    @Nullable
+    public KtFunctionTypeReceiver getReceiver() {
+        return getStubOrPsiChild(KtNodeTypes.FUNCTION_TYPE_RECEIVER, KtFunctionTypeReceiver.class);
+    }
+
+    /** Returns the receiver type reference of a function type with receiver, or {@code null} if the function type has no receiver. */
+    @Nullable
+    public KtTypeReference getReceiverTypeReference() {
+        KtFunctionTypeReceiver receiverDeclaration = getReceiver();
+        if (receiverDeclaration == null) {
+            return null;
+        }
+        return receiverDeclaration.getTypeReference();
+    }
+
+    /**
+     * Returns the context receiver list for this function type, if present.
+     *
+     * @return the context receiver list, or {@code null} if this function type has no context receivers
+     * @deprecated Use {@link #getContextParameterList()} instead. This method is obsolete and exists for compatibility reasons only.
+     */
+    @kotlin.Deprecated(
+            message = "Use 'getContextParameterList()' instead. This method is obsolete and exists for compatibility reasons only.",
+            replaceWith = @ReplaceWith(
+                    expression = "contextParameterList",
+                    imports = {}
+            )
+    )
+    @Deprecated
+    @Nullable
+    public KtContextReceiverList getContextReceiverList() {
+        return (KtContextReceiverList) getContextParameterList();
+    }
+
+    /**
+     * Returns the context parameter list for this function type, if present.
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * // Function type with context parameters
+     * val executor: context(Logger, Database) (String) -> Unit = { }
+     * }</pre>
+     *
+     * @return the context parameter list, or {@code null} if this function type has no context parameters
+     *
+     * @see KtContextParameterList
+     */
+    @Nullable
+    public KtContextParameterList getContextParameterList() {
+        return getStubOrPsiChild(KtNodeTypes.CONTEXT_PARAMETER_LIST, KtContextParameterList.class);
+    }
+
+    /** Returns the type references of the context receivers declared for this function type, or an empty list if there are none. */
+    public List<KtTypeReference> getContextReceiversTypeReferences() {
+        KtContextParameterList contextReceiverList = getContextParameterList();
+        if (contextReceiverList != null) {
+            return contextReceiverList.typeReferences();
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    /** Returns the return type reference (the part after {@code ->}), or {@code null} if it is absent in incomplete code. */
+    @Nullable
+    public KtTypeReference getReturnTypeReference() {
+        return getStubOrPsiChild(KtNodeTypes.TYPE_REFERENCE, KtTypeReference.class);
+    }
+
+    /**
+     * @return the total number of parameters for a function type, including
+     * context parameters, the function type receiver, and value parameters.
+     */
+    public int getTotalParameterCount() {
+        int count = 0;
+        KtContextParameterList contextReceiverList = getContextParameterList();
+        if (contextReceiverList != null) {
+            count += contextReceiverList.contextReceivers().size();
+        }
+
+        KtFunctionTypeReceiver receiverDeclaration = getReceiver();
+        if (receiverDeclaration != null) {
+            count++;
+        }
+
+        List<KtParameter> list = getParameters();
+        count += list.size();
+
+        return count;
+    }
+}

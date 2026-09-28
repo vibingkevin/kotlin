@@ -1,0 +1,32 @@
+KaLocalVariableSymbol:
+  anchorPsi: KtParameter
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  isActual: false
+  isCompanion: false
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isLateInit: true
+  isVal: true
+  location: LOCAL
+  modality: FINAL
+  name: something
+  origin: SOURCE
+  psi: KtParameter
+  realPsi: KtParameter
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: A
+  typeParameters: []
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(lateinitLoopParameter.kt)
+  getContainingJvmClassName: null
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null

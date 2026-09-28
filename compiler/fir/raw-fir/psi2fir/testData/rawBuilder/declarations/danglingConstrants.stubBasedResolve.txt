@@ -1,0 +1,22 @@
+FILE: [ResolvedTo(BODY_RESOLVE)] danglingConstrants.kt
+    public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun function(): R|kotlin/Int| { LAZY_BLOCK }
+    public final [ResolvedTo(BODY_RESOLVE)] val property: R|kotlin/String| = String(0)
+        public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/String|
+    public final [ResolvedTo(BODY_RESOLVE)] class TopLevelClass : R|kotlin/Any| {
+        public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=TopLevelClass] constructor(): R|TopLevelClass| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final [ResolvedTo(ANNOTATION_ARGUMENTS)] fun memberFunction(): R|kotlin/Int| { LAZY_BLOCK }
+
+        public final [ResolvedTo(BODY_RESOLVE)] val memberProperty: R|kotlin/String| = String(0)
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=TopLevelClass] get(): R|kotlin/String|
+
+        public final [ResolvedTo(BODY_RESOLVE)] class NestedClass : R|kotlin/Any| {
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=NestedClass] constructor(): R|TopLevelClass.NestedClass| {
+                super<R|kotlin/Any|>()
+            }
+
+        }
+
+    }

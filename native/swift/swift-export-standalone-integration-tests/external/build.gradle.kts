@@ -1,0 +1,49 @@
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+    id("java-test-fixtures")
+    id("test-inputs-check")
+}
+
+description = "A set of integration tests for Swift Export Standalone based on external projects"
+
+dependencies {
+    compileOnly(kotlinStdlib())
+
+    testImplementation(platform(libs.junit.bom))
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testFixturesApi(libs.junit.jupiter.api)
+
+    testFixturesApi(testFixtures(project(":native:swift:swift-export-standalone-integration-tests")))
+    testFixturesImplementation(project(":native:external-projects-test-utils"))
+    testFixturesImplementation(project(":kotlin-util-klib-metadata"))
+    testImplementation(project(":kotlin-util-klib-metadata"))
+    testRuntimeOnly(testFixtures(project(":analysis:low-level-api-fir")))
+    testRuntimeOnly(testFixtures(project(":analysis:analysis-api-impl-base")))
+    testImplementation(testFixtures(project(":analysis:analysis-api-fir")))
+    testImplementation(testFixtures(project(":analysis:analysis-test-framework")))
+    testFixturesApi(testFixtures(project(":compiler:tests-common")))
+    testImplementation(testFixtures(project(":compiler:tests-common-new")))
+}
+
+sourceSets {
+    "test" {
+        projectDefault()
+        generatedTestDir()
+    }
+    "testFixtures" { projectDefault() }
+}
+
+projectTests {
+    testData(isolated, "testData")
+    testData(rootProject.isolated, "native/native.tests/testData/framework")
+
+    nativeTestTaskWithExternalDependencies(
+        "test",
+        requirePlatformLibs = true,
+        allowUnsafe = true, // KT-85212
+    ) {
+        dependsOn(":kotlin-native:distInvalidateStaleCaches")
+    }
+}

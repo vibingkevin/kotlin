@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>kotlin-project</artifactId>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <version>2.5.255-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>kotlin-maven-plugin-test</artifactId>
+
+    <properties>
+        <!-- By default use the current java home as the default JDK for the tests. It gets changed by profile if needed. -->
+        <kotlinTestBuildJdk>${java.home}</kotlinTestBuildJdk>
+
+        <jdk8Home>${env.JDK_1_8}</jdk8Home>
+        <jdk11Home>${env.JDK_11_0}</jdk11Home>
+        <jdk17Home>${env.JDK_17_0}</jdk17Home>
+        <jdk21Home>${env.JDK_21_0}</jdk21Home>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>6.0.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.bootstrap.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+            <version>${kotlin.bootstrap.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.maven.shared</groupId>
+            <artifactId>maven-verifier</artifactId>
+            <version>2.0.0-M1</version>
+        </dependency>
+
+        <!-- FIXME: KT-83109/Remove-beanshell-and-groovy-verification-in-kotlin-maven-plugin-test  -->
+        <dependency>
+            <groupId>org.apache-extras.beanshell</groupId>
+            <artifactId>bsh</artifactId>
+            <version>2.0b6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>4.0.29</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-settings</artifactId>
+            <version>${maven.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-compat</artifactId>
+            <version>${maven.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/test/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.bootstrap.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <jdkHome>${kotlinTestBuildJdk}</jdkHome>
+                            <sourceDirs>
+                                <sourceDir>src/main/kotlin</sourceDir>
+                                <sourceDir>src/main/java</sourceDir>
+                            </sourceDirs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-test-compile</id>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>test-compile</goal>
+                        </goals>
+                        <configuration>
+                            <jdkHome>${kotlinTestBuildJdk}</jdkHome>
+                            <sourceDirs>
+                                <sourceDir>src/test/kotlin</sourceDir>
+                                <sourceDir>src/test/java</sourceDir>
+                            </sourceDirs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <nonFilteredFileExtensions>
+                        <!--
+                            This is needed to avoid bug: https://github.com/apache/maven-resources-plugin/issues/276
+                            When packaging maven-wrapper.jar from resources to jar.
+                         -->
+                        <nonFilteredFileExtension>jar</nonFilteredFileExtension>
+                    </nonFilteredFileExtensions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.4</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <jvm>${kotlinTestBuildJdk}/bin/java</jvm>
+                    <forkCount>4</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <systemPropertyVariables>
+                        <!-- Properties required for integration tests run -->
+                        <!-- Path to maven repo with kotlin artifacts (i.e. kotlin-maven-plugin)
+                        Can be provisioned with ./gradlew install publish -->
+                        <kotlin.build.repo>${settings.localRepository}</kotlin.build.repo>
+                        <kotlin.version>${project.version}</kotlin.version>
+                        <!-- Required to isolate forks from forkCount so every fork has a writable repo -->
+                        <kotlin.it.localRepo>${project.basedir}/local-repo-${surefire.forkNumber}</kotlin.it.localRepo>
+                        <!-- Required to isolate forks: MAVEN_USER_HOME see https://maven.apache.org/tools/wrapper/  -->
+                        <kotlin.it.mavenUserHome>${project.basedir}/maven-user-home-${surefire.forkNumber}</kotlin.it.mavenUserHome>
+                        <!-- Required to isolate forks: TMP_DIR for mvnw.cmd on Windows -->
+                        <kotlin.it.mavenTempDir>${project.basedir}/maven-temp-${surefire.forkNumber}</kotlin.it.mavenTempDir>
+                        <kotlin.it.testDirs>${project.basedir}/src/it</kotlin.it.testDirs>
+
+                        <!-- JDK configuration must follow this rule jdk\d+Home -->
+                        <jdk8Home>${jdk8Home}</jdk8Home>
+                        <jdk11Home>${jdk11Home}</jdk11Home>
+                        <jdk17Home>${jdk17Home}</jdk17Home>
+                        <jdk21Home>${jdk21Home}</jdk21Home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>autoConfigureKotlinTestBuildJdkFromEnv</id>
+            <activation>
+                <property>
+                    <name>env.JDK_17_0</name>
+                </property>
+            </activation>
+            <properties>
+                <kotlinTestBuildJdk>${env.JDK_17_0}</kotlinTestBuildJdk>
+            </properties>
+        </profile>
+
+        <!-- allows the integration test to be disabled (for example if you are offline) -->
+        <profile>
+            <id>noTest</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>skipTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+        </profile>
+    </profiles>
+</project>

@@ -1,0 +1,2 @@
+BooleanCase(true)
+BooleanCase(false)

@@ -1,0 +1,16 @@
+library {
+  // module name: <main>
+
+  library fragment {
+    // package name: test
+
+    package {
+
+      @kotlin/Deprecated(message = "Hello World")
+      public final fun foo(): kotlin/Unit
+
+      public final const val MSG: kotlin/String /* = "Hello World" */
+        public final get
+    }
+  }
+}

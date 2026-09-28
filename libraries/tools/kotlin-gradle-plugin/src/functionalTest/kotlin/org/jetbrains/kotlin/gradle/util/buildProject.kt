@@ -1,0 +1,222 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+@file:Suppress("TYPEALIAS_EXPANSION_DEPRECATION")
+
+package org.jetbrains.kotlin.gradle.util
+
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.gradle.LibraryExtension
+import org.gradle.api.Project
+import org.gradle.api.artifacts.verification.DependencyVerificationMode
+import org.gradle.api.internal.project.ProjectInternal
+import org.gradle.api.plugins.ExtraPropertiesExtension
+import org.gradle.testfixtures.ProjectBuilder
+import org.gradle.testing.base.TestingExtension
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.dsl.kotlinExtension
+import org.jetbrains.kotlin.gradle.plugin.*
+import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.PropertyNames.KOTLIN_RUN_COMPILER_VIA_BUILD_TOOLS_API
+import org.jetbrains.kotlin.gradle.plugin.cocoapods.CocoapodsExtension
+import org.jetbrains.kotlin.gradle.plugin.mpp.apple.swiftimport.SwiftPMImportExtension
+import org.jetbrains.kotlin.gradle.plugin.mpp.uklibs.consumption.KmpResolutionStrategy
+import org.jetbrains.kotlin.gradle.plugin.mpp.uklibs.publication.KmpPublicationStrategy
+import org.jetbrains.kotlin.gradle.utils.getFile
+import org.jetbrains.kotlin.konan.target.XcodeVersion
+
+fun buildProject(
+    projectBuilder: ProjectBuilder.() -> Unit = { },
+    configureProject: Project.() -> Unit = {},
+): ProjectInternal = ProjectBuilder
+    .builder()
+    .apply(projectBuilder)
+    .build()
+    .also {
+        it.enableDependencyVerification(false)
+        it.setFunctionalTestMode()
+    }
+    .apply(configureProject)
+    .let { it as ProjectInternal }
+
+fun buildProjectWithMPP(
+    projectBuilder: ProjectBuilder.() -> Unit = { },
+    preApplyCode: Project.() -> Unit = {},
+    code: Project.() -> Unit = {},
+) = buildProject(projectBuilder) {
+    preApplyCode()
+    project.applyMultiplatformPlugin()
+    code()
+}
+
+/**
+ * JVM + JS + Kotlin/Native + Wasm js + Wasm wasi
+ */
+fun buildKMPWithAllBackends(
+    projectBuilder: ProjectBuilder.() -> Unit = { },
+    preApplyCode: Project.() -> Unit = {},
+    code: Project.() -> Unit = {},
+) = buildProject(projectBuilder) {
+    preApplyCode()
+    project.applyMultiplatformPlugin()
+    @OptIn(ExperimentalWasmDsl::class)
+    kotlin {
+        jvm()
+        js()
+        linuxX64()
+        iosArm64()
+        iosSimulatorArm64()
+        wasmJs()
+        wasmWasi()
+    }
+    code()
+}
+
+fun buildProjectWithJvm(
+    projectBuilder: ProjectBuilder.() -> Unit = {},
+    preApplyCode: Project.() -> Unit = {},
+    code: Project.() -> Unit = {},
+) = buildProject(projectBuilder) {
+    preApplyCode()
+    project.applyKotlinJvmPlugin()
+    code()
+}
+
+fun buildProjectWithCocoapods(projectBuilder: ProjectBuilder.() -> Unit = {}, code: Project.() -> Unit = {}) =
+    buildProject(projectBuilder) {
+        project.applyMultiplatformPlugin()
+        project.applyCocoapodsPlugin()
+        code()
+    }
+
+fun Project.applyKotlinJvmPlugin() {
+    project.plugins.apply(KotlinPluginWrapper::class.java)
+}
+
+fun Project.applyKotlinAndroidPlugin() {
+    project.plugins.apply(KotlinAndroidPluginWrapper::class.java)
+}
+
+fun Project.kotlin(code: KotlinMultiplatformExtension.() -> Unit) {
+    val kotlin = project.kotlinExtension as KotlinMultiplatformExtension
+    kotlin.code()
+}
+
+fun Project.androidLibrary(code: LibraryExtension.() -> Unit) {
+    plugins.findPlugin("com.android.library") ?: plugins.apply("com.android.library")
+    val androidExtension = project.extensions.getByName("android") as LibraryExtension
+    androidExtension.configureDefaults()
+    androidExtension.code()
+}
+
+fun Project.androidApplication(code: ApplicationExtension.() -> Unit) {
+    plugins.findPlugin("com.android.application") ?: plugins.apply("com.android.application")
+    val androidExtension = project.extensions.getByName("android") as ApplicationExtension
+    androidExtension.configureDefaults()
+    androidExtension.code()
+}
+
+fun Project.testing(code: TestingExtension.() -> Unit) {
+    extensions.configure(TestingExtension::class.java, code)
+}
+
+fun Project.applyMultiplatformPlugin(): KotlinMultiplatformExtension {
+    plugins.apply("kotlin-multiplatform")
+    return extensions.getByName("kotlin") as KotlinMultiplatformExtension
+}
+
+fun Project.applyCocoapodsPlugin() {
+    plugins.apply("org.jetbrains.kotlin.native.cocoapods")
+    kotlin { cocoapods { version = "1.0" } }
+}
+
+fun KotlinMultiplatformExtension.cocoapods(code: CocoapodsExtension.() -> Unit) {
+    requireNotNull(getExtension<CocoapodsExtension>("cocoapods")).apply(code)
+}
+
+fun KotlinMultiplatformExtension.swiftPMDependencies(code: SwiftPMImportExtension.() -> Unit) {
+    requireNotNull(getExtension<SwiftPMImportExtension>("swiftPMDependencies")).apply(code)
+}
+
+val Project.propertiesExtension: ExtraPropertiesExtension
+    get() = extensions.getByType(ExtraPropertiesExtension::class.java)
+
+fun Project.enableCInteropCommonization(enabled: Boolean = true) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_MPP_ENABLE_CINTEROP_COMMONIZATION, enabled.toString())
+}
+
+fun Project.enableMppResourcesPublication(enabled: Boolean = true) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_MPP_ENABLE_RESOURCES_PUBLICATION, enabled.toString())
+}
+
+internal fun Project.setUklibPublicationStrategy(strategy: KmpPublicationStrategy = KmpPublicationStrategy.UklibPublicationInASingleComponentWithKMPPublication) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_KMP_PUBLICATION_STRATEGY, strategy.propertyName)
+}
+
+fun Project.enableCrossCompilation(enabled: Boolean = true) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_NATIVE_ENABLE_KLIBS_CROSSCOMPILATION, enabled.toString())
+}
+
+fun Project.enableKmpSeparateCompilation(enabled: Boolean = true) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_KMP_SEPARATE_COMPILATION, enabled.toString())
+}
+
+internal fun Project.setUklibResolutionStrategy(strategy: KmpResolutionStrategy) {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_KMP_RESOLUTION_STRATEGY, strategy.propertyName)
+}
+
+fun Project.enableDefaultStdlibDependency(enabled: Boolean = true) {
+    project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_STDLIB_DEFAULT_DEPENDENCY, enabled.toString())
+}
+
+fun Project.enableDefaultJsDomApiDependency(enabled: Boolean = true) {
+    project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_JS_STDLIB_DOM_API_INCLUDED, enabled.toString())
+}
+
+
+fun Project.enableDependencyVerification(enabled: Boolean = true) {
+    gradle.startParameter.dependencyVerificationMode = if (enabled) DependencyVerificationMode.STRICT
+    else DependencyVerificationMode.OFF
+}
+
+fun Project.setFunctionalTestMode() {
+    propertiesExtension.set(PropertiesProvider.PropertyNames.FUNCTIONAL_TEST_MODE_PROPERTY, true)
+}
+
+fun Project.mockXcodeVersion(version: XcodeVersion = XcodeVersion.maxTested) {
+    project.layout.buildDirectory.getFile().apply {
+        mkdirs()
+        resolve("xcode-version.txt").writeText(version.toString())
+    }
+}
+
+fun Project.enableSecondaryJvmClassesVariant(enabled: Boolean = true) {
+    project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_JVM_ADD_CLASSES_VARIANT, enabled.toString())
+}
+
+
+fun Project.enableBtaJvm(enabled: Boolean = true) {
+    @Suppress("DEPRECATION")
+    project.propertiesExtension.set(KOTLIN_RUN_COMPILER_VIA_BUILD_TOOLS_API, enabled)
+}
+
+fun Project.enableNonPackedKlibsUsage(enabled: Boolean = true) {
+    project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_USE_NON_PACKED_KLIBS, enabled.toString())
+}
+
+fun Project.enableEagerUnresolvedDependenciesDiagnostic(enabled: Boolean = true) {
+    project.propertiesExtension.set(
+        PropertiesProvider.PropertyNames.KOTLIN_KMP_EAGER_UNRESOLVED_DEPENDENCIES_DIAGNOSTIC,
+        enabled.toString()
+    )
+}
+
+fun Project.enableUnresolvedDependenciesDiagnostic(enabled: Boolean = true) {
+    project.propertiesExtension.set(PropertiesProvider.PropertyNames.KOTLIN_KMP_UNRESOLVED_DEPENDENCIES_DIAGNOSTIC, enabled.toString())
+}
+
+fun Project.withTemporaryKotlinNativeHome() {
+    project.extraProperties.set("kotlin.native.home", System.getProperty("kotlin.native.home"))
+}

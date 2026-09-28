@@ -1,0 +1,8 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase CoreGraphics CoreLocation CoreText CoreVideo Foundation QuartzCore Security Symbols UIKit UIUtilities UserNotifications _LocationEssentials darwin posix
+language = Objective-C
+package = platform.MapKit
+modules = MapKit
+apiNotesSwiftName = true
+
+compilerOpts = -framework MapKit
+linkerOpts = -framework MapKit

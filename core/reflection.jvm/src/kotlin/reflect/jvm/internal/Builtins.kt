@@ -1,0 +1,189 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package kotlin.reflect.jvm.internal
+
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.builtins.jvm.JavaToKotlinClassMap
+import org.jetbrains.kotlin.descriptors.runtime.components.ReflectKotlinClassFinder
+import org.jetbrains.kotlin.descriptors.runtime.structure.safeClassLoader
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
+import java.lang.ref.SoftReference
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.metadata.*
+import kotlin.metadata.internal.common.KmModuleFragment
+import kotlin.metadata.internal.common.KotlinCommonMetadata
+import kotlin.metadata.jvm.JvmMethodSignature
+import kotlin.metadata.jvm.signature
+import kotlin.metadata.jvm.getterSignature
+import kotlin.reflect.KClass
+import kotlin.reflect.jvm.internal.types.MutableCollectionKClass
+import kotlin.reflect.jvm.internal.types.MutableCollectionKClassImpl
+
+internal fun createFunctionKmClass(arity: Int): KmClass = KmClass().apply {
+    name = "kotlin/Function$arity"
+    kind = ClassKind.INTERFACE
+    modality = Modality.ABSTRACT
+    visibility = Visibility.PUBLIC
+
+    for (i in 1..arity) {
+        typeParameters.add(KmTypeParameter("P$i", i, KmVariance.IN))
+    }
+    val returnTypeParameterId = arity + 1
+    typeParameters.add(KmTypeParameter("R", returnTypeParameterId, KmVariance.OUT))
+
+    supertypes.add(KmType().apply {
+        classifier = KmClassifier.Class("kotlin/Function")
+        arguments.add(KmTypeProjection(KmVariance.INVARIANT, KmType().apply {
+            classifier = KmClassifier.TypeParameter(returnTypeParameterId)
+        }))
+    })
+
+    functions.add(KmFunction("invoke").apply {
+        for (i in 1..arity) {
+            valueParameters.add(KmValueParameter("p$i").apply {
+                type = KmType().apply {
+                    classifier = KmClassifier.TypeParameter(i)
+                }
+            })
+        }
+        returnType = KmType().apply {
+            classifier = KmClassifier.TypeParameter(returnTypeParameterId)
+        }
+        modality = Modality.ABSTRACT
+        visibility = Visibility.PUBLIC
+        isOperator = true
+
+        signature = JvmMethodSignature("invoke", "(" + "Ljava/lang/Object;".repeat(arity) + ")Ljava/lang/Object;")
+    })
+}
+
+internal fun createSuspendFunctionInvoke(arity: Int, functionKmClass: KmClass): KmFunction = KmFunction("invoke").apply {
+    val typeParameters = functionKmClass.typeParameters
+    check(typeParameters.size == arity + 2) {
+        "Class '${functionKmClass.name}' must have ${arity + 2} type parameters, but has ${typeParameters.size}"
+    }
+    for (i in 1..arity) {
+        valueParameters.add(KmValueParameter("p$i").apply {
+            type = KmType().apply {
+                classifier = KmClassifier.TypeParameter(typeParameters[i].id)
+            }
+        })
+    }
+    returnType = KmType().apply {
+        classifier = KmClassifier.TypeParameter(typeParameters[arity + 1].id)
+    }
+    modality = Modality.ABSTRACT
+    visibility = Visibility.PUBLIC
+    isOperator = true
+    isSuspend = true
+
+    signature = JvmMethodSignature("invoke", "(" + "Ljava/lang/Object;".repeat(arity + 1) + ")Ljava/lang/Object;")
+}
+
+internal fun createCloneableKmClass(): KmClass = KmClass().apply {
+    name = "kotlin/Cloneable"
+    kind = ClassKind.INTERFACE
+    modality = Modality.ABSTRACT
+    visibility = Visibility.PUBLIC
+
+    functions.add(KmFunction("clone").apply {
+        modality = Modality.OPEN
+        visibility = Visibility.PROTECTED
+        returnType = KmType().apply {
+            classifier = KmClassifier.Class("kotlin/Any")
+        }
+
+        signature = JvmMethodSignature("clone", "()Ljava/lang/Object;")
+    })
+}
+
+internal fun createEnumValuesKmFunction(klass: KClassImpl<*>): KmFunction = KmFunction("values").apply {
+    returnType = KmType().apply {
+        classifier = KmClassifier.Class("kotlin/Array")
+        arguments += KmTypeProjection(KmVariance.INVARIANT, KmType().apply {
+            classifier = KmClassifier.Class(klass.classId.asString())
+        })
+    }
+    modality = Modality.FINAL
+    visibility = Visibility.PUBLIC
+    @OptIn(ExperimentalCompanionBlocksAndExtensions::class)
+    isStatic = true
+
+    signature = JvmMethodSignature("values", "()[L${klass.classId.asString().replace('.', '$')};")
+}
+
+internal fun createEnumValueOfKmFunction(klass: KClassImpl<*>): KmFunction = KmFunction("valueOf").apply {
+    returnType = KmType().apply {
+        classifier = KmClassifier.Class(klass.classId.asString())
+    }
+    valueParameters += KmValueParameter("value").apply {
+        type = KmType().apply {
+            classifier = KmClassifier.Class("kotlin/String")
+        }
+    }
+    modality = Modality.FINAL
+    visibility = Visibility.PUBLIC
+    @OptIn(ExperimentalCompanionBlocksAndExtensions::class)
+    isStatic = true
+
+    signature = JvmMethodSignature("valueOf", "(Ljava/lang/String;)L${klass.classId.asString().replace('.', '$')};")
+}
+
+internal fun createEnumEntriesKmProperty(klass: KClassImpl<*>): KmProperty = KmProperty("entries").apply {
+    returnType = KmType().apply {
+        classifier = KmClassifier.Class("kotlin/enums/EnumEntries")
+        arguments += KmTypeProjection(KmVariance.INVARIANT, KmType().apply {
+            classifier = KmClassifier.Class(klass.classId.asString())
+        })
+    }
+    modality = Modality.FINAL
+    visibility = Visibility.PUBLIC
+    @OptIn(ExperimentalCompanionBlocksAndExtensions::class)
+    isStatic = true
+
+    getterSignature = JvmMethodSignature("getEntries", "()Lkotlin/enums/EnumEntries;")
+}
+
+private class BuiltinClassCache(fragment: KmModuleFragment?) {
+    val classes: Map<ClassName, KmClass> = fragment?.classes?.associateBy { it.name }.orEmpty()
+
+    companion object {
+        val EMPTY = BuiltinClassCache(null)
+    }
+}
+
+private val builtinClassCaches = ConcurrentHashMap<FqName, SoftReference<BuiltinClassCache>>()
+
+internal fun readBuiltinClassMetadata(classId: ClassId): KmClass? {
+    val packageFqName = classId.packageFqName
+    if (packageFqName !in StandardNames.BUILT_INS_PACKAGE_FQ_NAMES) return null
+
+    val cache = builtinClassCaches[packageFqName]?.get() ?: run {
+        val inputStream = ReflectKotlinClassFinder(Unit::class.java.safeClassLoader).findBuiltInsData(packageFqName)
+            ?: return@run BuiltinClassCache.EMPTY
+        val metadata = KotlinCommonMetadata.read(inputStream)
+            ?: throw KotlinReflectionInternalError("Builtins metadata for $packageFqName has unsupported version. Please update kotlin-reflect.")
+        BuiltinClassCache(metadata.kmModuleFragment).also {
+            builtinClassCaches[packageFqName] = SoftReference(it)
+        }
+    }
+    return cache.classes[classId.asString()]
+        ?: throw KotlinReflectionInternalError("Builtin class metadata not found for $classId.")
+}
+
+private val mutableCollectionKClassCache = ConcurrentHashMap<ClassId, MutableCollectionKClass<*>>()
+
+internal fun getMutableCollectionKClass(readonlyClass: KClass<*>): MutableCollectionKClass<*>? {
+    val readOnlyClassId = (readonlyClass as? KClassImpl<*>)?.classId ?: return null
+    val mutableClassId = JavaToKotlinClassMap.readOnlyToMutable(readOnlyClassId) ?: return null
+    return mutableCollectionKClassCache.getOrPut(mutableClassId) { MutableCollectionKClassImpl(readonlyClass, mutableClassId) }
+}
+
+internal fun clearBuiltinClassCaches() {
+    builtinClassCaches.clear()
+    mutableCollectionKClassCache.clear()
+}

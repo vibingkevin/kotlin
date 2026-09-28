@@ -1,0 +1,190 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.psiUtil.KtPsiUtilKt;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Represents a list of parameters in various contexts.
+ *
+ * <h3>Function parameters (including constructors and property accessors):</h3>
+ * <pre>{@code
+ * fun greet(name: String, age: Int) {}
+ * //       ^______________________^
+ * }</pre>
+ *
+ * <h3>Lambda parameters:</h3>
+ * <pre>{@code
+ * val f = { name: String, age: Int -> name }
+ * //        ^____________________^
+ * }</pre>
+ *
+ * <h3>Function type parameters:</h3>
+ * <pre>{@code
+ * val f: (String, Int) -> Unit = { _, _ -> }
+ * //     ^___________^
+ * }</pre>
+ *
+ * @see KtParameter
+ * @see #getOwnerFunction()
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtParameterList extends KtElementImplStub<KotlinPlaceHolderStub<KtParameterList>> {
+    @KtImplementationDetail
+    public KtParameterList(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtParameterList(@NotNull KotlinPlaceHolderStub<KtParameterList> stub) {
+        super(stub, KtNodeTypes.VALUE_PARAMETER_LIST);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitParameterList(this, data);
+    }
+
+    /** Returns the parameters in this list, in source order; empty if there are none. */
+    @NotNull
+    public List<KtParameter> getParameters() {
+        return Arrays.asList(getStubOrPsiChildren(KtNodeTypes.VALUE_PARAMETER, KtParameter.EMPTY_ARRAY));
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.appendParameter(this, parameter)}
+     * instead.
+     */
+    @NotNull
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.appendParameter(this, parameter)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.appendParameter(parameter)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.appendParameter"
+            )
+    )
+    @Deprecated
+    public KtParameter addParameter(@NotNull KtParameter parameter) {
+        return KtPsiMutationService.getInstance().appendParameter(this, parameter);
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.insertParameterBefore(this, parameter, anchor)}
+     * instead.
+     */
+    @NotNull
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.insertParameterBefore(this, parameter, anchor)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.insertParameterBefore(parameter, anchor)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.insertParameterBefore"
+            )
+    )
+    @Deprecated
+    public KtParameter addParameterBefore(@NotNull KtParameter parameter, @Nullable KtParameter anchor) {
+        return KtPsiMutationService.getInstance().insertParameterBefore(this, parameter, anchor);
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.insertParameterAfter(this, parameter, anchor)}
+     * instead.
+     */
+    @NotNull
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.insertParameterAfter(this, parameter, anchor)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.insertParameterAfter(parameter, anchor)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.insertParameterAfter"
+            )
+    )
+    @Deprecated
+    public KtParameter addParameterAfter(@NotNull KtParameter parameter, @Nullable KtParameter anchor) {
+        return KtPsiMutationService.getInstance().insertParameterAfter(this, parameter, anchor);
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.deleteParameter(this, parameter)}
+     * instead.
+     */
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.deleteParameter(this, parameter)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.deleteParameter(parameter)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.deleteParameter"
+            )
+    )
+    @Deprecated
+    public void removeParameter(@NotNull KtParameter parameter) {
+        KtPsiMutationService.getInstance().deleteParameter(this, parameter);
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.deleteParameter(this, index)}
+     * instead.
+     */
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.deleteParameter(this, index)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.deleteParameter(index)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.deleteParameter"
+            )
+    )
+    @Deprecated
+    public void removeParameter(int index) {
+        KtPsiMutationService.getInstance().deleteParameter(this, index);
+    }
+
+    /**
+     * Returns the function-like declaration that owns this parameter list, or {@code null} if the list belongs to a function type (which is
+     * not a declaration).
+     */
+    public KtDeclarationWithBody getOwnerFunction() {
+        PsiElement parent = getParentByStub();
+        if (!(parent instanceof KtDeclarationWithBody)) return null;
+        return (KtDeclarationWithBody) parent;
+    }
+
+    /** Returns the closing parenthesis, or {@code null} if it is absent (for example, a parenthesis-less lambda parameter list). */
+    @Nullable
+    public PsiElement getRightParenthesis() {
+        return findChildByType(KtTokens.RPAR);
+    }
+
+    /** Returns the opening parenthesis, or {@code null} if it is absent (for example, a parenthesis-less lambda parameter list). */
+    @Nullable
+    public PsiElement getLeftParenthesis() {
+        return findChildByType(KtTokens.LPAR);
+    }
+
+    /** Returns the first comma separating parameters, or {@code null} if there is at most one parameter. */
+    @Nullable
+    public PsiElement getFirstComma() {
+        return findChildByType(KtTokens.COMMA);
+    }
+
+    /** Returns the trailing comma after the last parameter, or {@code null} if there is none. */
+    @Nullable
+    public PsiElement getTrailingComma() {
+        PsiElement parentElement = getParent();
+        if (parentElement instanceof KtFunctionLiteral) {
+            return KtPsiUtilKt.getTrailingCommaByElementsList(this);
+        } else {
+            return KtPsiUtilKt.getTrailingCommaByClosingElement(getRightParenthesis());
+        }
+    }
+}

@@ -1,0 +1,88 @@
+# Local build with no caches:
+# docker build --no-cache -t local/kotlin-build-env:v7 -f kotlin-build-env.dockerfile .
+
+FROM debian:12.11-slim
+
+ARG MAVEN_VERSION="3.9.12"
+
+RUN apt-get update \
+    && apt-get install -y locales \
+    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+ENV LANG=en_US.utf8
+
+RUN apt-get install -y git \
+    && apt-get install -y curl \
+    && apt-get install -y zip zstd \
+    && apt-get install -y clang \
+    && apt-get install -y libnspr4 \
+    && apt-get install -y libatomic1 # native library for nodejs
+
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libgl1-mesa-glx \
+    libx11-6 \
+    libxcb1 \
+    libxext6 \
+    libxrender1
+
+RUN rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/lib/jvm
+
+RUN curl https://corretto.aws/downloads/resources/8.502.07.1/amazon-corretto-8.502.07.1-linux-x64.tar.gz | tar -xz -C /usr/lib/jvm
+
+RUN curl https://corretto.aws/downloads/resources/11.0.26.4.1/amazon-corretto-11.0.26.4.1-linux-x64.tar.gz | tar -xz -C /usr/lib/jvm
+
+RUN curl https://corretto.aws/downloads/resources/17.0.9.8.1/amazon-corretto-17.0.9.8.1-linux-x64.tar.gz | tar -xz -C /usr/lib/jvm
+
+RUN curl https://corretto.aws/downloads/resources/21.0.1.12.1/amazon-corretto-21.0.1.12.1-linux-x64.tar.gz | tar -xz -C /usr/lib/jvm
+
+RUN curl https://corretto.aws/downloads/resources/25.0.2.10.1/amazon-corretto-25.0.2.10.1-linux-x64.tar.gz | tar -xz -C /usr/lib/jvm
+
+RUN curl https://download.java.net/java/early_access/valhalla/27/1/openjdk-27-jep401ea3+1-1_linux-x64_bin.tar.gz | tar -xz -C /usr/lib/jvm
+
+RUN curl -L https://gds.oracle.com/download/graal/25i2/latest/graalvm-jdk-25i2-25_linux-x64_bin.tar.gz | tar -xz -C /usr/lib/jvm
+
+# New naming conventions
+ENV JDK8=/usr/lib/jvm/amazon-corretto-8.502.07.1-linux-x64 \
+    JDK11=/usr/lib/jvm/amazon-corretto-11.0.26.4.1-linux-x64 \
+    JDK17=/usr/lib/jvm/amazon-corretto-17.0.9.8.1-linux-x64 \
+    JDK21=/usr/lib/jvm/amazon-corretto-21.0.1.12.1-linux-x64 \
+    JDK25=/usr/lib/jvm/amazon-corretto-25.0.2.10.1-linux-x64
+
+# TeamCity JDK old naming conventions. Kotlin build still have dependencies in Maven build.
+ENV JDK_18=$JDK8 \
+    JDK_1_8=$JDK8
+
+ENV JDK_18_x64=$JDK8 \
+    JDK_1_8_x64=$JDK8
+
+ENV JDK_11_0=$JDK11 \
+    JDK_17_0=$JDK17 \
+    JDK_21_0=$JDK21 \
+    JDK_25_0=$JDK25
+
+ENV JDK_VALHALLA=/usr/lib/jvm/jdk-27
+ENV JDK_NATIVE_IMAGE=/usr/lib/jvm/graalvm-25.2.4+7.1
+
+ENV JAVA_HOME=$JDK_17_0
+ENV PATH="$PATH:$JAVA_HOME/bin"
+# this affects Maven builds in scripts/build-kotlin-maven.sh
+ENV MAVEN_JAVA_HOME=$JDK_11_0
+
+RUN curl "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" | tar -xz -C /usr/lib
+
+ENV M2_HOME=/usr/lib/apache-maven-${MAVEN_VERSION} \
+    MAVEN_OPTS="-Xmx2G"
+
+ENV MAVEN_HOME=$M2_HOME
+ENV PATH="$PATH:$M2_HOME/bin"
+
+# For running under a non-root user, e. g. in TeamCity
+# The UID is assumed to be the same as the user on the host (e. g. the UID of the TeamCity user on agents)
+# so file ownership in mounted volumes are preserved
+ARG USERNAME=user
+ARG UID=1001
+ARG GID=$UID
+RUN groupadd --gid "$GID" "$USERNAME"
+RUN useradd --uid "$UID" --gid "$GID" --create-home "$USERNAME"

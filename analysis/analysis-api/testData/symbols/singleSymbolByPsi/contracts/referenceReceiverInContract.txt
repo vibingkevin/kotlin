@@ -1,0 +1,125 @@
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: [
+    kotlin/OptIn(markerClass = [kotlin.contracts.ExperimentalContracts::class])
+      psi: KtAnnotationEntry
+  ]
+  callableId: /referenceReceiverInContract
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: [
+    KaContractCallsInPlaceContractEffectDeclaration:
+      valueParameterReference:
+        KaContractExplicitParameterValue:
+          symbol:
+            KaReceiverParameterSymbol:
+              anchorPsi: KtTypeReference
+              annotations: []
+              callableId: null
+              contextParameters: []
+              contextReceivers: []
+              isActual: false
+              isCompanion: false
+              isDelegated: false
+              isExpect: false
+              isExtension: false
+              isExternal: false
+              isVal: true
+              location: LOCAL
+              modality: FINAL
+              name: <receiver>
+              origin: SOURCE
+              owningCallableSymbol: KaNamedFunctionSymbol(/referenceReceiverInContract)
+              psi: KtTypeReference
+              realPsi: KtTypeReference
+              receiverParameter: null
+              returnType: KaFunctionType:
+                annotations: []
+                typeArguments: [
+                  KaUsualClassType:
+                    annotations: []
+                    typeArguments: []
+                    type: kotlin/Unit
+                ]
+                type: () -> kotlin/Unit
+              typeParameters: []
+              visibility: PUBLIC
+              getContainingFileSymbol: KaFileSymbol(referenceReceiverInContract.kt)
+              getContainingJvmClassName: ReferenceReceiverInContractKt
+              getContainingModule: KaSourceModule "Sources of main"
+              deprecation: null
+              importableFqName: null
+      invocationKind: EXACTLY_ONCE
+  ]
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: true
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: referenceReceiverInContract
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: KaReceiverParameterSymbol:
+    anchorPsi: KtTypeReference
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isVal: true
+    location: LOCAL
+    modality: FINAL
+    name: <receiver>
+    origin: SOURCE
+    owningCallableSymbol: KaNamedFunctionSymbol(/referenceReceiverInContract)
+    psi: KtTypeReference
+    realPsi: KtTypeReference
+    receiverParameter: null
+    returnType: KaFunctionType:
+      annotations: []
+      typeArguments: [
+        KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Unit
+      ]
+      type: () -> kotlin/Unit
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(referenceReceiverInContract.kt)
+    getContainingJvmClassName: ReferenceReceiverInContractKt
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(referenceReceiverInContract.kt)
+  getContainingJvmClassName: ReferenceReceiverInContractKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: referenceReceiverInContract
+  importableFqName: referenceReceiverInContract

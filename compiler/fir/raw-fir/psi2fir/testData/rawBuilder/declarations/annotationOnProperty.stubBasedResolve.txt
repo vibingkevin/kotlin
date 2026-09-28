@@ -1,0 +1,40 @@
+FILE: [ResolvedTo(BODY_RESOLVE)] annotationOnProperty.kt
+    public final [ResolvedTo(BODY_RESOLVE)] annotation class Ann : R|kotlin/Annotation| {
+        public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Ann] constructor(): R|Ann| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    field:@FIELD:R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] val x: R|kotlin/Int| = Int(1)
+        public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/Int|
+    @PROPERTY:R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] val y: R|kotlin/Int| = Int(2)
+        public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/Int|
+    @R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] val z: R|kotlin/Int| = Int(3)
+        public [ResolvedTo(BODY_RESOLVE)] get(): R|kotlin/Int|
+    public final [ResolvedTo(BODY_RESOLVE)] class Some : R|kotlin/Any| {
+        public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] constructor([ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/Some.x] x: R|kotlin/Int|, [ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/Some.y] y: R|kotlin/Int|, [ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/Some.z] @CONSTRUCTOR_PARAMETER:R|Ann|[Types]() z: R|kotlin/Int|, [ResolvedTo(BODY_RESOLVE)] [CorrespondingProperty=/Some.w] w: R|kotlin/Int|): R|Some| {
+            super<R|kotlin/Any|>()
+        }
+
+        field:@FIELD:R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] [IsFromPrimaryConstructor=true] val x: R|kotlin/Int| = R|<local>/x|
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] get(): R|kotlin/Int|
+
+        @PROPERTY:R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] [IsFromPrimaryConstructor=true] val y: R|kotlin/Int| = R|<local>/y|
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] get(): R|kotlin/Int|
+
+        public final [ResolvedTo(BODY_RESOLVE)] [IsFromPrimaryConstructor=true] val z: R|kotlin/Int| = R|<local>/z|
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] get(): R|kotlin/Int|
+
+        public final [ResolvedTo(BODY_RESOLVE)] [IsFromPrimaryConstructor=true] val w: R|kotlin/Int| = R|<local>/w|
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] get(): R|kotlin/Int|
+
+        field:@FIELD:R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] val a: R|kotlin/Int| = Int(1)
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] get(): R|kotlin/Int|
+
+        @PROPERTY:R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] val b: R|kotlin/Int| = Int(2)
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] get(): R|kotlin/Int|
+
+        @R|Ann|[Types]() public final [ResolvedTo(BODY_RESOLVE)] val c: R|kotlin/Int| = Int(3)
+            public [ResolvedTo(BODY_RESOLVE)] [ContainingClassKey=Some] get(): R|kotlin/Int|
+
+    }

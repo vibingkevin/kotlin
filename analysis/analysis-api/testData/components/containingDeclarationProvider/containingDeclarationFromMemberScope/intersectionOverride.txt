@@ -1,0 +1,15 @@
+context(c@T)
+fun <T> Int.foo(x: T) fromClass Y
+  T from /Y.foo
+  c: T from /Y.foo
+  receiver Int from /Y.foo
+  x: T from /Y.foo
+
+fun equals(other: Any?): Boolean fromClass kotlin/Any
+  other: Any? from kotlin/Any.equals
+
+fun hashCode(): Int fromClass kotlin/Any
+
+fun toString(): String fromClass kotlin/Any
+
+constructor() fromClass Y

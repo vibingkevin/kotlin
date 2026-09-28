@@ -1,0 +1,4 @@
+// RUN_PIPELINE_TILL: FRONTEND
+fun<!SYNTAX, SYNTAX!><!>
+
+/* GENERATED_FIR_TAGS: functionDeclaration */

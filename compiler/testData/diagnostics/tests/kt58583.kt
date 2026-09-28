@@ -1,0 +1,21 @@
+// RUN_PIPELINE_TILL: BACKEND
+
+// FILE: DialogWrapper.kt
+package pkg
+
+open class DialogWrapper {
+    protected open class DialogWrapperAction
+}
+
+// FILE: Main.kt
+import pkg.DialogWrapper
+
+fun main() {
+    object: DialogWrapper() {
+        init {
+            object: DialogWrapperAction() {}
+        }
+    }
+}
+
+/* GENERATED_FIR_TAGS: anonymousObjectExpression, classDeclaration, functionDeclaration, init, nestedClass */

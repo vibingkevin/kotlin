@@ -1,0 +1,2 @@
+class: kotlin/collections/Iterator
+

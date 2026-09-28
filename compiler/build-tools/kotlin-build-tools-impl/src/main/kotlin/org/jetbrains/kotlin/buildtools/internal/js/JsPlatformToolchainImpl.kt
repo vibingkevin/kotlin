@@ -1,0 +1,26 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.buildtools.internal.js
+
+import org.jetbrains.kotlin.buildtools.api.js.JsPlatformToolchain
+import org.jetbrains.kotlin.buildtools.api.js.operations.JsDtsGenerationOperation
+import org.jetbrains.kotlin.buildtools.api.js.operations.JsKlibCompilationOperation
+import org.jetbrains.kotlin.buildtools.api.js.operations.JsLinkingOperation
+import org.jetbrains.kotlin.buildtools.internal.js.operations.JsDtsGenerationOperationImpl
+import org.jetbrains.kotlin.buildtools.internal.js.operations.JsKlibCompilationOperationImpl
+import org.jetbrains.kotlin.buildtools.internal.js.operations.JsLinkingOperationImpl
+import java.nio.file.Path
+
+internal class JsPlatformToolchainImpl(private val compilerVersion: String) : JsPlatformToolchain {
+    override fun jsLinkingOperationBuilder(klib: Path, destination: Path): JsLinkingOperation.Builder =
+        JsLinkingOperationImpl(klib, destination)
+
+    override fun jsKlibCompilationOperationBuilder(sources: List<Path>, destination: Path): JsKlibCompilationOperation.Builder =
+        JsKlibCompilationOperationImpl(sources, destination, compilerVersion = compilerVersion)
+
+    override fun jsDtsGenerationOperationBuilder(klibs: List<Path>, outputDirectory: Path): JsDtsGenerationOperation.Builder =
+        JsDtsGenerationOperationImpl(klibs, outputDirectory)
+}

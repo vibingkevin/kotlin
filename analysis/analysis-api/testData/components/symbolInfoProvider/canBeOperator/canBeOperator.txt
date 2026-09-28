@@ -1,0 +1,122 @@
+FUNCTION:
+  KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /A.plus
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: CLASS
+  modality: FINAL
+  name: plus
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    abbreviation: null
+    annotations: []
+    classId: A
+    qualifiers: [
+      KaResolvedClassTypeQualifier:
+        name: A
+        symbol: KaNamedClassSymbol(A)
+        typeArguments: []
+    ]
+    symbol: KaNamedClassSymbol(A)
+    typeArguments: []
+    isMarkedNullable: false
+    isNullable: false
+    hasFlexibleNullability: false
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: a
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        abbreviation: null
+        annotations: []
+        classId: A
+        qualifiers: [
+          KaResolvedClassTypeQualifier:
+            name: A
+            symbol: KaNamedClassSymbol(A)
+            typeArguments: []
+        ]
+        symbol: KaNamedClassSymbol(A)
+        typeArguments: []
+        isMarkedNullable: false
+        isNullable: false
+        hasFlexibleNullability: false
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(canBeOperator.kt)
+      getContainingJvmClassName: A
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    abbreviation: null
+    annotations: []
+    classId: A
+    qualifiers: [
+      KaResolvedClassTypeQualifier:
+        name: A
+        symbol: KaNamedClassSymbol(A)
+        typeArguments: []
+    ]
+    symbol: KaNamedClassSymbol(A)
+    typeArguments: []
+    isMarkedNullable: false
+    isNullable: false
+    hasFlexibleNullability: false
+  getContainingFileSymbol: KaFileSymbol(canBeOperator.kt)
+  getContainingJvmClassName: A
+  canBeOperator: true
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: plus
+  importableFqName: null
+CAN_BE_OPERATOR:
+  true

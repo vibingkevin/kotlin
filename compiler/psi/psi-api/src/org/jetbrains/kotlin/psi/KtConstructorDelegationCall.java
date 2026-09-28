@@ -1,0 +1,100 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a constructor delegation call to {@code this()} or {@code super()}.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * class SimpleClass(i: Int) {
+ *     constructor(s: String) : this(s.toInt())
+ * //                           ^_____________^
+ * }
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtConstructorDelegationCall extends KtElementImpl implements KtCallElement {
+    @KtImplementationDetail
+    public KtConstructorDelegationCall(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitConstructorDelegationCall(this, data);
+    }
+
+    @Override
+    @Nullable
+    public KtValueArgumentList getValueArgumentList() {
+        return (KtValueArgumentList) findChildByType(KtNodeTypes.VALUE_ARGUMENT_LIST);
+    }
+
+    @Override
+    @NotNull
+    public List<? extends ValueArgument> getValueArguments() {
+        KtValueArgumentList list = getValueArgumentList();
+        return list != null ? list.getArguments() : Collections.<KtValueArgument>emptyList();
+    }
+
+    /** Always empty: a constructor delegation call ({@code this(...)} / {@code super(...)}) takes no trailing lambda arguments. */
+    @NotNull
+    @Override
+    public List<KtLambdaArgument> getLambdaArguments() {
+        return Collections.emptyList();
+    }
+
+    /** Always empty: a constructor delegation call takes no type arguments. */
+    @NotNull
+    @Override
+    public List<KtTypeProjection> getTypeArguments() {
+        return Collections.emptyList();
+    }
+
+    /** Always {@code null}: a constructor delegation call has no type argument list. */
+    @Override
+    public KtTypeArgumentList getTypeArgumentList() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public KtConstructorDelegationReferenceExpression getCalleeExpression() {
+        return findChildByClass(KtConstructorDelegationReferenceExpression.class);
+    }
+
+    /**
+     * @return true if this delegation call is not present in the source code. Note that we always parse delegation calls
+     * for secondary constructors, even if there's no explicit call in the source (see {@link KotlinParsing#parseSecondaryConstructor}).
+     *
+     *     class Foo {
+     *         constructor(name: String)   // <--- implicit constructor delegation call (empty element after RPAR)
+     *     }
+     */
+    public boolean isImplicit() {
+        KtConstructorDelegationReferenceExpression callee = getCalleeExpression();
+        return callee != null && callee.getFirstChild() == null;
+    }
+
+    /**
+     * Returns {@code true} if this delegates to another constructor of the same class ({@code this(...)}), or {@code false} if it delegates
+     * to a superclass constructor ({@code super(...)}).
+     */
+    public boolean isCallToThis() {
+        KtConstructorDelegationReferenceExpression callee = getCalleeExpression();
+        return callee != null && callee.isThis();
+    }
+}

@@ -1,0 +1,5 @@
+$TESTDATA_DIR$/warningsSuppressionDisablesErrors_Native.kt
+-o
+$TEMP_DIR$/simple
+-Xwarning-level=non-existing-diagnostic\:disabled
+-Xwarning-level=UNINITIALIZED_VARIABLE\:disabled

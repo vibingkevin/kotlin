@@ -1,0 +1,10 @@
+depends = CFCGTypes CFNetwork CoreFoundation CoreFoundationBase Foundation Security darwin posix
+language = Objective-C
+package = platform.iAd
+modules = iAd
+apiNotesSwiftName = true
+
+compilerOpts = -framework iAd
+linkerOpts = -framework iAd
+
+excludedFunctions = ADClientErrorDomain

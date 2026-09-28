@@ -1,0 +1,14 @@
+@kotlin.Metadata
+public final class A {
+    // source: 'test.kt'
+    public method <init>(): void
+    public final method doOnSuccess(@org.jetbrains.annotations.NotNull p0: java.util.function.Consumer): void
+}
+
+@kotlin.Metadata
+public final class TestKt {
+    // source: 'test.kt'
+    private final static method example$foo(p0: java.lang.Object): void
+    public final static method example(): void
+    public final static method foo(@org.jetbrains.annotations.NotNull p0: java.lang.Object): void
+}

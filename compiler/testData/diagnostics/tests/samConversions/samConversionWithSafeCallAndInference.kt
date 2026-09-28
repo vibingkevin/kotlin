@@ -1,0 +1,14 @@
+// RUN_PIPELINE_TILL: BACKEND
+// FULL_JDK
+// ISSUE: KT-56663
+
+import java.util.function.Supplier
+
+class Panel(supplier: Supplier<String>?)
+
+fun main(s: String?) {
+    Panel(s?.let { { it } })
+}
+
+/* GENERATED_FIR_TAGS: classDeclaration, functionDeclaration, lambdaLiteral, nullableType, primaryConstructor, safeCall,
+samConversion */

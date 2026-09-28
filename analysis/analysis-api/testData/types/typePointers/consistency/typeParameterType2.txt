@@ -1,0 +1,25 @@
+Restored type is the same as the original one
+
+KaTypeParameterType:
+  abbreviation: null
+  annotations: []
+  name: T
+  symbol: KaTypeParameterSymbol:
+    anchorPsi: KtTypeParameter
+    annotations: []
+    isActual: false
+    isExpect: false
+    isExternal: false
+    isReified: false
+    location: CLASS
+    modality: FINAL
+    name: T
+    origin: SOURCE
+    psi: KtTypeParameter
+    realPsi: KtTypeParameter
+    upperBounds: []
+    variance: IN_VARIANCE
+    visibility: LOCAL
+  isMarkedNullable: false
+  isNullable: true
+  hasFlexibleNullability: false

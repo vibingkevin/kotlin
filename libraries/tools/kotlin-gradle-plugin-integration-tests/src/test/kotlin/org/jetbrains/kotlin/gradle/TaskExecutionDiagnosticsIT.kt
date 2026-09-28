@@ -1,0 +1,245 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.gradle
+
+import org.gradle.kotlin.dsl.invoke
+import org.gradle.kotlin.dsl.kotlin
+import org.gradle.kotlin.dsl.withType
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.util.GradleVersion
+import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics.UnsupportedKotlinArchiveUsage
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnosticsSeverity
+import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.gradle.uklibs.applyJvm
+import org.jetbrains.kotlin.gradle.util.useCompilerVersion
+import org.junit.jupiter.api.DisplayName
+import kotlin.io.path.appendText
+import kotlin.io.path.createDirectories
+import kotlin.io.path.createFile
+import kotlin.io.path.pathString
+
+@DisplayName("Execution time diagnostics")
+class TaskExecutionDiagnosticsIT : KGPBaseTest() {
+
+    @JvmGradlePluginTests
+    @GradleTest
+    fun shouldProduceErrorOnFirIcRunnerAndLv19(
+        gradleVersion: GradleVersion,
+    ) {
+        val project = project("empty", gradleVersion) {
+            addKgpToBuildScriptCompilationClasspath()
+            buildScriptInjection {
+                project.applyJvm {
+                    jvmToolchain(17)
+                    compilerOptions.languageVersion.set(KotlinVersion.KOTLIN_1_9)
+                }
+            }
+
+            kotlinSourcesDir().source("main.kt") {
+                """
+                |fun main() {}
+                """.trimMargin()
+            }
+
+            gradleProperties.appendText(
+                """
+                |kotlin.incremental.jvm.fir=true
+                """.trimMargin()
+            )
+        }
+
+        project.buildAndFail("compileKotlin") {
+            assertHasDiagnostic(KotlinToolingDiagnostics.IcFirMisconfigurationLV)
+        }
+    }
+
+    @DisplayName("KT-79851: unsupported version, but no kotlin-dsl: should be no new diagnostic")
+    @JvmGradlePluginTests
+    @GradleTest
+    fun noKt79851DiagnosticWithoutKotlinDsl(gradleVersion: GradleVersion) {
+        val project = project("emptyKts", gradleVersion) {
+            plugins {
+                kotlin("jvm")
+            }
+            buildScriptInjection {
+                project.applyJvm {
+                    jvmToolchain(17)
+                    compilerOptions.apiVersion.set(KotlinVersion.KOTLIN_1_8)
+                    compilerOptions.languageVersion.set(KotlinVersion.KOTLIN_1_8)
+                }
+            }
+
+            kotlinSourcesDir().source("main.kt") {
+                """
+                |fun main() {}
+                """.trimMargin()
+            }
+        }
+
+        project.buildAndFail("compileKotlin") {
+            assertNoDiagnostic(KotlinToolingDiagnostics.DeprecatedKotlinVersionKotlinDsl)
+        }
+    }
+
+    @DisplayName("KT-79851: emit unsupported language version kotlin-dsl diagnostic strong warning, default compiler")
+    @JvmGradlePluginTests
+    @GradleTest
+    fun emitDiagnosticOnUnsupportedVersionAlongKotlinDslStrongWarning(gradleVersion: GradleVersion) =
+        emitDiagnosticOnUnsupportedVersionAlongKotlinDsl(
+            gradleVersion,
+            btaVersion = null,
+            expectedSeverity = KotlinToolingDiagnosticsSeverity.STRONG_WARNING,
+        )
+
+    @DisplayName("KT-79851: emit unsupported language version kotlin-dsl diagnostic warning, default compiler")
+    @JvmGradlePluginTests
+    @GradleTest
+    fun emitDiagnosticOnUnsupportedVersionAlongKotlinDslWarning(gradleVersion: GradleVersion) =
+        emitDiagnosticOnUnsupportedVersionAlongKotlinDsl(
+            gradleVersion,
+            btaVersion = null,
+            expectedSeverity = KotlinToolingDiagnosticsSeverity.ERROR, // it's rendered as ERROR because of warning-mode=fail
+            customizedKotlinVersion = KotlinVersion.KOTLIN_2_0,
+        )
+
+    @DisplayName("KT-79851: emit unsupported language version kotlin-dsl diagnostic, custom compiler via BTA with deprecation")
+    @JvmGradlePluginTests
+    @GradleTest
+    @GradleTestVersions(
+        maxVersion = TestVersions.Gradle.G_9_6 // Gradle 9.7+ brings Kotlin runtime 2.4.0 which metadata is not compatible with Kotlin compiler 2.2.10
+    )
+    fun emitDiagnosticOnUnsupportedVersionAlongKotlinDslCustomVersionDeprecation(gradleVersion: GradleVersion) =
+        emitDiagnosticOnUnsupportedVersionAlongKotlinDsl(
+            gradleVersion,
+            btaVersion = "2.2.10",
+            expectedSeverity = KotlinToolingDiagnosticsSeverity.ERROR, // it's rendered as ERROR because of warning-mode=fail
+        )
+
+    // Gradle 9.4.0 brings it Kotlin runtime 2.3.0 which metadata is not compatible with Kotlin compiler 2.1.20
+    @GradleTestVersions(maxVersion = TestVersions.Gradle.G_9_3)
+    @DisplayName("KT-79851: emit unsupported language version kotlin-dsl diagnostic, custom compiler via BTA without deprecation")
+    @JvmGradlePluginTests
+    @GradleTest
+    fun emitDiagnosticOnUnsupportedVersionAlongKotlinDslCustomVersion(gradleVersion: GradleVersion) =
+        emitDiagnosticOnUnsupportedVersionAlongKotlinDsl(gradleVersion, btaVersion = "2.1.20", expectedSeverity = null)
+
+    private fun emitDiagnosticOnUnsupportedVersionAlongKotlinDsl(
+        gradleVersion: GradleVersion,
+        btaVersion: String?,
+        expectedSeverity: KotlinToolingDiagnosticsSeverity?,
+        customizedKotlinVersion: KotlinVersion = KotlinVersion.KOTLIN_1_8,
+    ) {
+        val project =
+            project("emptyKts", gradleVersion, buildOptions = defaultBuildOptions.copy(runViaBuildToolsApi = btaVersion != null)) {
+                plugins {
+                    kotlin("jvm")
+                    id("kotlin-dsl")
+                }
+                buildScriptInjection {
+                    project.applyJvm {
+                        jvmToolchain(17)
+                        @OptIn(ExperimentalBuildToolsApi::class, ExperimentalKotlinGradlePluginApi::class)
+                        if (btaVersion != null) {
+                            useCompilerVersion(btaVersion)
+                        }
+                    }
+                    // to make the test more reliable, fixate AV/LV. Those particular values are defaults for Gradle 8
+                    val configureKotlin = {
+                        project.tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                            it.compilerOptions.apiVersion.set(customizedKotlinVersion)
+                            it.compilerOptions.languageVersion.set(customizedKotlinVersion)
+                        }
+                    }
+                    configureKotlin()
+                }
+
+                kotlinSourcesDir().source("main.kt") {
+                    """
+                |fun main() {}
+                """.trimMargin()
+                }
+            }
+
+        val expectFail = when (expectedSeverity) {
+            KotlinToolingDiagnosticsSeverity.ERROR -> false // ERROR == WARNING because of warning-mode=fail
+            KotlinToolingDiagnosticsSeverity.STRONG_WARNING -> true
+            null -> false
+            else -> error("Impossible expected severity: $expectedSeverity")
+        }
+        val assertions: BuildResult.() -> Unit = {
+            if (expectedSeverity == null) {
+                assertNoDiagnostic(KotlinToolingDiagnostics.DeprecatedKotlinVersionKotlinDsl)
+            } else {
+                val expectedVersions = """
+                    - API version: ${customizedKotlinVersion.version}
+                    - language version: ${customizedKotlinVersion.version}
+                """.trimIndent()
+                assertHasDiagnostic(KotlinToolingDiagnostics.DeprecatedKotlinVersionKotlinDsl, expectedVersions, expectedSeverity)
+            }
+        }
+        if (expectFail) {
+            project.buildAndFail("compileKotlin", assertions = assertions)
+        } else {
+            project.build("compileKotlin", assertions = assertions)
+        }
+    }
+
+    @GradleTest
+    @OtherGradlePluginTests
+    fun `karOrKarXZFilesInCompileClasspathAreReported - native`(gradleVersion: GradleVersion) {
+        nativeProject("native-simple-project", gradleVersion) {
+            val unsupportedLibraryPaths = listOf("foo.kar", "bar.kar.xz").map { fileName ->
+                projectPath.resolve("libs").createDirectories().resolve(fileName).createFile().pathString
+            }
+
+            buildScriptInjection {
+                val project = this.project
+                @OptIn(ExperimentalKotlinGradlePluginApi::class)
+                kotlinMultiplatform.dependencies {
+                    implementation.invoke(project.files(unsupportedLibraryPaths))
+                }
+            }
+
+            build(":compileKotlinLinuxX64") {
+                assertHasDiagnostic(UnsupportedKotlinArchiveUsage)
+                unsupportedLibraryPaths.forEach { libraryPath ->
+                    assertOutputContains(libraryPath)
+                }
+            }
+        }
+    }
+
+    @GradleTest
+    @OtherGradlePluginTests
+    fun `karOrKarXZFilesInCompileClasspathAreReported - js`(gradleVersion: GradleVersion) {
+        project(
+            "kotlin-js-plugin-project", gradleVersion,
+            buildOptions = defaultBuildOptions.disableIsolatedProjectsBecauseOfJsAndWasmKT75899(),
+        ) {
+            val unsupportedLibraryPaths = listOf("foo.kar", "bar.kar.xz").map { fileName ->
+                projectPath.resolve("libs").createDirectories().resolve(fileName).createFile().pathString
+            }
+
+            buildScriptInjection {
+                val project = this.project
+                @OptIn(ExperimentalKotlinGradlePluginApi::class)
+                kotlinMultiplatform.dependencies {
+                    implementation.invoke(project.files(unsupportedLibraryPaths))
+                }
+            }
+
+            build(":compileKotlinJs") {
+                assertHasDiagnostic(UnsupportedKotlinArchiveUsage)
+                unsupportedLibraryPaths.forEach { libraryPath ->
+                    assertOutputContains(libraryPath)
+                }
+            }
+        }
+    }
+}

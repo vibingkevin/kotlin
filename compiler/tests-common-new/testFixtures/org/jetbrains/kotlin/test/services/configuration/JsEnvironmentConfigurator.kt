@@ -1,0 +1,187 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.test.services.configuration
+
+import org.jetbrains.kotlin.cli.common.testEnvironment
+import org.jetbrains.kotlin.codegen.forTestCompile.TestCompilePaths.KOTLIN_JS_KOTLIN_TEST_KLIB_PATH
+import org.jetbrains.kotlin.codegen.forTestCompile.TestCompilePaths.KOTLIN_JS_STDLIB_KLIB_PATH
+import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.config.AnalysisFlags.allowFullyQualifiedNameInKClass
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.TranslationMode
+import org.jetbrains.kotlin.js.config.JsGenerationGranularity
+import org.jetbrains.kotlin.js.config.ModuleKind
+import org.jetbrains.kotlin.js.config.TsCompilationStrategy
+import org.jetbrains.kotlin.js.config.moduleKind
+import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
+import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives
+import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives.JS_MODULE_KIND
+import org.jetbrains.kotlin.test.directives.KlibBasedCompilerTestDirectives
+import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
+import org.jetbrains.kotlin.test.directives.model.RegisteredDirectives
+import org.jetbrains.kotlin.test.model.TestModule
+import org.jetbrains.kotlin.test.services.*
+import org.jetbrains.kotlin.test.util.joinToArrayString
+import org.jetbrains.kotlin.utils.addToStdlib.butIf
+import java.io.File
+
+abstract class JsEnvironmentConfigurator(testServices: TestServices) : EnvironmentConfigurator(testServices),
+    KlibBasedEnvironmentConfigurator
+{
+    override val directiveContainers: List<DirectivesContainer>
+        get() = listOf(JsEnvironmentConfigurationDirectives, KlibBasedCompilerTestDirectives)
+
+    companion object {
+        const val TEST_DATA_DIR_PATH = "js/js.translator/testData"
+        const val OLD_MODULE_SUFFIX = "_old"
+
+        val kotlinTestPath: String
+            get() = System.getProperty(KOTLIN_JS_KOTLIN_TEST_KLIB_PATH)!!
+
+        val stdlibPath: String
+            get() = System.getProperty(KOTLIN_JS_STDLIB_KLIB_PATH)!!
+
+        // Keep names short to keep path lengths under 255 for Windows
+        private val outputDirByMode = mapOf(
+            TranslationMode.FULL_DEV to "out",
+            TranslationMode.FULL_PROD_MINIMIZED_NAMES to "outMin",
+            TranslationMode.PER_MODULE_DEV to "outPm",
+            TranslationMode.PER_MODULE_PROD_MINIMIZED_NAMES to "outPmMin",
+            TranslationMode.PER_FILE_DEV to "outPf",
+            TranslationMode.PER_FILE_PROD_MINIMIZED_NAMES to "outPfMin"
+        )
+
+        fun getJsModuleArtifactPath(
+            testServices: TestServices,
+            moduleName: String,
+            translationMode: TranslationMode = TranslationMode.FULL_DEV,
+            firstTimeCompilation: Boolean = true,
+        ): String = getJsArtifactsOutputDir(testServices, translationMode, firstTimeCompilation).absolutePath +
+                File.separator +
+                getJsModuleArtifactName(testServices, moduleName)
+
+        fun getJsModuleArtifactName(testServices: TestServices, moduleName: String): String {
+            return testServices.klibEnvironmentConfigurator.getKlibArtifactSimpleName(testServices, moduleName) + "_v5"
+        }
+
+        fun getJsArtifactsOutputDir(
+            testServices: TestServices,
+            translationMode: TranslationMode = TranslationMode.FULL_DEV,
+            firstTimeCompilation: Boolean = true,
+        ): File {
+            val name = outputDirByMode[translationMode]!!.butIf(!firstTimeCompilation) { "$it-recompiled" }
+            return testServices.temporaryDirectoryManager.getOrCreateTempDirectory(name)
+        }
+
+        fun getMainModule(testServices: TestServices): TestModule {
+            val modules = testServices.moduleStructure.modules
+            val inferMainModule = JsEnvironmentConfigurationDirectives.INFER_MAIN_MODULE in testServices.moduleStructure.allDirectives
+            return when {
+                inferMainModule -> modules.last()
+                else -> modules.singleOrNull { it.name == ModuleStructureExtractor.DEFAULT_MODULE_NAME } ?: modules.last()
+            }
+        }
+
+        fun isMainModule(module: TestModule, testServices: TestServices): Boolean {
+            return module == getMainModule(testServices)
+        }
+
+        fun getMainModuleName(testServices: TestServices): String {
+            return getMainModule(testServices).name
+        }
+
+        fun isFullJsRuntimeNeeded(module: TestModule): Boolean =
+            JsEnvironmentConfigurationDirectives.KJS_WITH_FULL_RUNTIME in module.directives || ConfigurationDirectives.WITH_STDLIB in module.directives
+
+        fun getRuntimePathsForModule(module: TestModule, testServices: TestServices): List<String> {
+            val result = mutableListOf<String>()
+
+            val pathProvider = testServices.standardLibrariesPathProvider
+            if (isFullJsRuntimeNeeded(module)) {
+                result += pathProvider.fullJsStdlib().absolutePath
+                result += pathProvider.kotlinTestJsKLib().absolutePath
+            } else {
+                result += pathProvider.defaultJsStdlib().absolutePath
+            }
+            val runtimeClasspaths = testServices.runtimeClasspathProviders.flatMap { it.runtimeClassPaths(module) }
+            runtimeClasspaths.mapTo(result) { it.absolutePath }
+            return result
+        }
+
+        fun TestModule.hasFilesToRecompile(): Boolean {
+            return files.any { JsEnvironmentConfigurationDirectives.RECOMPILE in it.directives }
+        }
+
+        fun incrementalEnabled(testServices: TestServices): Boolean {
+            return JsEnvironmentConfigurationDirectives.SKIP_IR_INCREMENTAL_CHECKS !in testServices.moduleStructure.allDirectives &&
+                    testServices.moduleStructure.modules.any { it.hasFilesToRecompile() }
+        }
+
+        fun getModuleKind(testServices: TestServices, module: TestModule): ModuleKind {
+            val registeredDirectives = module.directives
+            val moduleKinds = registeredDirectives[JS_MODULE_KIND]
+            val moduleKind = when (moduleKinds.size) {
+                0 -> testServices.moduleStructure.allDirectives[JS_MODULE_KIND].singleOrNull()
+                    ?: if (JsEnvironmentConfigurationDirectives.ES_MODULES in registeredDirectives) ModuleKind.ES else ModuleKind.PLAIN
+                1 -> moduleKinds.single()
+                else -> error("Too many module kinds passed ${moduleKinds.joinToArrayString()}")
+            }
+            return moduleKind
+        }
+
+        fun getTranslationModesForTest(testServices: TestServices, module: TestModule): Set<TranslationMode> {
+            val runIrDce = JsEnvironmentConfigurationDirectives.RUN_IR_DCE in module.directives
+            val onlyIrDce = JsEnvironmentConfigurationDirectives.ONLY_IR_DCE in module.directives
+            val perModuleOnly = JsEnvironmentConfigurationDirectives.SPLIT_PER_MODULE in module.directives
+            val perFileOnly = JsEnvironmentConfigurationDirectives.SPLIT_PER_FILE in module.directives
+            val isEsModules = getModuleKind(testServices, module) == ModuleKind.ES
+            // If runIrDce then include DCE results
+            // If perModuleOnly then skip whole program
+            // (it.dce => runIrDce) && (perModuleOnly => it.perModule)
+            return TranslationMode.entries
+                .filter {
+                    (it.production || !onlyIrDce) &&
+                            (!it.production || runIrDce) &&
+                            (!perModuleOnly || it.granularity == JsGenerationGranularity.PER_MODULE) &&
+                            (!perFileOnly || it.granularity == JsGenerationGranularity.PER_FILE)
+                }
+                .filter { it.production == it.minimizedMemberNames }
+                .filter { isEsModules || it.granularity != JsGenerationGranularity.PER_FILE }
+                .toSet()
+        }
+
+        fun getTypeScriptExportTranslationModes(testServices: TestServices, module: TestModule): List<TranslationMode> {
+            val globalDirectives = testServices.moduleStructure.allDirectives
+            return when (globalDirectives[JsEnvironmentConfigurationDirectives.TS_COMPILATION_STRATEGY].lastOrNull()) {
+                TsCompilationStrategy.MERGED -> listOf(
+                    when {
+                        JsEnvironmentConfigurationDirectives.SPLIT_PER_MODULE in globalDirectives -> TranslationMode.PER_MODULE_DEV
+                        else -> TranslationMode.FULL_DEV
+                    }
+                )
+                TsCompilationStrategy.EACH_FILE -> getTranslationModesForTest(testServices, module).filter { !it.production }
+                TsCompilationStrategy.NONE, null -> emptyList()
+            }
+        }
+    }
+
+    override fun provideAdditionalAnalysisFlags(
+        directives: RegisteredDirectives,
+        languageVersion: LanguageVersion
+    ): Map<AnalysisFlag<*>, Any?> {
+        return super.provideAdditionalAnalysisFlags(directives, languageVersion).toMutableMap().also {
+            it[allowFullyQualifiedNameInKClass] = false
+        }
+    }
+
+    override fun configureCompilerConfiguration(configuration: CompilerConfiguration, module: TestModule) {
+        configuration.testEnvironment = true
+        configuration.phaseConfig = createJsTestPhaseConfig(testServices, module)
+
+        configuration.moduleKind = getModuleKind(testServices, module)
+        configuration.moduleName = module.name.removeSuffix(OLD_MODULE_SUFFIX)
+    }
+}
+

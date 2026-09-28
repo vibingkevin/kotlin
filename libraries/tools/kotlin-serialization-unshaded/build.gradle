@@ -1,0 +1,16 @@
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+}
+
+apply plugin: 'kotlin'
+
+RepoArtifacts.publish(project)
+
+dependencies {
+    embedded(project(":kotlinx-serialization-compiler-plugin")) { transitive = false }
+}
+
+RepoArtifacts.runtimeJar(project, {})
+RepoArtifacts.sourcesJar(project)
+RepoArtifacts.javadocJar(project)

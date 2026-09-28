@@ -1,0 +1,44 @@
+/*
+ * Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.library.metadata
+
+import org.jetbrains.kotlin.descriptors.ModuleCapability
+import org.jetbrains.kotlin.descriptors.ModuleDescriptor
+import org.jetbrains.kotlin.library.KotlinLibrary
+
+sealed class KlibModuleOrigin {
+
+    companion object {
+        val CAPABILITY = ModuleCapability<KlibModuleOrigin>("KlibModuleOrigin")
+    }
+}
+
+sealed class CompiledKlibModuleOrigin : KlibModuleOrigin()
+
+class DeserializedKlibModuleOrigin(val library: KotlinLibrary) : CompiledKlibModuleOrigin()
+
+object CurrentKlibModuleOrigin : CompiledKlibModuleOrigin()
+
+object SyntheticModulesOrigin : KlibModuleOrigin()
+
+fun KlibModuleOrigin.isCInteropLibrary(): Boolean = when (this) {
+    is DeserializedKlibModuleOrigin -> this.library.isCInteropLibrary()
+    CurrentKlibModuleOrigin, SyntheticModulesOrigin -> false
+}
+
+val ModuleDescriptor.klibModuleOriginOrNull: KlibModuleOrigin?
+    get() = this.getCapability(KlibModuleOrigin.CAPABILITY)
+
+val ModuleDescriptor.klibModuleOrigin: KlibModuleOrigin
+    get() = klibModuleOriginOrNull
+        ?: error(
+            "No KlibModuleOrigin capability in $this (${this::class.qualifiedName}). " +
+                    "Note that FirModuleDescriptor provides no capabilities; " +
+                    "use klibModuleOriginOrNull for modules that may not originate from a klib."
+        )
+
+val ModuleDescriptor.kotlinLibrary: KotlinLibrary
+    get() = (this.klibModuleOrigin as DeserializedKlibModuleOrigin).library

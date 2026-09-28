@@ -1,0 +1,156 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.js.test.utils
+
+import com.intellij.openapi.util.io.FileUtilRt
+import org.jetbrains.kotlin.cli.pipeline.web.WebSerializedKlibPipelineArtifact
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.io.canonicalPathString
+import org.jetbrains.kotlin.ir.backend.js.ic.JsModuleArtifact
+import org.jetbrains.kotlin.ir.backend.js.ic.JsSrcFileArtifact
+import org.jetbrains.kotlin.ir.backend.js.ic.rebuildCacheForDirtyFiles
+import org.jetbrains.kotlin.ir.backend.js.loadWebKlibs
+import org.jetbrains.kotlin.ir.backend.js.utils.serialization.deserializeJsIrProgramFragment
+import org.jetbrains.kotlin.library.KotlinLibrary
+import org.jetbrains.kotlin.library.loader.KlibPlatformChecker
+import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives
+import org.jetbrains.kotlin.test.model.TestFile
+import org.jetbrains.kotlin.test.model.TestModule
+import org.jetbrains.kotlin.test.services.*
+import org.jetbrains.kotlin.test.services.configuration.JsEnvironmentConfigurator
+import org.jetbrains.kotlin.test.services.configuration.klibEnvironmentConfigurator
+import java.io.ByteArrayOutputStream
+import kotlin.io.path.Path
+
+private class TestArtifactCache(val moduleName: String, val binaryAsts: MutableMap<String, ByteArray> = mutableMapOf()) {
+    fun fetchArtifacts(): JsModuleArtifact {
+        return JsModuleArtifact(
+            moduleName = moduleName,
+            fileArtifacts = binaryAsts.entries.map {
+                JsSrcFileArtifact(
+                    srcFilePath = it.key,
+                    // TODO: It will be better to use saved fragments, but it doesn't work
+                    //  Merger.merge() + JsNode.resolveTemporaryNames() modify fragments,
+                    //  therefore the sequential calls produce different results
+                    fragments = deserializeJsIrProgramFragment(it.value)
+                )
+            }
+        )
+    }
+}
+
+class JsIrIncrementalDataProvider(private val testServices: TestServices) : TestService {
+    private val fullRuntimeKlib = testServices.standardLibrariesPathProvider.fullJsStdlib()
+    private val defaultRuntimeKlib = testServices.standardLibrariesPathProvider.defaultJsStdlib()
+    private val kotlinTestKLib = testServices.standardLibrariesPathProvider.kotlinTestJsKLib()
+    private val klibEnvironmentConfigurator = testServices.klibEnvironmentConfigurator
+
+    private val predefinedKlibHasIcCache = mutableMapOf<String, TestArtifactCache?>(
+        fullRuntimeKlib.absolutePath to null,
+        kotlinTestKLib.absolutePath to null,
+        defaultRuntimeKlib.absolutePath to null
+    )
+
+    private val icCache: MutableMap<String, TestArtifactCache> = mutableMapOf()
+
+    fun getCaches() = icCache.map { it.value.fetchArtifacts() }
+
+    fun getCacheForModule(module: TestModule): Map<String, ByteArray> {
+        val path = klibEnvironmentConfigurator.getKlibArtifactFile(testServices, module.name)
+        val canonicalPath = path.canonicalPath
+        val moduleCache = icCache[canonicalPath] ?: error("No cache found for $path")
+
+        val oldBinaryAsts = mutableMapOf<String, ByteArray>()
+
+        for (testFile in module.files) {
+            if (JsEnvironmentConfigurationDirectives.RECOMPILE in testFile.directives) {
+                val filePath = if (testServices.cliBasedFacadesEnabled) {
+                    testFile.realFilePath
+                } else {
+                    "/${testFile.name}"
+                }
+                oldBinaryAsts[filePath] = moduleCache.binaryAsts[filePath] ?: error("No AST found for ${testFile}")
+                moduleCache.binaryAsts.remove(filePath)
+            }
+        }
+
+        return oldBinaryAsts
+    }
+
+    private val TestFile.realFilePath: String
+        get() {
+            val realFile = testServices.sourceFileProvider.getOrCreateRealFileForSourceFile(this)
+            return FileUtilRt.toSystemIndependentName(realFile.canonicalPath)
+        }
+
+    fun recordIncrementalData(module: TestModule, artifact: WebSerializedKlibPipelineArtifact) {
+        val configuration = testServices.compilerConfigurationProvider.getCompilerConfiguration(module, CompilationStage.SECOND)
+        val klibs = loadWebKlibs(
+            configuration = configuration,
+            platformChecker = KlibPlatformChecker.JS,
+        )
+
+        val resolvedLibraries = klibs.all
+        for (runtimePath in JsEnvironmentConfigurator.getRuntimePathsForModule(module, testServices)) {
+            recordIncrementalData(
+                path = runtimePath,
+                dirtyFiles = null,
+                orderedLibraries = resolvedLibraries,
+                configuration = configuration,
+            )
+        }
+
+        recordIncrementalData(
+            path = artifact.outputKlibPath,
+            dirtyFiles = module.files.map { it.realFilePath },
+            orderedLibraries = resolvedLibraries,
+            configuration = configuration,
+        )
+    }
+
+    private fun recordIncrementalData(
+        path: String,
+        dirtyFiles: List<String>?,
+        orderedLibraries: List<KotlinLibrary>,
+        configuration: CompilerConfiguration,
+    ) {
+        val canonicalPath = Path(path).canonicalPathString()
+        val predefinedModuleCache = predefinedKlibHasIcCache[canonicalPath]
+        if (predefinedModuleCache != null) {
+            icCache[canonicalPath] = predefinedModuleCache
+            return
+        }
+
+        val currentLib = orderedLibraries.firstOrNull {
+            it.path.canonicalPathString() == canonicalPath
+        } ?: error("Expected library at $canonicalPath")
+
+        val [mainModuleIr, rebuiltFiles] = rebuildCacheForDirtyFiles(
+            currentLib,
+            configuration,
+            orderedLibraries,
+            dirtyFiles,
+        )
+
+        val moduleCache = icCache[canonicalPath] ?: TestArtifactCache(mainModuleIr.name.asString())
+
+        for ([irFile, programFragments] in rebuiltFiles) {
+            if (irFile.module == mainModuleIr) {
+                val output = ByteArrayOutputStream()
+                programFragments.serialize(output)
+                moduleCache.binaryAsts[irFile.fileEntry.name] = output.toByteArray()
+            }
+        }
+
+        if (canonicalPath in predefinedKlibHasIcCache) {
+            predefinedKlibHasIcCache[canonicalPath] = moduleCache
+        }
+
+        icCache[canonicalPath] = moduleCache
+    }
+}
+
+val TestServices.jsIrIncrementalDataProvider: JsIrIncrementalDataProvider by TestServices.testServiceAccessor()

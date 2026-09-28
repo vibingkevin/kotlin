@@ -1,0 +1,32 @@
+import org.jetbrains.kotlin.gradle.plugin.sources.DefaultKotlinSourceSet
+import org.jetbrains.kotlin.konan.target.HostManager
+
+plugins {
+    kotlin("multiplatform") apply true
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+kotlin {
+    val nativePlatform = when {
+        HostManager.hostIsMac -> macosArm64("nativePlatform")
+        HostManager.hostIsLinux -> linuxX64("nativePlatform")
+        HostManager.hostIsMingw -> mingwX64("nativePlatform")
+        else -> throw IllegalStateException("Unsupported host")
+    }
+
+    val commonMain = sourceSets.getByName("commonMain")
+    val nativePlatformMain = sourceSets.getByName("nativePlatformMain")
+    val nativeMain = sourceSets.create("nativeMain")
+
+    nativeMain.dependsOn(commonMain)
+    nativePlatformMain.dependsOn(nativeMain)
+
+    nativePlatform.compilations.getByName("main").cinterops.create("dummy") {
+        headers("libs/include/dummy.h")
+        compilerOpts.add("-Ilibs/include")
+    }
+}

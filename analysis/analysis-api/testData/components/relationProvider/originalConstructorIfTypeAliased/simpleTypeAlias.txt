@@ -1,0 +1,69 @@
+Resolved constructor:
+  KaConstructorSymbol:
+    anchorPsi: KtTypeAlias
+    annotations: []
+    callableId: null
+    containingClassId: test/MyTypeAlias
+    contextParameters: []
+    contextReceivers: []
+    hasStableParameterNames: true
+    isActual: false
+    isCompanion: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isPrimary: false
+    location: CLASS
+    modality: FINAL
+    origin: TYPEALIASED_CONSTRUCTOR
+    psi: KtTypeAlias
+    realPsi: null
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: {test/MyTypeAlias=} test/MyClass
+    typeParameters: []
+    valueParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(simpleTypeAlias.kt)
+    getContainingJvmClassName: null
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    javaMethodName: null
+    importableFqName: test.MyTypeAlias
+
+Original constructor if type aliased:
+  KaConstructorSymbol:
+    anchorPsi: KtClass
+    annotations: []
+    callableId: null
+    containingClassId: test/MyClass
+    contextParameters: []
+    contextReceivers: []
+    hasStableParameterNames: true
+    isActual: false
+    isCompanion: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isPrimary: true
+    location: CLASS
+    modality: FINAL
+    origin: SOURCE_MEMBER_GENERATED
+    psi: KtClass
+    realPsi: null
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: test/MyClass
+    typeParameters: []
+    valueParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(simpleTypeAlias.kt)
+    getContainingJvmClassName: test.MyClass
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    javaMethodName: null
+    importableFqName: test.MyClass

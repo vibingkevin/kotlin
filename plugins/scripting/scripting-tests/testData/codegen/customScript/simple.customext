@@ -1,0 +1,8 @@
+// HAS_CUSTOM_EXTENSION_FILES
+// KOTLIN_SCRIPT_DEFINITION: org.jetbrains.kotlin.test.runners.codegen.TestScriptWithNonKtsExtension
+
+// param: world
+
+val res = "Hello $name"
+
+// expected: res=Hello world

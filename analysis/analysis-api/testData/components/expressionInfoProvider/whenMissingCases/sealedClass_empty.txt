@@ -1,0 +1,2 @@
+TypeCase(object /Foo.A)
+TypeCase(/Foo.B)

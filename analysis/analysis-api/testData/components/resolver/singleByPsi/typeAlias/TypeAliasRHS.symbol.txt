@@ -1,0 +1,8 @@
+KtNameReferenceExpression(38,39): 'C'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      test/C
+    ]

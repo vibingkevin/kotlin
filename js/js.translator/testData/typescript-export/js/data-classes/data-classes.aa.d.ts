@@ -1,0 +1,163 @@
+declare namespace JS_TESTS {
+    type Nullable<T> = T | null | undefined
+    function KtSingleton<T>(): T & (abstract new() => any);
+    namespace foo {
+        function shortNameBasedDestructuring(): string;
+        function fullNameBasedDestructuring(): string;
+        function shortPositionBasedDestructuring(): string;
+        function fullPositionBasedDestructuring(): string;
+        function createWithIgnoredPrimaryAndHiddenCopyWithoutSecondary(value?: number): foo.WithIgnoredPrimaryAndHiddenCopyWithoutSecondary;
+        class TestDataClass {
+            constructor(name: string);
+            copy(name?: string): foo.TestDataClass;
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get name(): string;
+        }
+        namespace TestDataClass {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => TestDataClass;
+            }
+            class Nested {
+                constructor();
+                get prop(): string;
+            }
+            namespace Nested {
+                /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+                namespace $metadata$ {
+                    const constructor: abstract new () => Nested;
+                }
+            }
+        }
+        class KT39423 {
+            constructor(a: string, b?: Nullable<number>);
+            copy(a?: string, b?: Nullable<number>): foo.KT39423;
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get a(): string;
+            get b(): Nullable<number>;
+        }
+        namespace KT39423 {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => KT39423;
+            }
+        }
+        abstract class WithComponent1 {
+            constructor();
+            abstract component1(): string;
+        }
+        namespace WithComponent1 {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => WithComponent1;
+            }
+        }
+        class Test2 extends foo.WithComponent1.$metadata$.constructor {
+            constructor(value1: string, value2: string);
+            component1(): string;
+            copy(value1?: string, value2?: string): foo.Test2;
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get value1(): string;
+            get value2(): string;
+        }
+        namespace Test2 {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => Test2;
+            }
+        }
+        class Test3 /* extends foo.NonExportedWithComponent1 */ {
+            constructor(value1: string, value2: string);
+            copy(value1?: string, value2?: string): foo.Test3;
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get value1(): string;
+            get value2(): string;
+        }
+        namespace Test3 {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => Test3;
+            }
+        }
+        class WithIgnoredPrimaryAndPropertyAndHiddenCopy {
+            private constructor();
+            static create(a?: number, b?: string): foo.WithIgnoredPrimaryAndPropertyAndHiddenCopy;
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get a(): number;
+            get b(): string;
+        }
+        namespace WithIgnoredPrimaryAndPropertyAndHiddenCopy {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => WithIgnoredPrimaryAndPropertyAndHiddenCopy;
+            }
+        }
+        class WithIgnoredPrimaryAndPropertyAndExposedCopy {
+            private constructor();
+            static create(a?: number, b?: string): foo.WithIgnoredPrimaryAndPropertyAndExposedCopy;
+            copy(a?: number, b?: string, throwable?: Nullable<any>/* Nullable<kotlin.reflect.KClass<Error>> */): foo.WithIgnoredPrimaryAndPropertyAndExposedCopy;
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get a(): number;
+            get b(): string;
+        }
+        namespace WithIgnoredPrimaryAndPropertyAndExposedCopy {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => WithIgnoredPrimaryAndPropertyAndExposedCopy;
+            }
+        }
+        class WithIgnoredPropertyAndExposedCopy {
+            constructor(value?: number, hidden?: number);
+            copy(value?: number, hidden?: number): foo.WithIgnoredPropertyAndExposedCopy;
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get value(): number;
+        }
+        namespace WithIgnoredPropertyAndExposedCopy {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => WithIgnoredPropertyAndExposedCopy;
+            }
+        }
+        class WithIgnoredPrimaryAndHiddenCopyWithoutSecondary {
+            private constructor();
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get value(): number;
+        }
+        namespace WithIgnoredPrimaryAndHiddenCopyWithoutSecondary {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => WithIgnoredPrimaryAndHiddenCopyWithoutSecondary;
+            }
+        }
+        class OnlyExportSupported {
+            private constructor();
+            equals(other: Nullable<any>): boolean;
+            hashCode(): number;
+            toString(): string;
+            get text(): string;
+        }
+        namespace OnlyExportSupported {
+            /** @deprecated $metadata$ is used for internal purposes, please don't use it in your code, because it can be removed at any moment */
+            namespace $metadata$ {
+                const constructor: abstract new () => OnlyExportSupported;
+            }
+        }
+    }
+}
+

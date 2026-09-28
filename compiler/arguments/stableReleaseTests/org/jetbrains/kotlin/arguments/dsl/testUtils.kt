@@ -1,0 +1,66 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.arguments.dsl
+
+import org.jetbrains.kotlin.arguments.dsl.base.KotlinReleaseVersion
+import org.jetbrains.kotlin.arguments.stable.dsl.base.KotlinCompilerArgument as StableKotlinCompilerArgument
+import org.jetbrains.kotlin.arguments.stable.dsl.base.KotlinReleaseVersion as StableKotlinReleaseVersion
+import java.lang.reflect.ParameterizedType
+import kotlin.reflect.KClass
+
+// Should be removed in the scope of KT-81552 Introduce compiler arguments categories
+// Really experimental compiler arguments should have a special handling in tests
+private val temporaryExceptions: Set<String> = setOf(
+    // Add here argument name to ignore from checks
+    "Xfragment-incremental-classpath",
+    "Xklib-normalize-absolute-path",
+    "Xklib",
+    "Xcontext-receivers",
+    "Xsuppress-deprecated-jvm-target-warning",
+    "Xdestroy-runtime-mode",
+    "Xsuppress-api-version-greater-than-language-version-error",
+    "Xbundle-id",
+    "Xfake-override-validator",
+    "Xpurge-user-libs",
+    "Xcommon-fragments-metadata-destination",
+    "Xinline-classes",
+    "Xnew-inference",
+    "Xunrestricted-builder-inference",
+    "Xtype-enhancement-improvements-strict-mode",
+    "Xenhance-type-parameter-types-to-def-not-null",
+    "Xsuppress-warning",
+    "Xuse-fir-experimental-checkers",
+    "Xuse-fir-lt",
+    "Xintellij-plugin-root",
+    "Xno-check-actual",
+    "Xignore-const-optimization-errors",
+    "Xir-do-not-clear-binding-context",
+    "Xdirect-java-actualization",
+)
+
+internal fun Set<StableKotlinCompilerArgument>.filterNonDeprecated() = filter {
+    it.releaseVersionsMetadata.deprecatedVersion == null && it.name !in temporaryExceptions
+}
+
+internal fun Set<StableKotlinCompilerArgument>.filterDeprecated() = filter {
+    it.releaseVersionsMetadata.deprecatedVersion != null && it.name !in temporaryExceptions
+}
+
+internal val StableKotlinReleaseVersion.asCurrent: KotlinReleaseVersion
+    get() = KotlinReleaseVersion.entries.single { it.releaseName == releaseName }
+
+internal val ClosedRange<StableKotlinReleaseVersion>.asCurrent: ClosedRange<KotlinReleaseVersion>
+    get() = start.asCurrent..endInclusive.asCurrent
+
+internal fun getSuperclassGenericType(kClass: KClass<*>): Class<*>? {
+    val genericSuperinterface = kClass.java.genericInterfaces.singleOrNull() ?: kClass.java.genericSuperclass
+    return if (genericSuperinterface is ParameterizedType) {
+        genericSuperinterface.actualTypeArguments[0] as? Class<*>
+    } else null
+}
+
+internal val String.withoutStablePackage
+    get() = replace(".stable.", ".")

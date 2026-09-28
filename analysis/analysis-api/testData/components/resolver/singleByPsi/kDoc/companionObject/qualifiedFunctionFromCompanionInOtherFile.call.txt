@@ -1,0 +1,2 @@
+KDocName(34,56): 'ClassWithCompanion.foo'
+  null

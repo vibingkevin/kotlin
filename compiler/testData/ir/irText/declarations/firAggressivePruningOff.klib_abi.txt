@@ -1,0 +1,10 @@
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: false
+// - Show declarations: true
+
+// Library unique name: <main>
+final fun /access$<get-privatePropertyReferencedByInline>$tFirAggressivePruningOffKt(): kotlin/String // /access$<get-privatePropertyReferencedByInline>$tFirAggressivePruningOffKt|access$<get-privatePropertyReferencedByInline>$tFirAggressivePruningOffKt(){}[0]
+final fun /access$privateFunReferencedByInline$tFirAggressivePruningOffKt(): kotlin/String // /access$privateFunReferencedByInline$tFirAggressivePruningOffKt|access$privateFunReferencedByInline$tFirAggressivePruningOffKt(){}[0]
+final inline fun /publicInlineFun(): kotlin/String // /publicInlineFun|publicInlineFun(){}[0]
+final fun /publicNonInlineFun(): kotlin/String // /publicNonInlineFun|publicNonInlineFun(){}[0]

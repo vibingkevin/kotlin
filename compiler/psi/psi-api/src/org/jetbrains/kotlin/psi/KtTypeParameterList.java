@@ -1,0 +1,76 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import kotlin.ReplaceWith;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.psiUtil.KtPsiUtilKt;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Represents a list of type parameters in angle brackets.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * class Box<T, U>(val first: T, val second: U)
+ * //       ^____^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtTypeParameterList extends KtElementImplStub<KotlinPlaceHolderStub<KtTypeParameterList>> {
+    @KtImplementationDetail
+    public KtTypeParameterList(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtTypeParameterList(@NotNull KotlinPlaceHolderStub<KtTypeParameterList> stub) {
+        super(stub, KtNodeTypes.TYPE_PARAMETER_LIST);
+    }
+
+    /** Returns the type parameters in this list, in source order; empty if there are none. */
+    @NotNull
+    public List<KtTypeParameter> getParameters() {
+        return Arrays.asList(getStubOrPsiChildren(KtNodeTypes.TYPE_PARAMETER, KtTypeParameter.EMPTY_ARRAY));
+    }
+
+    /**
+     * @deprecated Use {@code org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.appendTypeParameter(this, typeParameter)}
+     * instead.
+     */
+    @NotNull
+    @kotlin.Deprecated(
+            message = "Use 'org.jetbrains.kotlin.idea.base.psi.KotlinPsiModificationUtils.appendTypeParameter(this, typeParameter)' instead.",
+            replaceWith = @ReplaceWith(
+                    expression = "this.appendTypeParameter(typeParameter)",
+                    imports = "org.jetbrains.kotlin.idea.base.psi.appendTypeParameter"
+            )
+    )
+    @Deprecated
+    public KtTypeParameter addParameter(@NotNull KtTypeParameter typeParameter) {
+        return KtPsiMutationService.getInstance().appendTypeParameter(this, typeParameter);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitTypeParameterList(this, data);
+    }
+
+    /** Returns the trailing comma after the last type parameter, or {@code null} if there is none. */
+    @Nullable
+    public PsiElement getTrailingComma() {
+        return KtPsiUtilKt.getTrailingCommaByClosingElement(findChildByType(KtTokens.GT));
+    }
+}

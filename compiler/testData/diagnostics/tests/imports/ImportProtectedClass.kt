@@ -1,0 +1,17 @@
+// RUN_PIPELINE_TILL: FRONTEND
+package p
+
+import p.Foo.Nested
+
+open class Foo {
+    protected class Nested
+}
+
+class Bar: Foo() {
+    protected fun foo(): Nested? = null
+}
+
+private fun foo(): <!INVISIBLE_REFERENCE!>Nested<!>? = null
+private fun bar(): p.Foo.<!INVISIBLE_REFERENCE!>Nested<!>? = null
+
+/* GENERATED_FIR_TAGS: classDeclaration, functionDeclaration, nestedClass, nullableType */

@@ -1,0 +1,6 @@
+$TESTDATA_DIR$/unsignedDeclarationsFromStdlib.kt
+-d
+$TEMP_DIR$
+-cp
+$STDLIB_COMMON_PATH$
+-Xallow-kotlin-package

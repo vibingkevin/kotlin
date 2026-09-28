@@ -1,0 +1,33 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.analysis.low.level.api.fir.statistics.domains
+
+import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
+import com.github.benmanes.caffeine.cache.stats.StatsCounter
+import io.opentelemetry.api.metrics.LongCounter
+import org.jetbrains.kotlin.analysis.low.level.api.fir.statistics.LLCaffeineStatsCounter
+import org.jetbrains.kotlin.analysis.low.level.api.fir.statistics.LLStatisticsScopes
+import org.jetbrains.kotlin.analysis.low.level.api.fir.statistics.LLStatisticsService
+import org.jetbrains.kotlin.analysis.low.level.api.fir.statistics.getMeter
+
+/**
+ * Statistics for analysis sessions and `analyze` calls.
+ */
+@KaImplementationDetail
+class LLAnalysisSessionStatistics(statisticsService: LLStatisticsService) : LLStatisticsDomain {
+    private val meter = statisticsService.openTelemetry.getMeter(LLStatisticsScopes.AnalysisSessions)
+
+    val analyzeCallCounter: LongCounter = meter.counterBuilder(LLStatisticsScopes.AnalysisSessions.Analyze.Invocations.name).build()
+
+    val lowMemoryCacheCleanupInvocationCounter: LongCounter =
+        meter.counterBuilder(LLStatisticsScopes.AnalysisSessions.LowMemoryCacheCleanup.Invocations.name).build()
+
+    val resolveCallCacheStatsCounter: StatsCounter =
+        LLCaffeineStatsCounter(meter, LLStatisticsScopes.AnalysisSessions.Caches.ResolveCallCache)
+
+    val resolveSymbolCacheStatsCounter: StatsCounter =
+        LLCaffeineStatsCounter(meter, LLStatisticsScopes.AnalysisSessions.Caches.ResolveSymbolCache)
+}

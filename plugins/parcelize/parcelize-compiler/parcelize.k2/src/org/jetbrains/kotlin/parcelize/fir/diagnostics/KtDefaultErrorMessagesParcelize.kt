@@ -1,0 +1,250 @@
+/*
+ * Copyright 2010-2015 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.jetbrains.kotlin.parcelize.fir.diagnostics
+
+import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
+import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.RENDER_TYPE
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.RENDER_CLASS_OR_OBJECT_QUOTED
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.CLASS_SHOULD_BE_PARCELIZE
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.CREATOR_DEFINITION_IS_NOT_ALLOWED
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.DEPRECATED_ANNOTATION
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.DEPRECATED_PARCELER
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.DUPLICATING_TYPE_PARCELERS
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.FORBIDDEN_DEPRECATED_ANNOTATION
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.INAPPLICABLE_IGNORED_ON_PARCEL
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.INAPPLICABLE_IGNORED_ON_PARCEL_CONSTRUCTOR_PROPERTY
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.NO_PARCELABLE_SUPERTYPE
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.OVERRIDING_WRITE_TO_PARCEL_IS_NOT_ALLOWED
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_CANT_BE_ANNOTATION_CLASS
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_CANT_BE_ANONYMOUS_OBJECT
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_CANT_BE_INNER_CLASS
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_CANT_BE_LOCAL_CLASS
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_CANT_BE_NON_SEALED_INTERFACE
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_CONSTRUCTOR_PARAMETER_SHOULD_BE_VAL_OR_VAR
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_DELEGATE_IS_NOT_ALLOWED
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_PRIMARY_CONSTRUCTOR_IS_EMPTY
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_SHOULD_BE_INSTANTIABLE
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_SHOULD_HAVE_PRIMARY_CONSTRUCTOR
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_SHOULD_NOT_BE_ENUM_CLASS
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_TYPE_CONTAINS_NOT_SUPPORTED
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELABLE_TYPE_NOT_SUPPORTED
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELER_SHOULD_BE_OBJECT
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PARCELER_TYPE_INCOMPATIBLE
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.PROPERTY_WONT_BE_SERIALIZED
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.REDUNDANT_TYPE_PARCELER
+import org.jetbrains.kotlin.parcelize.fir.diagnostics.KtErrorsParcelize.VALUE_PARAMETER_USED_IN_CLASS_BODY
+
+object KtDefaultErrorMessagesParcelize : BaseDiagnosticRendererFactory() {
+    override val MAP by KtDiagnosticFactoryToRendererMap("Parcelize") { map ->
+        map.put(
+            PARCELABLE_CANT_BE_NON_SEALED_INTERFACE,
+            "'Parcelable' cannot be a non-sealed interface."
+        )
+
+        map.put(
+            PARCELABLE_CANT_BE_ANNOTATION_CLASS,
+            "'Parcelable' cannot be an 'annotation class'."
+        )
+
+        map.put(
+            PARCELABLE_CANT_BE_ANONYMOUS_OBJECT,
+            "'Parcelable' cannot be an anonymous object."
+        )
+
+        map.put(
+            PARCELABLE_DELEGATE_IS_NOT_ALLOWED,
+            "Delegating 'Parcelable' is not allowed."
+        )
+
+        map.put(
+            PARCELABLE_SHOULD_NOT_BE_ENUM_CLASS,
+            "'Parcelable' cannot be an 'enum class'."
+        )
+
+        map.put(
+            PARCELABLE_SHOULD_BE_INSTANTIABLE,
+            "'Parcelable' cannot be an abstract class."
+        )
+
+        map.put(
+            PARCELABLE_CANT_BE_INNER_CLASS,
+            "'Parcelable' cannot be an inner class."
+        )
+
+        map.put(
+            PARCELABLE_CANT_BE_LOCAL_CLASS,
+            "'Parcelable' cannot be a local class."
+        )
+
+        map.put(
+            NO_PARCELABLE_SUPERTYPE,
+            "No 'Parcelable' supertype."
+        )
+
+        map.put(
+            PARCELABLE_SHOULD_HAVE_PRIMARY_CONSTRUCTOR,
+            "'Parcelable' must have a primary constructor."
+        )
+
+        map.put(
+            PARCELABLE_PRIMARY_CONSTRUCTOR_IS_EMPTY,
+            "The primary constructor is empty, no data will be serialized to 'Parcel'."
+        )
+
+        map.put(
+            PARCELABLE_CONSTRUCTOR_PARAMETER_SHOULD_BE_VAL_OR_VAR,
+            "'Parcelable' constructor parameter must be 'val' or 'var'."
+        )
+
+        map.put(
+            PROPERTY_WONT_BE_SERIALIZED,
+            "Property will not be serialized into a 'Parcel'. Add '@IgnoredOnParcel' annotation to remove the warning."
+        )
+
+        map.put(
+            OVERRIDING_WRITE_TO_PARCEL_IS_NOT_ALLOWED,
+            "Overriding 'writeToParcel' is not allowed. Use 'Parceler' companion object instead."
+        )
+
+        map.put(
+            CREATOR_DEFINITION_IS_NOT_ALLOWED,
+            "'CREATOR' definition is not allowed. Use 'Parceler' companion object instead."
+        )
+
+        map.put(
+            PARCELABLE_TYPE_NOT_SUPPORTED,
+            "Type is not directly supported by 'Parcelize'. " +
+                    "Annotate the parameter type with '@RawValue' if you want it to be serialized using 'writeValue()'."
+        )
+
+        map.put(
+            PARCELABLE_TYPE_CONTAINS_NOT_SUPPORTED,
+            "Type is not directly supported by ''Parcelize'' because it contains an instance of {0}. " +
+                    "Add the ''@TypeParceler<{0}, ...>'' annotation to provide the missing serialization logic.",
+            RENDER_TYPE
+        )
+
+        map.put(
+            PARCELER_SHOULD_BE_OBJECT,
+            "Parceler must be an object."
+        )
+
+        map.put(
+            PARCELER_TYPE_INCOMPATIBLE,
+            "Parceler type {0} is incompatible with {1}.",
+            RENDER_TYPE, RENDER_TYPE
+        )
+
+        map.put(
+            DUPLICATING_TYPE_PARCELERS,
+            "Duplicating 'TypeParceler' annotations."
+        )
+
+        map.put(
+            REDUNDANT_TYPE_PARCELER,
+            "This ''TypeParceler'' is already provided for {0}.",
+            RENDER_CLASS_OR_OBJECT_QUOTED
+        )
+
+        map.put(
+            CLASS_SHOULD_BE_PARCELIZE,
+            "{0} must be annotated with ''@Parcelize''.",
+            RENDER_CLASS_OR_OBJECT_QUOTED
+        )
+
+        map.put(
+            INAPPLICABLE_IGNORED_ON_PARCEL,
+            "'@IgnoredOnParcel' is only applicable to class properties."
+        )
+
+        map.put(
+            INAPPLICABLE_IGNORED_ON_PARCEL_CONSTRUCTOR_PROPERTY,
+            "'@IgnoredOnParcel' is inapplicable to properties without default value declared in the primary constructor."
+        )
+
+        map.put(
+            FORBIDDEN_DEPRECATED_ANNOTATION,
+            "Parceler-related annotations from package 'kotlinx.android.parcel' are forbidden. Change package to 'kotlinx.parcelize'."
+        )
+
+        map.put(
+            DEPRECATED_ANNOTATION,
+            "Parcelize annotations from package 'kotlinx.android.parcel' are deprecated. Change package to 'kotlinx.parcelize'."
+        )
+
+        map.put(
+            DEPRECATED_PARCELER,
+            "'kotlinx.android.parcel.Parceler' is deprecated. Use 'kotlinx.parcelize.Parceler' instead."
+        )
+
+        map.put(
+            VALUE_PARAMETER_USED_IN_CLASS_BODY,
+            "Parcelized class non-property arguments can only be used as arguments to the super classes constructor."
+        )
+
+        map.put(
+            KtErrorsParcelize.POLYMORPHIC_SEALED_MUST_BE_SEALED,
+            "'@PolymorphicSealed' is only applicable to 'sealed class' or 'sealed interface'."
+        )
+
+        map.put(
+            KtErrorsParcelize.POLYMORPHIC_SEALED_WITHOUT_PARCELIZE,
+            "'@PolymorphicSealed' must be paired with '@Parcelize'."
+        )
+
+        map.put(
+            KtErrorsParcelize.POLYMORPHIC_SEALED_CANNOT_HAVE_OPEN_SUBCLASSES,
+            "Subclasses in a '@PolymorphicSealed' hierarchy cannot be 'open'."
+        )
+
+        map.put(
+            KtErrorsParcelize.POLYMORPHIC_SEALED_CANNOT_HAVE_ABSTRACT_SUBCLASSES,
+            "Subclasses in a '@PolymorphicSealed' hierarchy cannot be 'abstract'."
+        )
+
+        map.put(
+            KtErrorsParcelize.POLYMORPHIC_SEALED_CANNOT_HAVE_SEALED_SUBCLASSES,
+            "Nested sealed classes or interfaces are not supported in a '@PolymorphicSealed' hierarchy."
+        )
+
+        map.put(
+            KtErrorsParcelize.POLYMORPHIC_SEALED_SUBCLASS_MUST_BE_NESTED,
+            "Subclasses of a '@PolymorphicSealed' class or interface must be declared directly inside its body."
+        )
+
+        map.put(
+            KtErrorsParcelize.MULTIPLE_POLYMORPHIC_SEALED_SUPERTYPES,
+            "Implementing multiple '@PolymorphicSealed' classes or interfaces is not supported."
+        )
+
+        map.put(
+            KtErrorsParcelize.DUPLICATE_PARCEL_TAG,
+            "Duplicate '@ParcelTag' value. All tags in a '@PolymorphicSealed' hierarchy must be unique."
+        )
+
+        map.put(
+            KtErrorsParcelize.INCONSISTENT_PARCEL_TAG,
+            "All subclasses in a '@PolymorphicSealed' hierarchy must be annotated with '@ParcelTag' if any subclass is annotated with '@ParcelTag'."
+        )
+
+        map.put(
+            KtErrorsParcelize.INAPPLICABLE_PARCEL_TAG,
+            "'@ParcelTag' is only applicable to concrete subclasses of a '@PolymorphicSealed' hierarchy."
+        )
+    }
+}

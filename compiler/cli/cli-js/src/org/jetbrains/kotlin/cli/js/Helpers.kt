@@ -1,0 +1,111 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.cli.js
+
+import com.intellij.util.ExceptionUtil
+import org.jetbrains.kotlin.cli.CliDiagnostics
+import org.jetbrains.kotlin.cli.common.arguments.CommonJsAndWasmCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.K2JsArgumentConstants
+import org.jetbrains.kotlin.cli.report
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.js.config.*
+import org.jetbrains.kotlin.library.loader.KlibPlatformChecker
+import org.jetbrains.kotlin.wasm.config.wasmTarget
+import java.io.File
+import java.io.IOException
+import kotlin.math.min
+
+internal val sourceMapContentEmbeddingMap: Map<String, SourceMapSourceEmbedding> = mapOf(
+    K2JsArgumentConstants.SOURCE_MAP_SOURCE_CONTENT_ALWAYS to SourceMapSourceEmbedding.ALWAYS,
+    K2JsArgumentConstants.SOURCE_MAP_SOURCE_CONTENT_NEVER to SourceMapSourceEmbedding.NEVER,
+    K2JsArgumentConstants.SOURCE_MAP_SOURCE_CONTENT_INLINING to SourceMapSourceEmbedding.INLINING
+)
+
+internal val sourceMapNamesPolicyMap: Map<String, SourceMapNamesPolicy> = mapOf(
+    K2JsArgumentConstants.SOURCE_MAP_NAMES_POLICY_NO to SourceMapNamesPolicy.NO,
+    K2JsArgumentConstants.SOURCE_MAP_NAMES_POLICY_SIMPLE_NAMES to SourceMapNamesPolicy.SIMPLE_NAMES,
+    K2JsArgumentConstants.SOURCE_MAP_NAMES_POLICY_FQ_NAMES to SourceMapNamesPolicy.FULLY_QUALIFIED_NAMES
+)
+
+internal val moduleKindMap: Map<String, ModuleKind> = mapOf(
+    K2JsArgumentConstants.MODULE_PLAIN to ModuleKind.PLAIN,
+    K2JsArgumentConstants.MODULE_COMMONJS to ModuleKind.COMMON_JS,
+    K2JsArgumentConstants.MODULE_AMD to ModuleKind.AMD,
+    K2JsArgumentConstants.MODULE_UMD to ModuleKind.UMD,
+    K2JsArgumentConstants.MODULE_ES to ModuleKind.ES,
+)
+
+internal fun configureLibraries(libraryString: String?): List<String> =
+    libraryString?.splitByPathSeparator() ?: emptyList()
+
+private fun String.splitByPathSeparator(): List<String> {
+    return this.split(File.pathSeparator.toRegex())
+        .dropLastWhile { it.isEmpty() }
+        .toTypedArray()
+        .filterNot { it.isEmpty() }
+}
+
+internal fun calculateSourceMapSourceRoot(
+    configuration: CompilerConfiguration,
+    arguments: CommonJsAndWasmCompilerArguments,
+): String {
+    var commonPath: File? = null
+    val pathToRoot = mutableListOf<File>()
+    val pathToRootIndexes = hashMapOf<File, Int>()
+
+    try {
+        for (path in arguments.freeArgs) {
+            var file: File? = File(path).canonicalFile
+            if (commonPath == null) {
+                commonPath = file
+
+                while (file != null) {
+                    pathToRoot.add(file)
+                    file = file.parentFile
+                }
+                pathToRoot.reverse()
+
+                for (i in pathToRoot.indices) {
+                    pathToRootIndexes[pathToRoot[i]] = i
+                }
+            } else {
+                while (file != null) {
+                    var existingIndex = pathToRootIndexes[file]
+                    if (existingIndex != null) {
+                        existingIndex = min(existingIndex, pathToRoot.size - 1)
+                        pathToRoot.subList(existingIndex + 1, pathToRoot.size).clear()
+                        commonPath = pathToRoot[pathToRoot.size - 1]
+                        break
+                    }
+                    file = file.parentFile
+                }
+                if (file == null) {
+                    break
+                }
+            }
+        }
+    } catch (e: IOException) {
+        val text = ExceptionUtil.getThrowableText(e)
+        configuration.report(CliDiagnostics.IO_ERROR, "IO error occurred calculating source root:\n$text")
+        return "."
+    }
+
+    return commonPath?.path ?: "."
+}
+
+internal val CompilerConfiguration.platformChecker: KlibPlatformChecker
+    get() = if (wasmCompilation) KlibPlatformChecker.Wasm(wasmTarget.alias) else KlibPlatformChecker.JS
+
+internal fun initializeFinalArtifactConfiguration(configuration: CompilerConfiguration, arguments: CommonJsAndWasmCompilerArguments) {
+    val artifactConfiguration = WebArtifactConfiguration.fromFlags(
+        configuration,
+        isPerFile = arguments is K2JSCompilerArguments && arguments.irPerFile,
+        isPerModule = arguments is K2JSCompilerArguments && arguments.irPerModule,
+        generateDts = arguments.generateDts,
+    ) ?: return
+    configuration.artifactConfigurations = listOf(artifactConfiguration)
+}

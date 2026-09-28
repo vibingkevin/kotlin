@@ -1,0 +1,5 @@
+KtBinaryExpression(17,24): '"dsd" +'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String.plus(<dispatch receiver>: kotlin.String, other: kotlin.Any?): kotlin.String
+    ]

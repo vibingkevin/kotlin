@@ -1,0 +1,10 @@
+$TESTDATA_DIR$/warningsSuppressionDisablesErrors_Js.kt
+-Xir-produce-klib-dir
+-libraries
+$STDLIB_JS$
+-ir-output-dir
+$TEMP_DIR$
+-ir-output-name
+out
+-Xwarning-level=non-existing-diagnostic\:disabled
+-Xwarning-level=UNINITIALIZED_VARIABLE\:disabled

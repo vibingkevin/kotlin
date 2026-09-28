@@ -1,0 +1,23 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// ALLOW_KOTLIN_PACKAGE
+// FILE: test.kt
+
+package kotlin.test
+
+annotation class IrrelevantClass
+
+public typealias Test = IrrelevantClass
+
+// FILE: main.kt
+
+import kotlin.test.Test
+
+class A {
+    @Test
+    <!UNSUPPORTED_SUSPEND_TEST!>suspend<!> fun test() {}
+}
+
+@Test
+<!UNSUPPORTED_SUSPEND_TEST!>suspend<!> fun test() {}
+
+/* GENERATED_FIR_TAGS: annotationDeclaration, classDeclaration, functionDeclaration, suspend, typeAliasDeclaration */

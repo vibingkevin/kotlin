@@ -1,0 +1,5 @@
+KDocName(35,39): 'E.AA'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      b/E.AA
+    ]

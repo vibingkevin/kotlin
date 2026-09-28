@@ -1,0 +1,19 @@
+FILE: kt55912.kt
+    public final annotation class Entity : R|kotlin/Annotation| {
+        public constructor(foreignKeys: R|kotlin/Array<kotlin/String>|): R|Entity| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val foreignKeys: R|kotlin/Array<kotlin/String>| = R|<local>/foreignKeys|
+            public get(): R|kotlin/Array<kotlin/String>|
+
+    }
+    @R|Entity|(foreignKeys = <collectionLiteralCall>(String(id)) [evaluated = <collectionLiteralCall>(String(id))]) public final class Record : R|kotlin/Any| {
+        public constructor(): R|Record| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final fun box(): R|kotlin/String| {
+        ^box String(OK)
+    }

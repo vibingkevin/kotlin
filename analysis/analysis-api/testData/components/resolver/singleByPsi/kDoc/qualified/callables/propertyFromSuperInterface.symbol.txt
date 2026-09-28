@@ -1,0 +1,5 @@
+KDocName(70,77): 'Foo.foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val foo: kotlin.Int
+    ]

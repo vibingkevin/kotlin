@@ -1,0 +1,222 @@
+@file:kotlin.Suppress("DEPRECATION_ERROR")
+@file:kotlin.native.internal.objc.BindClassToObjCName(funinterface.FunctorClass::class, "22ExportedKotlinPackages12funinterfaceO12funinterfaceE12FunctorClassC")
+@file:kotlin.native.internal.objc.BindClassToObjCName(funinterface.FunctionalInterface::class, "_ExportedKotlinPackages_funinterface_FunctionalInterface")
+@file:kotlin.native.internal.objc.BindClassToObjCName(funinterface.XMLFunctionalInterfaceWithLeadingAbbreviation::class, "_ExportedKotlinPackages_funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation")
+@file:kotlin.native.internal.objc.BindClassToObjCName(funinterface._123FunctionalInterfaceWithLeadingNumbers::class, "_ExportedKotlinPackages_funinterface__123FunctionalInterfaceWithLeadingNumbers")
+@file:kotlin.native.internal.objc.BindClassToObjCName(funinterface._123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation::class, "_ExportedKotlinPackages_funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation")
+@file:kotlin.native.internal.objc.BindClassToObjCName(funinterface._FunctionalInterfaceWithLeadingUnderscore::class, "_ExportedKotlinPackages_funinterface__FunctionalInterfaceWithLeadingUnderscore")
+@file:kotlin.native.internal.objc.BindClassToObjCName(funinterface.functionalInterfaceWithAlreadyLowercaseLeading::class, "_ExportedKotlinPackages_funinterface_functionalInterfaceWithAlreadyLowercaseLeading")
+
+import kotlin.native.internal.objc.BindReverseBridgeToMethod
+import kotlin.native.internal.ImportedBridge
+import kotlinx.cinterop.*
+import kotlin.native.internal.ExportedBridge
+
+@ImportedBridge("funinterface_FunctionalInterface_invoke__reverse_swift")
+internal external fun funinterface_FunctionalInterface_invoke__reverse_swift(self: kotlin.native.internal.NativePtr): Int
+
+@BindReverseBridgeToMethod(funinterface.FunctionalInterface::class, "invoke")
+public fun funinterface_FunctionalInterface_invoke__reverse(self: funinterface.FunctionalInterface): Int {
+    val __self = kotlin.native.internal.ref.createRetainedExternalRCRef(self)
+    val _result = funinterface_FunctionalInterface_invoke__reverse_swift(__self)
+    return _result
+}
+
+@ImportedBridge("funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation_invoke__reverse_swift")
+internal external fun funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation_invoke__reverse_swift(self: kotlin.native.internal.NativePtr): Int
+
+@BindReverseBridgeToMethod(funinterface.XMLFunctionalInterfaceWithLeadingAbbreviation::class, "invoke")
+public fun funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation_invoke__reverse(self: funinterface.XMLFunctionalInterfaceWithLeadingAbbreviation): Int {
+    val __self = kotlin.native.internal.ref.createRetainedExternalRCRef(self)
+    val _result = funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation_invoke__reverse_swift(__self)
+    return _result
+}
+
+@ImportedBridge("funinterface__123FunctionalInterfaceWithLeadingNumbers_invoke__reverse_swift")
+internal external fun funinterface__123FunctionalInterfaceWithLeadingNumbers_invoke__reverse_swift(self: kotlin.native.internal.NativePtr): Int
+
+@BindReverseBridgeToMethod(funinterface._123FunctionalInterfaceWithLeadingNumbers::class, "invoke")
+public fun funinterface__123FunctionalInterfaceWithLeadingNumbers_invoke__reverse(self: funinterface._123FunctionalInterfaceWithLeadingNumbers): Int {
+    val __self = kotlin.native.internal.ref.createRetainedExternalRCRef(self)
+    val _result = funinterface__123FunctionalInterfaceWithLeadingNumbers_invoke__reverse_swift(__self)
+    return _result
+}
+
+@ImportedBridge("funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation_invoke__reverse_swift")
+internal external fun funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation_invoke__reverse_swift(self: kotlin.native.internal.NativePtr): Int
+
+@BindReverseBridgeToMethod(funinterface._123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation::class, "invoke")
+public fun funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation_invoke__reverse(self: funinterface._123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation): Int {
+    val __self = kotlin.native.internal.ref.createRetainedExternalRCRef(self)
+    val _result = funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation_invoke__reverse_swift(__self)
+    return _result
+}
+
+@ImportedBridge("funinterface__FunctionalInterfaceWithLeadingUnderscore_invoke__reverse_swift")
+internal external fun funinterface__FunctionalInterfaceWithLeadingUnderscore_invoke__reverse_swift(self: kotlin.native.internal.NativePtr): Int
+
+@BindReverseBridgeToMethod(funinterface._FunctionalInterfaceWithLeadingUnderscore::class, "invoke")
+public fun funinterface__FunctionalInterfaceWithLeadingUnderscore_invoke__reverse(self: funinterface._FunctionalInterfaceWithLeadingUnderscore): Int {
+    val __self = kotlin.native.internal.ref.createRetainedExternalRCRef(self)
+    val _result = funinterface__FunctionalInterfaceWithLeadingUnderscore_invoke__reverse_swift(__self)
+    return _result
+}
+
+@ImportedBridge("funinterface_functionalInterfaceWithAlreadyLowercaseLeading_invoke__reverse_swift")
+internal external fun funinterface_functionalInterfaceWithAlreadyLowercaseLeading_invoke__reverse_swift(self: kotlin.native.internal.NativePtr): Int
+
+@BindReverseBridgeToMethod(funinterface.functionalInterfaceWithAlreadyLowercaseLeading::class, "invoke")
+public fun funinterface_functionalInterfaceWithAlreadyLowercaseLeading_invoke__reverse(self: funinterface.functionalInterfaceWithAlreadyLowercaseLeading): Int {
+    val __self = kotlin.native.internal.ref.createRetainedExternalRCRef(self)
+    val _result = funinterface_functionalInterfaceWithAlreadyLowercaseLeading_invoke__reverse_swift(__self)
+    return _result
+}
+
+@ImportedBridge("funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__")
+internal external fun funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__(pointerToClosure: kotlin.native.internal.NativePtr): Int
+
+@ExportedBridge("funinterface_FunctionalInterface__TypesOfArguments__U2829202D_U20Swift_Int32__")
+public fun funinterface_FunctionalInterface__TypesOfArguments__U2829202D_U20Swift_Int32__(function: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val __function = run {
+        val closurePtr = function;
+        val closureBox = interpretObjCPointer<kotlin.Any>(closurePtr).also { objc_release(closurePtr) };
+        {
+            val _result = funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__(closureBox.objcPtr())
+            _result
+        }
+    }
+    val _result = run { funinterface.FunctionalInterface(__function) }
+    return kotlin.native.internal.ref.createRetainedExternalRCRef(_result)
+}
+
+@ExportedBridge("funinterface_FunctionalInterface_invoke")
+public fun funinterface_FunctionalInterface_invoke(self: kotlin.native.internal.NativePtr): Int {
+    val __self = kotlin.native.internal.ref.dereferenceExternalRCRef(self) as funinterface.FunctionalInterface
+    val _result = run { __self.invoke() }
+    return _result
+}
+
+@ExportedBridge("funinterface_FunctorClass_init_allocate")
+public fun funinterface_FunctorClass_init_allocate(): kotlin.native.internal.NativePtr {
+    val _result = run { kotlin.native.internal.createUninitializedInstance<funinterface.FunctorClass>() }
+    return kotlin.native.internal.ref.createRetainedExternalRCRef(_result)
+}
+
+@ExportedBridge("funinterface_FunctorClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__")
+public fun funinterface_FunctorClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt: kotlin.native.internal.NativePtr): Boolean {
+    val ____kt = kotlin.native.internal.ref.dereferenceExternalRCRef(__kt)!!
+    val _result = run { kotlin.native.internal.initInstance(____kt, funinterface.FunctorClass()) }
+    return run { _result; true }
+}
+
+@ExportedBridge("funinterface_FunctorClass_invoke")
+public fun funinterface_FunctorClass_invoke(self: kotlin.native.internal.NativePtr): Int {
+    val __self = kotlin.native.internal.ref.dereferenceExternalRCRef(self) as funinterface.FunctorClass
+    val _result = run { __self.invoke() }
+    return _result
+}
+
+@ExportedBridge("funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation__TypesOfArguments__U2829202D_U20Swift_Int32__")
+public fun funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation__TypesOfArguments__U2829202D_U20Swift_Int32__(function: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val __function = run {
+        val closurePtr = function;
+        val closureBox = interpretObjCPointer<kotlin.Any>(closurePtr).also { objc_release(closurePtr) };
+        {
+            val _result = funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__(closureBox.objcPtr())
+            _result
+        }
+    }
+    val _result = run { funinterface.XMLFunctionalInterfaceWithLeadingAbbreviation(__function) }
+    return kotlin.native.internal.ref.createRetainedExternalRCRef(_result)
+}
+
+@ExportedBridge("funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation_invoke")
+public fun funinterface_XMLFunctionalInterfaceWithLeadingAbbreviation_invoke(self: kotlin.native.internal.NativePtr): Int {
+    val __self = kotlin.native.internal.ref.dereferenceExternalRCRef(self) as funinterface.XMLFunctionalInterfaceWithLeadingAbbreviation
+    val _result = run { __self.invoke() }
+    return _result
+}
+
+@ExportedBridge("funinterface__123FunctionalInterfaceWithLeadingNumbers__TypesOfArguments__U2829202D_U20Swift_Int32__")
+public fun funinterface__123FunctionalInterfaceWithLeadingNumbers__TypesOfArguments__U2829202D_U20Swift_Int32__(function: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val __function = run {
+        val closurePtr = function;
+        val closureBox = interpretObjCPointer<kotlin.Any>(closurePtr).also { objc_release(closurePtr) };
+        {
+            val _result = funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__(closureBox.objcPtr())
+            _result
+        }
+    }
+    val _result = run { funinterface._123FunctionalInterfaceWithLeadingNumbers(__function) }
+    return kotlin.native.internal.ref.createRetainedExternalRCRef(_result)
+}
+
+@ExportedBridge("funinterface__123FunctionalInterfaceWithLeadingNumbers_invoke")
+public fun funinterface__123FunctionalInterfaceWithLeadingNumbers_invoke(self: kotlin.native.internal.NativePtr): Int {
+    val __self = kotlin.native.internal.ref.dereferenceExternalRCRef(self) as funinterface._123FunctionalInterfaceWithLeadingNumbers
+    val _result = run { __self.invoke() }
+    return _result
+}
+
+@ExportedBridge("funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation__TypesOfArguments__U2829202D_U20Swift_Int32__")
+public fun funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation__TypesOfArguments__U2829202D_U20Swift_Int32__(function: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val __function = run {
+        val closurePtr = function;
+        val closureBox = interpretObjCPointer<kotlin.Any>(closurePtr).also { objc_release(closurePtr) };
+        {
+            val _result = funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__(closureBox.objcPtr())
+            _result
+        }
+    }
+    val _result = run { funinterface._123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation(__function) }
+    return kotlin.native.internal.ref.createRetainedExternalRCRef(_result)
+}
+
+@ExportedBridge("funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation_invoke")
+public fun funinterface__123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation_invoke(self: kotlin.native.internal.NativePtr): Int {
+    val __self = kotlin.native.internal.ref.dereferenceExternalRCRef(self) as funinterface._123XMLFunctionalInterfaceWithLeadingUnderscoreNumbersAndAbbreviation
+    val _result = run { __self.invoke() }
+    return _result
+}
+
+@ExportedBridge("funinterface__FunctionalInterfaceWithLeadingUnderscore__TypesOfArguments__U2829202D_U20Swift_Int32__")
+public fun funinterface__FunctionalInterfaceWithLeadingUnderscore__TypesOfArguments__U2829202D_U20Swift_Int32__(function: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val __function = run {
+        val closurePtr = function;
+        val closureBox = interpretObjCPointer<kotlin.Any>(closurePtr).also { objc_release(closurePtr) };
+        {
+            val _result = funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__(closureBox.objcPtr())
+            _result
+        }
+    }
+    val _result = run { funinterface._FunctionalInterfaceWithLeadingUnderscore(__function) }
+    return kotlin.native.internal.ref.createRetainedExternalRCRef(_result)
+}
+
+@ExportedBridge("funinterface__FunctionalInterfaceWithLeadingUnderscore_invoke")
+public fun funinterface__FunctionalInterfaceWithLeadingUnderscore_invoke(self: kotlin.native.internal.NativePtr): Int {
+    val __self = kotlin.native.internal.ref.dereferenceExternalRCRef(self) as funinterface._FunctionalInterfaceWithLeadingUnderscore
+    val _result = run { __self.invoke() }
+    return _result
+}
+
+@ExportedBridge("funinterface_functionalInterfaceWithAlreadyLowercaseLeading__TypesOfArguments__U2829202D_U20Swift_Int32__")
+public fun funinterface_functionalInterfaceWithAlreadyLowercaseLeading__TypesOfArguments__U2829202D_U20Swift_Int32__(function: kotlin.native.internal.NativePtr): kotlin.native.internal.NativePtr {
+    val __function = run {
+        val closurePtr = function;
+        val closureBox = interpretObjCPointer<kotlin.Any>(closurePtr).also { objc_release(closurePtr) };
+        {
+            val _result = funinterface_internal_functional_type_callee_SwiftU2EInt32__TypesOfArguments__Swift_UnsafeMutableRawPointer__(closureBox.objcPtr())
+            _result
+        }
+    }
+    val _result = run { funinterface.functionalInterfaceWithAlreadyLowercaseLeading(__function) }
+    return kotlin.native.internal.ref.createRetainedExternalRCRef(_result)
+}
+
+@ExportedBridge("funinterface_functionalInterfaceWithAlreadyLowercaseLeading_invoke")
+public fun funinterface_functionalInterfaceWithAlreadyLowercaseLeading_invoke(self: kotlin.native.internal.NativePtr): Int {
+    val __self = kotlin.native.internal.ref.dereferenceExternalRCRef(self) as funinterface.functionalInterfaceWithAlreadyLowercaseLeading
+    val _result = run { __self.invoke() }
+    return _result
+}

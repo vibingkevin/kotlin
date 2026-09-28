@@ -1,0 +1,119 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.konan.test.diagnostics
+
+import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
+import org.jetbrains.kotlin.konan.target.HostManager
+import org.jetbrains.kotlin.konan.test.Fir2IrCliNativeFacade
+import org.jetbrains.kotlin.konan.test.FirCliNativeFacade
+import org.jetbrains.kotlin.konan.test.KlibSerializerNativeCliFacade
+import org.jetbrains.kotlin.konan.test.NativePreSerializationLoweringCliFacade
+import org.jetbrains.kotlin.platform.konan.NativePlatforms
+import org.jetbrains.kotlin.test.Constructor
+import org.jetbrains.kotlin.test.FirParser
+import org.jetbrains.kotlin.test.InTextDirectivesUtils
+import org.jetbrains.kotlin.test.TargetBackend
+import org.jetbrains.kotlin.test.backend.BlackBoxCodegenSuppressor
+import org.jetbrains.kotlin.test.backend.handlers.KlibBackendDiagnosticsHandler
+import org.jetbrains.kotlin.test.backend.ir.IrDiagnosticsHandler
+import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
+import org.jetbrains.kotlin.test.builders.klibArtifactsHandlersStep
+import org.jetbrains.kotlin.test.builders.loweredIrHandlersStep
+import org.jetbrains.kotlin.test.cli.CliDirectives.CHECK_COMPILER_OUTPUT
+import org.jetbrains.kotlin.test.configuration.enableLazyResolvePhaseChecking
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LANGUAGE
+import org.jetbrains.kotlin.test.directives.NativeEnvironmentConfigurationDirectives.WITH_PLATFORM_LIBS
+import org.jetbrains.kotlin.test.directives.TestPhaseDirectives.LATEST_PHASE_IN_PIPELINE
+import org.jetbrains.kotlin.test.directives.configureFirParser
+import org.jetbrains.kotlin.test.frontend.fir.FirFailingTestSuppressor
+import org.jetbrains.kotlin.test.frontend.fir.FirOutputArtifact
+import org.jetbrains.kotlin.test.model.DependencyKind
+import org.jetbrains.kotlin.test.model.FrontendFacade
+import org.jetbrains.kotlin.test.model.FrontendKind
+import org.jetbrains.kotlin.test.model.FrontendKinds
+import org.jetbrains.kotlin.test.runners.AbstractKotlinCompilerTest
+import org.jetbrains.kotlin.test.services.PhasedPipelineChecker
+import org.jetbrains.kotlin.test.services.TestPhase
+import org.junit.jupiter.api.Assumptions
+import java.io.File
+
+abstract class AbstractDiagnosticsNativeTestBase(
+    private val parser: FirParser,
+) : AbstractKotlinCompilerTest() {
+
+    val targetFrontend: FrontendKind<FirOutputArtifact>
+        get() = FrontendKinds.FIR
+
+    val frontend: Constructor<FrontendFacade<FirOutputArtifact>>
+        get() = ::FirCliNativeFacade
+
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
+        globalDefaults {
+            frontend = targetFrontend
+            targetPlatform = NativePlatforms.unspecifiedNativePlatform
+            dependencyKind = DependencyKind.Source
+        }
+        defaultDirectives {
+            LATEST_PHASE_IN_PIPELINE with TestPhase.BACKEND
+        }
+        useFailureSuppressors(
+            ::BlackBoxCodegenSuppressor,
+            ::PhasedPipelineChecker,
+            ::FirFailingTestSuppressor,
+        )
+        baseNativeDiagnosticTestConfiguration(frontend)
+
+        configureFirParser(parser)
+
+        baseFirNativeDiagnosticTestConfiguration()
+        enableLazyResolvePhaseChecking()
+
+        defaultDirectives {
+            LANGUAGE + "+EnableDfaWarningsInK2"
+        }
+    }
+
+    override fun runTest(filePath: String) {
+        val transformedFilePath = ForTestCompileRuntime.transformTestDataPath(filePath)
+        mutePlatformTestIfNecessary(transformedFilePath.path)
+        super.runTest(transformedFilePath.path)
+    }
+
+    private fun mutePlatformTestIfNecessary(filePath: String) {
+        if (HostManager.hostIsMac) return
+
+        if (InTextDirectivesUtils.isDirectiveDefined(File(filePath).readText(), WITH_PLATFORM_LIBS.name))
+            Assumptions.abort<Nothing>("Diagnostic tests using platform libs are not supported at non-Mac hosts. Test source: $filePath")
+    }
+}
+
+abstract class AbstractNativeDiagnosticsWithBackendTestBase(parser: FirParser) : AbstractDiagnosticsNativeTestBase(parser) {
+    override fun configure(builder: TestConfigurationBuilder) = with(builder) {
+        super.configure(builder)
+
+        forTestsMatching("compiler/testData/diagnostics/nativeTests/specialBackendChecks/*") {
+            defaultDirectives {
+                // it prevents compiler crash after an error diagnostic from SpecialBackendChecksTraversal by returning null from `processErrorFromCliPhase()`
+                +CHECK_COMPILER_OUTPUT
+            }
+        }
+        globalDefaults {
+            targetBackend = TargetBackend.NATIVE
+        }
+
+        facadeStep(::Fir2IrCliNativeFacade)
+        facadeStep(::NativePreSerializationLoweringCliFacade)
+        loweredIrHandlersStep { useHandlers(::IrDiagnosticsHandler) }
+        facadeStep(::KlibSerializerNativeCliFacade)
+
+        klibArtifactsHandlersStep {
+            useHandlers(::KlibBackendDiagnosticsHandler)
+        }
+    }
+}
+
+abstract class AbstractPsiNativeDiagnosticsWithBackendTestBase : AbstractNativeDiagnosticsWithBackendTestBase(FirParser.Psi)
+abstract class AbstractLightTreeNativeDiagnosticsWithBackendTestBase : AbstractNativeDiagnosticsWithBackendTestBase(FirParser.LightTree)

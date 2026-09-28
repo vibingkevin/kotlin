@@ -1,0 +1,22 @@
+// RUN_PIPELINE_TILL: BACKEND
+// ISSUE: KT-65057
+// FIR_DUMP
+
+abstract class AbstractField<out F : AbstractField<F>>
+
+abstract class AbstractElement<EE : AbstractElement<EE, EF>, EF : AbstractField<EF>>
+
+interface ElementOrRef<RE : AbstractElement<RE, RF>, RF : AbstractField<RF>> {
+    val element: RE
+}
+
+fun foo(x: ElementOrRef<*, *>) = x.element
+
+interface FieldOrRef<FF : AbstractField<FF>> {
+    val field: FF
+}
+
+fun bar(y: FieldOrRef<*>) = y.field
+
+/* GENERATED_FIR_TAGS: capturedType, classDeclaration, functionDeclaration, interfaceDeclaration, out, outProjection,
+propertyDeclaration, starProjection, typeConstraint, typeParameter */

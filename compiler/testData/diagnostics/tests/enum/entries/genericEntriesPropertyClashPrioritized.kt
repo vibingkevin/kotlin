@@ -1,0 +1,22 @@
+// RUN_PIPELINE_TILL: FRONTEND
+// LANGUAGE: +PrioritizedEnumEntries
+// WITH_STDLIB
+// FIR_DUMP
+
+package pckg
+
+enum class A {
+    ;
+
+    companion object
+}
+
+val <T> T.entries: Int get() = 0
+
+fun test() {
+    val i: Int = A.<!INITIALIZER_TYPE_MISMATCH!>entries<!>
+    A.Companion.entries
+}
+
+/* GENERATED_FIR_TAGS: companionObject, enumDeclaration, functionDeclaration, getter, integerLiteral, localProperty,
+nullableType, objectDeclaration, propertyDeclaration, propertyWithExtensionReceiver, typeParameter */

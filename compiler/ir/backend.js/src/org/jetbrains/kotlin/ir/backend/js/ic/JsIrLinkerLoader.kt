@@ -1,0 +1,250 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.ir.backend.js.ic
+
+import org.jetbrains.kotlin.backend.common.IrBuiltInsForLinker
+import org.jetbrains.kotlin.backend.common.IrModuleDependencies
+import org.jetbrains.kotlin.backend.common.linkage.issues.checkNoUnboundSymbols
+import org.jetbrains.kotlin.backend.common.linkage.partial.partialLinkageConfig
+import org.jetbrains.kotlin.backend.common.serialization.DeserializationStrategy
+import org.jetbrains.kotlin.backend.common.serialization.checkIsFunctionInterface
+import org.jetbrains.kotlin.backend.common.serialization.encodings.BinarySymbolData
+import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import org.jetbrains.kotlin.cli.common.diagnosticsCollector
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.perfManager
+import org.jetbrains.kotlin.descriptors.ModuleDescriptor
+import org.jetbrains.kotlin.descriptors.impl.ModuleDescriptorImpl
+import org.jetbrains.kotlin.ir.InternalSymbolFinderAPI
+import org.jetbrains.kotlin.ir.IrBuiltIns
+import org.jetbrains.kotlin.ir.KtDiagnosticReporterWithImplicitIrBasedContext
+import org.jetbrains.kotlin.ir.backend.js.FunctionTypeInterfacePackages
+import org.jetbrains.kotlin.ir.backend.js.lower.serialization.ir.JsIrLinker
+import org.jetbrains.kotlin.ir.declarations.IrFile
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.symbols.IrSymbol
+import org.jetbrains.kotlin.ir.util.ExternalDependenciesGenerator
+import org.jetbrains.kotlin.ir.util.IdSignature
+import org.jetbrains.kotlin.ir.util.SymbolTable
+import org.jetbrains.kotlin.library.*
+import org.jetbrains.kotlin.library.metadata.DeserializedKlibModuleOrigin
+import org.jetbrains.kotlin.library.metadata.KlibModuleOrigin
+import org.jetbrains.kotlin.name.Name.special
+import org.jetbrains.kotlin.platform.js.JsPlatforms
+import org.jetbrains.kotlin.storage.LockBasedStorageManager
+import org.jetbrains.kotlin.util.PhaseType
+import org.jetbrains.kotlin.util.tryMeasurePhaseTime
+
+internal class LoadedJsIr(
+    loadedFragments: Map<KotlinLibraryFile, IrModuleFragment>,
+    val irBuiltIns: IrBuiltIns,
+    private val linker: JsIrLinker,
+) {
+    // This property is supposed to be accessed after all symbols have been deserialized.
+    // This way the linked would be able to track all cross-module dependencies, and make the proper module sorting.
+    val orderedFragments: Map<KotlinLibraryFile, IrModuleFragment> by lazy {
+        val unorderedModuleFragments: List<IrModuleFragment> = loadedFragments.values.toList()
+
+        val orderedAndIndexedModuleFragments: Map<IrModuleFragment, Int> = linker.moduleDependencyTracker.reverseTopoOrder(
+            IrModuleDependencies(unorderedModuleFragments)
+        ).allDependencies.mapIndexed { index, moduleFragment -> moduleFragment to index }.toMap()
+
+        val orderedLoadedFragments: Map<KotlinLibraryFile, IrModuleFragment> = loadedFragments.entries
+            .map { [libraryFile, moduleFragment] -> libraryFile to moduleFragment }
+            .sortedBy { [_, moduleFragment] -> orderedAndIndexedModuleFragments.getValue(moduleFragment) }
+            .toMap()
+
+        orderedLoadedFragments
+    }
+
+    val symbolTable: SymbolTable
+        get() = linker.symbolTable
+
+    private val signatureProvidersImpl = hashMapOf<KotlinLibraryFile, List<FileSignatureProvider>>()
+
+    private val irFileSourceNames = hashMapOf<IrModuleFragment, Map<IrFile, KotlinSourceFile>>()
+
+    private fun collectSignatureProviders(lib: KotlinLibraryFile, irModule: IrModuleFragment): List<FileSignatureProvider> {
+        val moduleDeserializer = linker.moduleDeserializer(irModule)
+        val deserializers = moduleDeserializer.fileDeserializers()
+        val providers = ArrayList<FileSignatureProvider>(deserializers.size)
+        val sourceFiles = getIrFileNames(irModule)
+
+        for (fileDeserializer in deserializers) {
+            val irFile = fileDeserializer.file
+            val sourceFile = sourceFiles[irFile] ?: notFoundIcError("source file name", lib, irFile)
+            if (FunctionTypeInterfacePackages.isFunctionTypeInterfacePackageFile(irFile)) {
+                providers += FileSignatureProvider.GeneratedFunctionTypeInterface(irFile, sourceFile)
+            } else {
+                providers += FileSignatureProvider.DeserializedFromKlib(fileDeserializer, sourceFile)
+            }
+        }
+
+        return providers
+    }
+
+    fun getSignatureProvidersForLib(lib: KotlinLibraryFile): List<FileSignatureProvider> {
+        return signatureProvidersImpl.getOrPut(lib) {
+            val irFragment = orderedFragments[lib] ?: notFoundIcError("loaded fragment", lib)
+            collectSignatureProviders(lib, irFragment)
+        }
+    }
+
+    fun loadUnboundSymbols() {
+        signatureProvidersImpl.clear()
+        ExternalDependenciesGenerator(linker.symbolTable, listOf(linker)).generateUnboundSymbolsAsDependencies()
+        linker.postProcess(irBuiltIns, inOrAfterLinkageStep = true)
+        linker.checkNoUnboundSymbols(linker.symbolTable, "at the end of IR linkage process")
+        linker.clear()
+    }
+
+    fun collectSymbolsReplacedWithStubs(): Set<IrSymbol> {
+        return linker.partialLinkageSupport.collectAllStubbedSymbols()
+    }
+
+    fun getIrFileNames(fragment: IrModuleFragment): Map<IrFile, KotlinSourceFile> {
+        return irFileSourceNames.getOrPut(fragment) {
+            val files = linker.getDeserializedFilesInKlibOrder(fragment)
+            val names = files.map { it.fileEntry.name }
+            val sourceFiles = KotlinSourceFile.fromSources(names)
+            files.indices.associate {
+                files[it] to sourceFiles[it]
+            }
+        }
+    }
+}
+
+internal class JsIrLinkerLoader(
+    private val compilerConfiguration: CompilerConfiguration,
+    private val orderedLibraries: List<KotlinLibrary>,
+    private val mainModuleFriends: Collection<KotlinLibrary>,
+    private val icContext: PlatformDependentICContext<*, *, *, *>,
+    private val stubbedSignatures: Set<IdSignature>,
+    private val loadBodiesOnlyForMainModule: Boolean,
+    private val mainLibrary: KotlinLibrary,
+) {
+    private fun createLinker(): JsIrLinker {
+        val symbolTable = SymbolTable(signaturer = null, icContext.createIrFactory())
+        val irDiagnosticReporter = KtDiagnosticReporterWithImplicitIrBasedContext(
+            compilerConfiguration.diagnosticsCollector,
+            compilerConfiguration.languageVersionSettings,
+        )
+        return JsIrLinker(
+            configuration = compilerConfiguration,
+            symbolTable = symbolTable,
+            partialLinkageConfig = compilerConfiguration.partialLinkageConfig,
+            irDiagnosticReporter = irDiagnosticReporter,
+            friendModules = mapOf(mainLibrary.uniqueName to mainModuleFriends.map { it.uniqueName })
+        )
+    }
+
+    private fun loadModules(): Map<ModuleDescriptor, KotlinLibrary> {
+        val descriptors = hashMapOf<KotlinLibrary, ModuleDescriptorImpl>()
+        var runtimeModule: ModuleDescriptorImpl? = null
+
+        // TODO: deduplicate this code using part from klib.kt
+        fun getModuleDescriptor(current: KotlinLibrary): ModuleDescriptorImpl {
+            if (current in descriptors) {
+                return descriptors.getValue(current)
+            }
+
+            val isBuiltIns = current.isJsStdlib || current.isWasmStdlib
+
+            val moduleName = special("<${current.uniqueName}>")
+            val moduleOrigin = DeserializedKlibModuleOrigin(current)
+            val builtIns = runtimeModule?.builtIns ?: object : KotlinBuiltIns(LockBasedStorageManager.NO_LOCKS) {}
+            val md = ModuleDescriptorImpl(
+                moduleName,
+                LockBasedStorageManager.NO_LOCKS,
+                builtIns,
+                capabilities = mapOf(KlibModuleOrigin.CAPABILITY to moduleOrigin),
+                platform = JsPlatforms.defaultJsPlatform
+            )
+
+            if (runtimeModule?.builtIns == null) {
+                builtIns.builtInsModule = md
+            }
+
+            if (isBuiltIns) runtimeModule = md
+
+            descriptors[current] = md
+            return md
+        }
+
+        val moduleDescriptorToKotlinLibrary = orderedLibraries.associateBy { klib -> getModuleDescriptor(klib) }
+        return moduleDescriptorToKotlinLibrary
+            .onEach { [key, _] -> key.setDependencies(moduleDescriptorToKotlinLibrary.keys.toList()) }
+            .map<ModuleDescriptorImpl, KotlinLibrary, Pair<ModuleDescriptor, KotlinLibrary>> { it.key to it.value }
+            .toMap()
+    }
+
+    fun loadIr(
+        modifiedFiles: KotlinSourceFileMap<KotlinSourceFileExports>,
+        loadAllIr: Boolean = false,
+    ): LoadedJsIr = compilerConfiguration.perfManager.tryMeasurePhaseTime(PhaseType.IrLinking) {
+        val loadedModules = loadModules()
+        val linker = createLinker()
+
+        val irModules = loadedModules.entries.associate { [descriptor, module] ->
+            val libraryFile = KotlinLibraryFile(module)
+            val modifiedStrategy = when {
+                loadAllIr -> DeserializationStrategy.ALL
+                module == mainLibrary -> DeserializationStrategy.ALL
+                loadBodiesOnlyForMainModule -> DeserializationStrategy.WITH_INLINE_BODIES
+                else -> DeserializationStrategy.EXPLICITLY_EXPORTED
+            }
+            val modified = modifiedFiles[libraryFile]?.keys?.mapTo(hashSetOf()) { it.path } ?: emptySet()
+            libraryFile to linker.deserializeIrModuleHeader(descriptor, module, {
+                when (it) {
+                    in modified -> modifiedStrategy
+                    else -> DeserializationStrategy.WITH_INLINE_BODIES
+                }
+            })
+        }
+
+        @OptIn(InternalSymbolFinderAPI::class)
+        val irBuiltIns = IrBuiltInsForLinker(linker, compilerConfiguration.languageVersionSettings)
+
+        if (!loadAllIr) {
+            for ([loadingLibFile, loadingSrcFiles] in modifiedFiles) {
+                val loadingIrModule = irModules[loadingLibFile] ?: notFoundIcError("loading fragment", loadingLibFile)
+                val moduleDeserializer = linker.moduleDeserializer(loadingIrModule)
+                for (loadingSrcFileSignatures in loadingSrcFiles.values) {
+                    for (loadingSignature in loadingSrcFileSignatures.getExportedSignatures()) {
+                        if (checkIsFunctionInterface(loadingSignature)) {
+                            // The signature may refer to function type interface properties (e.g. name) or methods.
+                            // It is impossible to detect (without hacks) here which binary symbol is required.
+                            // However, when loading a property or a method the entire function type interface is loaded.
+                            // And vice versa, a loading of function type interface loads properties and methods as well.
+                            // Therefore, load the top level signature only - it must be the signature of function type interface.
+                            val topLevelSignature = loadingSignature.topLevelSignature()
+                            moduleDeserializer.tryDeserializeIrSymbol(topLevelSignature, BinarySymbolData.SymbolKind.CLASS_SYMBOL)
+                        } else if (loadingSignature in moduleDeserializer) {
+                            moduleDeserializer.addModuleReachableTopLevel(loadingSignature.topLevelSignature())
+                        }
+                    }
+                }
+
+                for (stubbedSignature in stubbedSignatures) {
+                    if (stubbedSignature in moduleDeserializer) {
+                        moduleDeserializer.addModuleReachableTopLevel(stubbedSignature.topLevelSignature())
+                    }
+                }
+            }
+        }
+
+        val loadedIr = LoadedJsIr(irModules, irBuiltIns, linker)
+
+        // This should be done because referenced declaration from the compiler should be loaded as well
+        val mainLibraryFile = KotlinLibraryFile(mainLibrary)
+        val mainModuleFragment = loadedIr.orderedFragments[mainLibraryFile] ?: notFoundIcError("main module fragment", mainLibraryFile)
+        icContext.createBackendContext(mainModuleFragment, loadedIr.irBuiltIns, loadedIr.symbolTable, compilerConfiguration)
+
+        loadedIr.loadUnboundSymbols()
+        return loadedIr
+    }
+}

@@ -1,0 +1,95 @@
+import org.jetbrains.kotlin.testFederation.DelicateTestFederationApi
+import org.jetbrains.kotlin.testFederation.Domain
+import org.jetbrains.kotlin.testFederation.testFederationDomains
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+    id("d8-configuration")
+    id("java-test-fixtures")
+    id("test-inputs-check")
+}
+
+val otherCompilerModules = CompilerModules.compilerModules.filter { it != path }
+
+dependencies {
+    testImplementation(kotlinStdlib())
+
+    testImplementation(kotlinTest())
+    testCompileOnly(kotlinTest("junit5"))
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testFixturesApi(testFixtures(project(":compiler:tests-common")))
+    testFixturesApi(testFixtures(project(":compiler:tests-common-new")))
+    testFixturesApi(testFixtures(project(":compiler:fir:raw-fir:psi2fir")))
+    testFixturesApi(testFixtures(project(":compiler:fir:raw-fir:light-tree2fir")))
+    testFixturesApi(testFixtures(project(":compiler:fir:analysis-tests:legacy-fir-tests")))
+    testFixturesApi(testFixtures(project(":generators:test-generator")))
+    testFixturesApi(project(":compiler:ir.tree")) // used for deepCopyWithSymbols call that is removed by proguard from the compiler TODO: make it more straightforward
+    testFixturesApi(project(":kotlin-scripting-compiler"))
+
+    otherCompilerModules.forEach {
+        testCompileOnly(project(it))
+    }
+
+    testImplementation(commonDependency("org.jetbrains.kotlin:kotlin-reflect")) { isTransitive = false }
+    testCompileOnly(toolsJarApi())
+    testRuntimeOnly(toolsJar())
+}
+
+optInToK1Deprecation()
+optInToExperimentalCompilerApi()
+
+sourceSets {
+    "main" {}
+    "testFixtures" { projectDefault() }
+    "test" {
+        projectDefault()
+        generatedTestDir()
+    }
+}
+
+projectTests {
+    testTask(
+        javaLauncher = JdkMajorVersion.JDK_1_8,
+        maxHeapSize = testMaxHeapSizeLarge,
+        // Use Parallel GC because this test runs on JDK 8.
+        garbageCollector = GarbageCollector.Parallel,
+        defineJDKEnvVariables = listOf(JdkMajorVersion.JDK_1_8, JdkMajorVersion.JDK_11_0, JdkMajorVersion.JDK_17_0)
+    ) {
+        filter {
+            excludeTestsMatching("org.jetbrains.kotlin.jvm.compiler.io.FastJarFSLongTest*")
+        }
+
+        addClasspathProperty(testSourceSet.output.classesDirs, "kotlin.test.script.classpath")
+
+        @OptIn(DelicateTestFederationApi::class)
+        testFederationDomains = listOf(Domain.CompilerInfrastructure)
+    }
+
+    testTask("fastJarFSLongTests", skipInLocalBuild = true) {
+        include("**/FastJarFSLongTest*")
+
+        @OptIn(DelicateTestFederationApi::class)
+        testFederationDomains = listOf(Domain.CompilerInfrastructure)
+    }
+
+    testData(isolated, "testData/checkLocalVariablesTable")
+    testData(isolated, "testData/codegen")
+    testData(isolated, "testData/serialization")
+    testData(isolated, "testData/writeFlags")
+    testData(isolated, "testData/writeSignature")
+    withJvmStdlibAndReflect()
+    withScriptRuntime()
+    withTestJar()
+    withStdlibCommon()
+    withMockJdkRuntime()
+    withMockJdkAnnotationsJar()
+}
+
+val generateTestData by generator("org.jetbrains.kotlin.generators.tests.GenerateCompilerTestDataKt", testSourceSet)
+
+testsJar()

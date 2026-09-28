@@ -1,0 +1,33 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+
+plugins {
+    kotlin("multiplatform")
+}
+
+kotlin {
+    jvm()
+
+    linuxX64()
+    @Suppress("DEPRECATION_ERROR") // fixme: KT-81704 Cleanup tests after apple x64 family deprecation
+    macosX64()
+    mingwX64("windowsX64")
+
+    val commonMain = sourceSets.getByName("commonMain")
+
+    commonMain.dependencies {
+        implementation(project(":p1"))
+        implementation(project(":p0"))
+    }
+
+    targets.withType<KotlinNativeTarget>().forEach { target ->
+        target.compilations.all {
+            cinterops.create("withPosix") {
+                header(file("libs/withPosix.h"))
+            }
+
+            cinterops.create("withPosixP2") {
+                header(file("libs/withPosixP2.h"))
+            }
+        }
+    }
+}

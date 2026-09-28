@@ -1,0 +1,68 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.kapt.base.incremental
+
+import java.io.File
+import java.io.InputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+
+private val INCREMENTAL_DECLARED_TYPES: Set<String> =
+    DeclaredProcType.entries.filter { it.canRunIncrementally }.map { it.name }.toSet()
+
+const val INCREMENTAL_ANNOTATION_MARKERS_FILE = "META-INF/gradle/incremental.annotation.processors"
+
+// Return name -> declared type map.
+fun parseIncrementalProcessorDeclarations(text: List<String>): Map<String, DeclaredProcType> {
+    val nameToType = mutableMapOf<String, DeclaredProcType>()
+    for (line in text) {
+        val parts = line.split(",")
+        if (parts.size == 2) {
+            val kind = parts[1].uppercase()
+            if (kind in INCREMENTAL_DECLARED_TYPES) {
+                nameToType[parts[0]] = enumValueOf(kind)
+            }
+        }
+    }
+    return nameToType
+}
+
+/** Checks the incremental annotation processor information for the annotation processor classpath. */
+fun getIncrementalProcessorsFromClasspath(
+    names: Set<String>, classpath: Iterable<File>
+): Map<String, DeclaredProcType> {
+    val finalValues = mutableMapOf<String, DeclaredProcType>()
+
+    classpath.forEach { entry ->
+        val fromEntry = processSingleClasspathEntry(entry)
+        fromEntry.filter { names.contains(it.key) }.forEach { finalValues[it.key] = it.value }
+
+        if (finalValues.size == names.size) return finalValues
+    }
+
+    return finalValues
+}
+
+private fun processSingleClasspathEntry(rootFile: File): Map<String, DeclaredProcType> {
+    val text: List<String> = when {
+        rootFile.isDirectory -> {
+            val markerFile = rootFile.resolve(INCREMENTAL_ANNOTATION_MARKERS_FILE)
+            if (markerFile.exists()) {
+                markerFile.bufferedReader().readLines()
+            } else {
+                emptyList()
+            }
+        }
+        rootFile.extension == "jar" -> ZipFile(rootFile).use { zipFile ->
+            val content: InputStream? = zipFile.getInputStream(ZipEntry(INCREMENTAL_ANNOTATION_MARKERS_FILE))
+
+            content?.bufferedReader()?.readLines() ?: emptyList()
+        }
+        else -> emptyList()
+    }
+
+    return parseIncrementalProcessorDeclarations(text)
+}

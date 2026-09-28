@@ -1,0 +1,10 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase CoreLocation Foundation Security _LocationEssentials darwin posix
+language = Objective-C
+package = platform.CloudKit
+modules = CloudKit
+apiNotesSwiftName = true
+
+compilerOpts = -framework CloudKit
+linkerOpts = -framework CloudKit
+
+objcClassesIncludingCategories = CKNotification

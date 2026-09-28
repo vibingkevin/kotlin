@@ -1,0 +1,8 @@
+depends = CFCGTypes CoreFoundation CoreFoundationBase Foundation Security darwin posix
+language = Objective-C
+package = platform.WatchConnectivity
+modules = WatchConnectivity
+apiNotesSwiftName = true
+
+compilerOpts = -framework WatchConnectivity
+linkerOpts = -framework WatchConnectivity

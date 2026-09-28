@@ -1,0 +1,163 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.cli.pipeline.web
+
+import org.jetbrains.kotlin.backend.common.IrModuleInfo
+import org.jetbrains.kotlin.backend.common.serialization.KotlinIrLinker
+import org.jetbrains.kotlin.backend.wasm.LoweredIrWithExtraArtifacts
+import org.jetbrains.kotlin.backend.wasm.WasmBackendContext
+import org.jetbrains.kotlin.backend.wasm.WasmCompilerResult
+import org.jetbrains.kotlin.backend.wasm.WasmIrModuleConfiguration
+import org.jetbrains.kotlin.cli.pipeline.Fir2IrPipelineArtifact
+import org.jetbrains.kotlin.cli.pipeline.FrontendPipelineArtifact
+import org.jetbrains.kotlin.cli.pipeline.LoadedIrPipelineArtifact
+import org.jetbrains.kotlin.cli.pipeline.PipelineArtifact
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.fir.pipeline.AllModulesFrontendOutput
+import org.jetbrains.kotlin.fir.pipeline.Fir2IrActualizedResult
+import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
+import org.jetbrains.kotlin.ir.backend.js.ModulesStructure
+import org.jetbrains.kotlin.ir.backend.js.ic.DirtyFileState
+import org.jetbrains.kotlin.ir.backend.js.ic.IncrementalCacheGuard
+import org.jetbrains.kotlin.ir.backend.js.ic.KotlinSourceFileMap
+import org.jetbrains.kotlin.ir.backend.js.ic.ModuleArtifact
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.CompilerResult
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.library.KotlinLibrary
+import java.io.File
+import java.util.*
+
+data class WebFrontendPipelineArtifact(
+    override val frontendOutput: AllModulesFrontendOutput,
+    override val configuration: CompilerConfiguration,
+    val resolvedLibraries: List<KotlinLibrary>,
+    val hasErrors: Boolean,
+) : FrontendPipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): WebFrontendPipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+
+    override fun withNewFrontendOutputImpl(newFrontendOutput: AllModulesFrontendOutput): FrontendPipelineArtifact {
+        return copy(frontendOutput = newFrontendOutput)
+    }
+}
+
+data class WebFir2IrPipelineArtifact(
+    override val result: Fir2IrActualizedResult,
+    val frontendOutput: AllModulesFrontendOutput,
+    override val configuration: CompilerConfiguration,
+    val hasErrors: Boolean,
+) : Fir2IrPipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): WebFir2IrPipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class WebSerializedKlibPipelineArtifact(
+    val outputKlibPath: String,
+    override val configuration: CompilerConfiguration,
+) : PipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): WebSerializedKlibPipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class WebLoadedIrPipelineArtifact(
+    override val moduleInfo: IrModuleInfo,
+    val moduleStructure: ModulesStructure,
+    override val configuration: CompilerConfiguration,
+) : LoadedIrPipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): WebLoadedIrPipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class JsLoweredIrPipelineArtifact(
+    val context: JsIrBackendContext,
+    val mainModule: IrModuleFragment,
+    val allModules: List<IrModuleFragment>,
+    val moduleFragmentToUniqueName: Map<IrModuleFragment, String>,
+    override val configuration: CompilerConfiguration,
+) : PipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): JsLoweredIrPipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+sealed class WebBackendPipelineArtifact : PipelineArtifact()
+
+data class JsBackendPipelineArtifact(
+    val result: CompilerResult,
+    override val configuration: CompilerConfiguration,
+) : WebBackendPipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): JsBackendPipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class WasmBackendPipelineArtifact(
+    val result: List<WasmCompilerResult>,
+    val outputDir: File,
+    override val configuration: CompilerConfiguration
+) : WebBackendPipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): WasmBackendPipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class WebIncrementalCachePipelineArtifact<M : ModuleArtifact>(
+    val artifacts: List<M>,
+    val dirtyFileLastStats: KotlinSourceFileMap<EnumSet<DirtyFileState>>,
+    val cacheGuard: IncrementalCacheGuard,
+    override val configuration: CompilerConfiguration,
+) : PipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): PipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class WasmIntermediatePipelineArtifact(
+    val backendIr: List<WasmIrModuleConfiguration>,
+    val cacheGuard: IncrementalCacheGuard?,
+    override val configuration: CompilerConfiguration,
+) : PipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): PipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class WasmLinkedIrPipelineArtifact(
+    val allModules: List<IrModuleFragment>,
+    val backendContext: WasmBackendContext,
+    val isWasmStdlib: Boolean,
+    val irLinker: KotlinIrLinker,
+    override val configuration: CompilerConfiguration,
+) : PipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): PipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}
+
+data class WasmLoweredIrPipelineArtifact(
+    val loweredIr: LoweredIrWithExtraArtifacts,
+    val isWasmStdlib: Boolean,
+    override val configuration: CompilerConfiguration,
+) : PipelineArtifact() {
+    @CliPipelineInternals(OPT_IN_MESSAGE)
+    override fun withCompilerConfiguration(newConfiguration: CompilerConfiguration): PipelineArtifact {
+        return copy(configuration = newConfiguration)
+    }
+}

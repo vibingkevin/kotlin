@@ -1,0 +1,41 @@
+KaPropertyGetterSymbol:
+  anchorPsi: KtPropertyAccessor
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInline: false
+  isNotDefault: true
+  isOverride: false
+  location: PROPERTY
+  modality: FINAL
+  origin: SOURCE
+  psi: KtPropertyAccessor
+  realPsi: KtPropertyAccessor
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: [
+      Anno1()
+        psi: KtAnnotationEntry
+      Anno2()
+        psi: KtAnnotationEntry
+      Anno3()
+        psi: KtAnnotationEntry
+    ]
+    typeArguments: []
+    type: {@R|Anno3|()  SecondTypeAlias=} @R|Anno1|()  @R|Anno2|()  @R|Anno3|()  BaseInterface
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(typeAnnotationsOnPropertyGetterReturnType.kt)
+  getContainingJvmClassName: TypeAnnotationsOnPropertyGetterReturnTypeKt
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: getFoo
+  importableFqName: null

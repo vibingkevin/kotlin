@@ -1,0 +1,72 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.buildtools.internal
+
+import org.jetbrains.kotlin.buildtools.api.BuildOperation
+import org.jetbrains.kotlin.buildtools.api.ExecutionPolicy
+import org.jetbrains.kotlin.buildtools.api.KotlinLogger
+import org.jetbrains.kotlin.buildtools.api.ProjectId
+import org.jetbrains.kotlin.buildtools.api.trackers.BuildMetricsCollector
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+
+@OptIn(ExperimentalAtomicApi::class)
+internal abstract class BuildOperationImpl<R> : BuildOperation<R>, BuildOperation.Builder {
+    protected abstract val options: Options
+    private val executionStarted = AtomicBoolean(false)
+
+    @UseFromImplModuleRestricted
+    override fun <V> get(key: BuildOperation.Option<V>): V = options[key.id]
+
+    @UseFromImplModuleRestricted
+    override fun <V> set(key: BuildOperation.Option<V>, value: V) {
+        checkOptionIsAvailableForVersion(key)
+        options[key] = value
+    }
+
+    fun execute(
+        projectId: ProjectId,
+        executionPolicy: ExecutionPolicy,
+        logger: KotlinLogger? = null,
+        executionContext: ExecutionContext
+    ): R {
+        check(executionStarted.compareAndSet(expectedValue = false, newValue = true)) {
+            "Build operation $this already started execution."
+        }
+        return executeImpl(projectId, executionPolicy, logger, executionContext)
+    }
+
+    abstract fun executeImpl(
+        projectId: ProjectId,
+        executionPolicy: ExecutionPolicy,
+        logger: KotlinLogger? = null,
+        executionContext: ExecutionContext
+    ): R
+
+    /**
+     * `true` if this operation uses [org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreApplicationEnvironment], so the [org.jetbrains.kotlin.buildtools.api.KotlinToolchains.BuildSession] can reuse it across operations.
+     *
+     * The value is checked only for in-process executions. The daemon uses `keepalive` mechanism of the compiler to cache it for the entire
+     * lifetime of the daemon.
+     */
+    abstract val usesApplicationEnvironment: Boolean
+
+    operator fun <V> get(key: Option<V>): V = options[key]
+
+    @OptIn(UseFromImplModuleRestricted::class)
+    operator fun <V> set(key: Option<V>, value: V) {
+        options[key] = value
+    }
+
+    class Option<V>(id: String, default: V) : BaseOptionWithDefault<V>(id, defaultValue = default)
+
+    companion object {
+        val METRICS_COLLECTOR: Option<BuildMetricsCollector?> = Option("METRICS_COLLECTOR", default = null)
+        val XX_KGP_METRICS_COLLECTOR: Option<Boolean> = Option("XX_KGP_METRICS_COLLECTOR", default = false)
+        val XX_KGP_METRICS_COLLECTOR_OUT: Option<ByteArray?> = Option("XX_KGP_METRICS_COLLECTOR_OUT", default = null)
+        val ENABLE_CLASSLOADER_CACHE: Option<Boolean> = Option("ENABLE_CLASSLOADER_CACHE", true)
+    }
+}

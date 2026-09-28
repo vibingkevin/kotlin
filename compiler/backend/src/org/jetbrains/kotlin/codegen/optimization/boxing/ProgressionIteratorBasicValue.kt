@@ -1,0 +1,80 @@
+/*
+ * Copyright 2010-2015 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.jetbrains.kotlin.codegen.optimization.boxing
+
+import org.jetbrains.kotlin.builtins.StandardNames
+import org.jetbrains.kotlin.codegen.AsmUtil
+import org.jetbrains.kotlin.codegen.optimization.common.StrictBasicValue
+import org.jetbrains.org.objectweb.asm.Type
+
+class ProgressionIteratorBasicValue private constructor(
+    val nextMethodName: String,
+    iteratorType: Type,
+    private val primitiveElementType: Type,
+    val boxedElementType: Type
+) : StrictBasicValue(iteratorType) {
+
+    var tainted = false
+        private set
+
+    fun taint() {
+        tainted = true
+    }
+
+    val nextMethodDesc: String
+        get() = "()" + primitiveElementType.descriptor
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || javaClass != other.javaClass) return false
+        if (!super.equals(other)) return false
+        val value = other as ProgressionIteratorBasicValue
+        return primitiveElementType == value.primitiveElementType
+    }
+
+    override fun hashCode(): Int =
+        super.hashCode() * 31 + nextMethodName.hashCode()
+
+    companion object {
+        // TODO functions returning inline classes are mangled now, should figure out how to work with UInt/ULong iterators here
+        //     ProgressionIteratorBasicValue("UInt", Type.INT_TYPE, Type.getObjectType("kotlin/UInt"))
+        //     ProgressionIteratorBasicValue("ULong", Type.LONG_TYPE, Type.getObjectType("kotlin/ULong"))
+        private val CHAR_RANGE_FQN = StandardNames.FqNames.charRange.asString()
+        private val INT_RANGE_FQN = StandardNames.FqNames.intRange.asString()
+        private val LONG_RANGE_FQN = StandardNames.FqNames.longRange.asString()
+
+        private val CHAR_PROGRESSION_FQN = StandardNames.FqNames.charProgression.asString()
+        private val INT_PROGRESSION_FQN = StandardNames.FqNames.intProgression.asString()
+        private val LONG_PROGRESSION_FQN = StandardNames.FqNames.longProgression.asString()
+
+        private fun progressionIteratorValue(typeName: String, valuesPrimitiveType: Type): ProgressionIteratorBasicValue =
+            ProgressionIteratorBasicValue(
+                "next$typeName",
+                Type.getObjectType("kotlin/collections/${typeName}Iterator"),
+                valuesPrimitiveType,
+                AsmUtil.boxType(valuesPrimitiveType),
+            )
+
+        fun byProgressionClassType(progressionClassType: Type): ProgressionIteratorBasicValue? =
+            when (progressionClassType.className) {
+                CHAR_RANGE_FQN, CHAR_PROGRESSION_FQN -> progressionIteratorValue("Char", Type.CHAR_TYPE)
+                INT_RANGE_FQN, INT_PROGRESSION_FQN -> progressionIteratorValue("Int", Type.INT_TYPE)
+                LONG_RANGE_FQN, LONG_PROGRESSION_FQN -> progressionIteratorValue("Long", Type.LONG_TYPE)
+                else -> null
+            }
+    }
+}

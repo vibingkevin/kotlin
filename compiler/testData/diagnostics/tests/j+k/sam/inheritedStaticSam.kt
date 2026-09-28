@@ -1,0 +1,16 @@
+// RUN_PIPELINE_TILL: BACKEND
+// FILE: Statics.java
+
+public class Statics {
+    public static void foo(Runnable r) {}
+}
+
+// FILE: test.kt
+
+class A : Statics() {
+    fun test() {
+        foo {}
+    }
+}
+
+/* GENERATED_FIR_TAGS: classDeclaration, functionDeclaration, javaFunction, javaType, lambdaLiteral, samConversion */

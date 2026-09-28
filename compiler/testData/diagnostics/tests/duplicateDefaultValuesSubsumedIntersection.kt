@@ -1,0 +1,15 @@
+// RUN_PIPELINE_TILL: BACKEND
+
+interface SupervisorApiCallContextImpl : SupervisorApiCallDbContext, TxExecutor
+
+interface SupervisorApiCallDbContext : TxExecutor, DbContextOwner
+
+interface DbContextOwner : TxExecutor {
+    override fun foo(p: Int) {}
+}
+
+interface TxExecutor {
+    fun foo(p: Int = 1)
+}
+
+/* GENERATED_FIR_TAGS: functionDeclaration, integerLiteral, interfaceDeclaration, override */

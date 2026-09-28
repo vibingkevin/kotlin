@@ -1,0 +1,15 @@
+// RUN_PIPELINE_TILL: BACKEND
+// DIAGNOSTICS: -CONTEXT_RECEIVERS_DEPRECATED
+// WITH_STDLIB
+// RENDER_ALL_DIAGNOSTICS_FULL_TEXT
+// IGNORE_FIR_DIAGNOSTICS
+// IGNORE_ERRORS
+// LANGUAGE: +ContextParameters
+
+<!CONFLICTING_JVM_DECLARATIONS!>object O<!> {
+    <!CONFLICTING_JVM_DECLARATIONS!><!CONTEXT_PARAMETERS_WITH_BACKING_FIELD!>context<!>(_: O)
+    @JvmField
+    val INSTANCE: O?<!> = null
+}
+
+/* GENERATED_FIR_TAGS: nullableType, objectDeclaration, propertyDeclaration, propertyDeclarationWithContext */

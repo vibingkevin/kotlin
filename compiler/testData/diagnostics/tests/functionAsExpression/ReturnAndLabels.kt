@@ -1,0 +1,12 @@
+// RUN_PIPELINE_TILL: BACKEND
+// DIAGNOSTICS: -UNUSED_VARIABLE
+
+val label_fun = label@ fun () {
+    return@label
+}
+
+val parenthesized_label_fun = (label@ fun () {
+    return@label
+})
+
+/* GENERATED_FIR_TAGS: anonymousFunction, propertyDeclaration */

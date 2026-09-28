@@ -1,0 +1,13 @@
+// RUN_PIPELINE_TILL: FRONTEND
+
+fun foo() {
+    var s: String?
+    s = "Test"
+    try {
+        s = null
+    } catch (ex: Exception) {}
+    s<!UNSAFE_CALL!>.<!>hashCode()
+}
+
+/* GENERATED_FIR_TAGS: assignment, functionDeclaration, localProperty, nullableType, propertyDeclaration, stringLiteral,
+tryExpression */

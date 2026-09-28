@@ -1,0 +1,13 @@
+// RUN_PIPELINE_TILL: BACKEND
+class C {
+    operator fun getValue(x: Any?, y: Any?): String = ""
+}
+
+object O {
+    operator fun provideDelegate(x: Any?, y: Any?): C = C()
+}
+
+val x: String by O
+
+/* GENERATED_FIR_TAGS: classDeclaration, functionDeclaration, nullableType, objectDeclaration, operator,
+propertyDeclaration, propertyDelegate, stringLiteral */

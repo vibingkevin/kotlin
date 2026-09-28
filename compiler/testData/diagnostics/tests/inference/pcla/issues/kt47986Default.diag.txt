@@ -1,0 +1,3 @@
+/kt47986Default.kt:10:13: error: Cannot infer type for type parameter 'K'. Specify it explicitly.
+
+/kt47986Default.kt:11:9: error: Cannot infer type for type parameter 'K'. Specify it explicitly.

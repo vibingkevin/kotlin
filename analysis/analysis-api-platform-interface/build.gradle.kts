@@ -1,0 +1,56 @@
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+    id("java-test-fixtures")
+    id("test-inputs-check")
+}
+
+dependencies {
+    implementation(project(":compiler:psi:psi-api"))
+    implementation(project(":compiler:frontend.java"))
+    implementation(project(":core:compiler.common"))
+    implementation(project(":analysis:analysis-api"))
+    implementation(project(":analysis:analysis-internal-utils"))
+    implementation(intellijCore())
+    implementation(libs.opentelemetry.api)
+    implementation(libs.caffeine)
+
+    testFixturesApi(kotlinTest("junit5"))
+    testFixturesApi(platform(libs.junit.bom))
+    testFixturesApi(libs.junit.jupiter.api)
+    testFixturesApi(testFixtures(project(":analysis:analysis-test-framework")))
+    testRuntimeOnly(libs.junit.jupiter.engine)
+
+    testImplementation(testFixtures(project(":compiler:psi:psi-api")))
+}
+
+kotlin {
+    explicitApi()
+
+    compilerOptions {
+        optIn.add("org.jetbrains.kotlin.analysis.api.KaPlatformInterface")
+    }
+
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation {
+        referenceDumpDir = File("api-unstable")
+
+        filters {
+            exclude.annotatedWith.addAll(
+                "org.jetbrains.kotlin.analysis.api.KaImplementationDetail",
+            )
+        }
+    }
+}
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" { none() }
+}
+
+projectTests {
+    testCodebaseTask(dumpDirs = listOf("api", "api-unstable"))
+}

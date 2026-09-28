@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+
+def update_content(file_name, prefix, replacement):
+    with open(file_name, 'r', encoding='utf-8') as file:
+        data = file.readlines()
+    for i in range(len(data)):
+        line = data[i]
+        if prefix in line:
+            data[i] = replacement
+    with open(file_name, 'w', encoding='utf-8') as file:
+        file.writelines(data)
+
+def git_add(*files):
+    subprocess.run(['git', 'add', *files], check=True)
+
+def git_commit(message):
+    subprocess.run(['git', 'commit', '-m', message])
+
+
+if __name__ == '__main__':
+    version = sys.argv[1]
+    properties = 'gradle.properties'
+    kotlinc = '.idea/kotlinc.xml'
+    kotlin_maven_pom = 'libraries/pom.xml'
+    kotlin_maven_pom_test = 'repo/artifacts-tests/src/test/resources/org/jetbrains/kotlin/kotlin-project/kotlin-project.pom'
+    update_content(properties, 'bootstrap.kotlin.default.version', f'bootstrap.kotlin.default.version={version}\n')
+    update_content(kotlinc, '    <option name="version" value=', f'    <option name="version" value="{version}" />\n')
+    update_content(kotlin_maven_pom, '        <kotlin.bootstrap.version>', f'        <kotlin.bootstrap.version>{version}</kotlin.bootstrap.version>\n')
+    update_content(kotlin_maven_pom_test, '        <kotlin.bootstrap.version>', f'        <kotlin.bootstrap.version>{version}</kotlin.bootstrap.version>\n')
+    git_add(properties, kotlinc, kotlin_maven_pom, kotlin_maven_pom_test)
+    git_commit(f'Advance bootstrap to {version}\n\n^test: *')
+
+    subprocess.run(['./gradlew', '--stop'])
+    subprocess.run(['./scripts/update-verification-metadata.sh'])
+    status_output = subprocess.run(['git', 'status', '--porcelain'], capture_output=True).stdout
+    if len(status_output) != 0:
+        verification_metadata = "verification-metadata.xml"
+        git_add(f'gradle/{verification_metadata}')
+        git_commit(f'[Build] Update {verification_metadata}')

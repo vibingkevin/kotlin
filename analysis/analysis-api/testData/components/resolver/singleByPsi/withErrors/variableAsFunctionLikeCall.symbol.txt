@@ -1,0 +1,5 @@
+KtCallExpression(68,71): 'x()'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /invoke(<extension receiver>: kotlin.Int): kotlin.String
+    ]

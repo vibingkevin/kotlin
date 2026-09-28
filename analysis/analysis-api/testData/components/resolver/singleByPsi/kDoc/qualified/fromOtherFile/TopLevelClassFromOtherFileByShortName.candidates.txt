@@ -1,0 +1,2 @@
+KDocName(34,36): 'BB'
+  NO_CANDIDATES

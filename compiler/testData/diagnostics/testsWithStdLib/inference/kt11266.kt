@@ -1,0 +1,5 @@
+// RUN_PIPELINE_TILL: FRONTEND
+
+fun foo(first: Array<Any?>, second: Array<Any?>) = Pair(first.<!NO_VALUE_FOR_PARAMETER!>toCollection<!>(), second.<!NO_VALUE_FOR_PARAMETER!>toCollection<!>())
+
+/* GENERATED_FIR_TAGS: functionDeclaration, inProjection, nullableType */

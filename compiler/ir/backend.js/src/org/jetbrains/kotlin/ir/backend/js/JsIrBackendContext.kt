@@ -1,0 +1,168 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.ir.backend.js
+
+import org.jetbrains.kotlin.backend.common.ir.KlibSharedVariablesManager
+import org.jetbrains.kotlin.backend.common.linkage.partial.createPartialLinkageSupportForLowerings
+import org.jetbrains.kotlin.backend.common.linkage.partial.partialLinkageConfig
+import org.jetbrains.kotlin.backend.common.lower.InnerClassesSupport
+import org.jetbrains.kotlin.backend.common.serialization.IrInterningService
+import org.jetbrains.kotlin.cli.common.diagnosticsCollector
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.phaseConfig
+import org.jetbrains.kotlin.config.phaser.PhaseConfig
+import org.jetbrains.kotlin.ir.IrBuiltIns
+import org.jetbrains.kotlin.ir.KtDiagnosticReporterWithImplicitIrBasedContext
+import org.jetbrains.kotlin.ir.backend.js.lower.JsInnerClassesSupport
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.JsPolyfills
+import org.jetbrains.kotlin.ir.backend.js.utils.*
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.impl.IrExternalPackageFragmentImpl
+import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
+import org.jetbrains.kotlin.ir.symbols.IrFileSymbol
+import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.ir.symbols.impl.DescriptorlessExternalPackageFragmentSymbol
+import org.jetbrains.kotlin.ir.types.*
+import org.jetbrains.kotlin.ir.types.impl.IrDynamicTypeImpl
+import org.jetbrains.kotlin.ir.util.SymbolTable
+import org.jetbrains.kotlin.js.config.*
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.JsStandardClassIds
+import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.utils.filterIsInstanceMapNotNull
+import java.util.*
+
+class JsIrBackendContext(
+    val irModule: IrModuleFragment,
+    override val irBuiltIns: IrBuiltIns,
+    override val symbolTable: SymbolTable,
+    override val configuration: CompilerConfiguration,
+    val dceRuntimeDiagnostic: RuntimeDiagnostic? = null,
+    val safeExternalBoolean: Boolean = false,
+    val safeExternalBooleanDiagnostic: RuntimeDiagnostic? = null,
+    val incrementalCacheEnabled: Boolean = false,
+) : JsCommonBackendContext {
+    val phaseConfig = configuration.phaseConfig ?: PhaseConfig()
+
+    val polyfills = JsPolyfills(configuration)
+    val globalIrInterner = IrInterningService()
+
+    val minimizedNameGenerator: MinimizedNameGenerator =
+        MinimizedNameGenerator()
+
+    val additionalExportedDeclarationNames: Set<FqName> = configuration.additionalExportedDeclarationNames
+    val keeper: Keeper = Keeper(configuration.keep.toSet())
+
+    val fieldDataCache = WeakHashMap<IrClass, Map<IrField, String>>()
+
+    override val typeSystem: IrTypeSystemContext = IrTypeSystemContextImpl(irBuiltIns)
+
+    override val irFactory: IrFactory = symbolTable.irFactory
+
+    override var inVerbosePhase: Boolean = false
+
+    override val es6mode = configuration[JSConfigurationKeys.USE_ES6_CLASSES] ?: false
+
+    val callMain = configuration.callMain
+    val platformArgumentsProviderJsExpression = configuration.definePlatformMainFunctionArguments
+
+    override val externalPackageFragment = mutableMapOf<IrFileSymbol, IrFile>()
+
+    override val additionalExportedDeclarations = hashSetOf<IrDeclaration>()
+
+    override val bodilessBuiltInsPackageFragment: IrPackageFragment by lazy {
+        IrExternalPackageFragmentImpl(
+            DescriptorlessExternalPackageFragmentSymbol(),
+            FqName("kotlin"),
+            module = irBuiltIns.moduleFragment,
+        )
+    }
+
+    val packageLevelJsModules = hashSetOf<IrFile>()
+
+    val signaturesPool = JsSignaturesPool()
+    val testFunsPerFile = hashMapOf<IrFile, IrSimpleFunction>()
+
+    override val inlineClassesUtils = JsInlineClassesUtils(this)
+
+    override val innerClassesSupport: InnerClassesSupport = JsInnerClassesSupport(irFactory)
+
+    val dynamicType: IrDynamicType = IrDynamicTypeImpl(emptyList(), Variance.INVARIANT)
+
+    override val reflectionSymbols: ReflectionSymbols get() = symbols.reflectionSymbols
+
+    override val catchAllThrowableType: IrType
+        get() = dynamicType
+
+    override val internalPackageFqn = JsStandardClassIds.BASE_JS_PACKAGE
+
+    private val operatorMap by lazy { referenceOperators() }
+
+    fun getOperatorByName(name: Name, lhsType: IrSimpleType, rhsType: IrSimpleType?) =
+        operatorMap[name]?.get(lhsType.classifier)?.let { candidates ->
+            if (rhsType == null)
+                candidates.singleOrNull()
+            else
+                candidates.singleOrNull { candidate ->
+                    candidate.owner.parameters.first { it.kind == IrParameterKind.Regular }.type.classifierOrNull == rhsType.classifier
+                }
+        }
+
+    override val jsPromiseSymbol: IrClassSymbol
+        get() = symbols.promiseClassSymbol
+
+    override val symbols = BackendJsSymbols(irBuiltIns, irFactory.stageController, configuration.compileLongAsBigint)
+
+    override val propertyLazyInitialization: PropertyLazyInitialization = PropertyLazyInitialization(
+        enabled = configuration.get(JSConfigurationKeys.PROPERTY_LAZY_INITIALIZATION, true),
+        eagerInitialization = symbols.eagerInitialization
+    )
+
+    override val sharedVariablesManager = KlibSharedVariablesManager(symbols)
+
+    override val shouldGenerateHandlerParameterForDefaultBodyFun: Boolean
+        get() = true
+
+    // Top-level functions forced to be loaded
+    val throwableConstructors by lazy(LazyThreadSafetyMode.NONE) {
+        symbols.throwableClass.owner.declarations.filterIsInstance<IrConstructor>().map { it.symbol }
+    }
+    val defaultThrowableCtor by lazy(LazyThreadSafetyMode.NONE) {
+        throwableConstructors.single { !it.owner.isPrimary && it.owner.parameters.isEmpty() }
+    }
+    val throwableConstructorWithMessageOnly by lazy(LazyThreadSafetyMode.NONE) {
+        throwableConstructors.single { it.owner.parameters.size == 1 && it.owner.parameters[0].type.isNullableString() }
+    }
+    val throwableConstructorWithBothMessageAndCause by lazy(LazyThreadSafetyMode.NONE) {
+        throwableConstructors.single { it.owner.parameters.size == 2 }
+    }
+
+    private fun referenceOperators(): Map<Name, Map<IrClassSymbol, Collection<IrSimpleFunctionSymbol>>> {
+        val primitiveIrSymbols = irBuiltIns.primitiveIrTypes.map { it.classifierOrFail as IrClassSymbol }
+        return OperatorNames.ALL.associateWith { name ->
+            primitiveIrSymbols.associateWith { classSymbol ->
+                classSymbol.owner.declarations
+                    .filterIsInstanceMapNotNull<IrSimpleFunction, IrSimpleFunctionSymbol> { function ->
+                        function.symbol.takeIf { function.name == name }
+                    }
+            }
+        }
+    }
+
+    override val diagnosticReporter = KtDiagnosticReporterWithImplicitIrBasedContext(
+        configuration.diagnosticsCollector,
+        configuration.languageVersionSettings
+    )
+
+    override val partialLinkageSupport = createPartialLinkageSupportForLowerings(
+        configuration.partialLinkageConfig,
+        diagnosticReporter
+    )
+
+    internal var nextAssociatedObjectKey = 0
+}

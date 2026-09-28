@@ -1,0 +1,5 @@
+KDocName(77,91): 'Foo.Nested.foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Foo.Nested.foo(<dispatch receiver>: Foo.Nested): kotlin.Unit
+    ]

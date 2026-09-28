@@ -1,0 +1,149 @@
+/*
+ * Copyright 2010-2021 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.gradle
+
+import org.gradle.api.JavaVersion
+import org.gradle.api.logging.LogLevel
+import org.gradle.util.GradleVersion
+import org.jetbrains.kotlin.gradle.plugin.diagnostics.KotlinToolingDiagnostics
+import org.jetbrains.kotlin.gradle.testbase.*
+import org.jetbrains.kotlin.testFederation.MustRunOnChangesInBuildToolsApi
+import org.jetbrains.kotlin.testFederation.MustRunOnChangesInCompilerInfrastructure
+import org.jetbrains.kotlin.testFederation.MustRunOnChangesInCompilerPlugins
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.condition.OS
+import kotlin.io.path.relativeTo
+
+@OsCondition(
+    supportedOn = [OS.LINUX, OS.MAC, OS.WINDOWS],
+    enabledOnCI = [OS.LINUX], // Compiler plugin is leaking file descriptor preventing cleaning the project on Windows
+)
+@DisplayName("Scripting plugin")
+@MustRunOnChangesInCompilerInfrastructure
+@MustRunOnChangesInCompilerPlugins
+@MustRunOnChangesInBuildToolsApi
+@OtherGradlePluginTests
+abstract class ScriptingIT : KGPBaseTest() {
+
+    @DisplayName("basic script is working")
+    @GradleTest
+    open fun testScripting(gradleVersion: GradleVersion) {
+        project("scripting", gradleVersion) {
+            val appSubProject = subProject("app")
+            val scriptTemplateSubProject = subProject("script-template")
+            build("assemble", buildOptions = defaultBuildOptions.copy(logLevel = LogLevel.DEBUG)) {
+                assertCompiledKotlinSources(
+                    listOf(
+                        appSubProject.kotlinSourcesDir().resolve("world.greet.kts").relativeTo(projectPath),
+                        scriptTemplateSubProject.kotlinSourcesDir().resolve("GreetScriptTemplate.kt").relativeTo(projectPath)
+                    ),
+                    output
+                )
+                assertFileExists(
+                    appSubProject.kotlinClassesDir().resolve("World_greet.class")
+                )
+            }
+        }
+    }
+
+    @Disabled("Gradle synchronization bug: https://github.com/gradle/gradle/issues/23450")
+    @DisplayName("With custom file extension compiled non-incremental")
+    @GradleTest
+    fun testScriptingCustomExtensionNonIncremental(gradleVersion: GradleVersion) {
+        testScriptingCustomExtensionImpl(gradleVersion, withIC = false)
+    }
+
+    @Disabled("Gradle synchronization bug: https://github.com/gradle/gradle/issues/23450")
+    @DisplayName("With custom file extension compiled incremental")
+    @GradleTest
+    open fun testScriptingCustomExtensionIncremental(gradleVersion: GradleVersion) {
+        testScriptingCustomExtensionImpl(gradleVersion, withIC = true)
+    }
+
+    private fun testScriptingCustomExtensionImpl(
+        gradleVersion: GradleVersion,
+        withIC: Boolean,
+    ) {
+        project(
+            "scriptingCustomExtension",
+            gradleVersion,
+            buildOptions = defaultBuildOptions.copy(
+                incremental = withIC,
+                logLevel = if (withIC) LogLevel.DEBUG else defaultBuildOptions.logLevel
+            )
+        ) {
+            val appSubproject = subProject("app")
+            val bobGreetSource = appSubproject.kotlinSourcesDir().resolve("bob.greet")
+            val bobGreet = bobGreetSource.relativeTo(projectPath)
+            val aliceGreet = appSubproject.kotlinSourcesDir().resolve("alice.greet").relativeTo(projectPath)
+            val worldGreet = appSubproject.kotlinSourcesDir().resolve("world.greet").relativeTo(projectPath)
+            val greetScriptTemplateKt = subProject("script-template")
+                .kotlinSourcesDir()
+                .resolve("GreetScriptTemplate.kt")
+                .relativeTo(projectPath)
+
+            build("assemble") {
+                val classesDir = appSubproject.kotlinClassesDir()
+                assertFileExists(classesDir.resolve("World.class"))
+                assertFileExists(classesDir.resolve("Alice.class"))
+                assertFileExists(classesDir.resolve("Bob.class"))
+
+                if (withIC) {
+                    // compile iterations are not logged when IC is disabled
+                    assertCompiledKotlinSources(
+                        listOf(bobGreet, aliceGreet, worldGreet, greetScriptTemplateKt),
+                        output
+                    )
+                }
+            }
+
+            bobGreetSource.modify { it.replace("Bob", "Uncle Bob") }
+            build("assemble") {
+                if (withIC) {
+                    assertCompiledKotlinSources(listOf(bobGreet), output)
+                }
+            }
+        }
+    }
+
+    @DisplayName("KT-31124: No scripting warning")
+    @GradleTest
+    fun testNoScriptingWarning(gradleVersion: GradleVersion) {
+        project("simpleProject", gradleVersion) {
+            build("help") {
+                assertNoDiagnostic(KotlinToolingDiagnostics.KotlinScriptingMisconfiguration)
+            }
+        }
+    }
+
+    // Compose only works on JDK 11+
+    @DisplayName("Compose compiler plugin should work with scripting")
+    @GradleTest
+    fun testComposeInterop(gradleVersion: GradleVersion) {
+        project(
+            projectName = "scriptingComposeInterop",
+            gradleVersion = gradleVersion,
+        ) {
+            val appSubProject = subProject("app")
+            build(":app:test", buildOptions = defaultBuildOptions.copy(
+                logLevel = LogLevel.DEBUG,
+            )) {
+                assertCompiledKotlinSources(
+                    listOf(
+                        appSubProject.kotlinSourcesDir("test").resolve("script/ComposeMainKtsTest.kt").relativeTo(projectPath),
+                    ),
+                    output
+                )
+            }
+        }
+    }
+}
+
+@DisplayName("K2 Scripting plugin")
+class ScriptingK2IT : ScriptingIT() {
+    override val defaultBuildOptions = super.defaultBuildOptions.copyEnsuringK2()
+}

@@ -1,0 +1,5 @@
+KtDestructuringDeclarationEntry(139,148): 'val prop2'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val prop2: kotlin.String
+    ]

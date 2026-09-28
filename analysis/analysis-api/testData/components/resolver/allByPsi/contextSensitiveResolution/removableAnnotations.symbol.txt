@@ -1,0 +1,140 @@
+KtFile: 'main.kt'
+  null
+
+KtPackageDirective(88,100): 'package main'
+  null
+
+KtNameReferenceExpression(96,100): 'main'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main
+    ]
+
+KtImportList(100,100): ''
+  null
+
+KtClass(102,124): 'enum class Foo { BAR }'
+  null
+
+KtDeclarationModifierList(102,106): 'enum'
+  null
+
+KtClassBody(117,124): '{ BAR }'
+  null
+
+KtEnumEntry(119,122): 'BAR'
+  null
+
+KtClass(126,159): 'annotation class Anno(val f: Foo)'
+  null
+
+KtDeclarationModifierList(126,136): 'annotation'
+  null
+
+KtPrimaryConstructor(147,159): '(val f: Foo)'
+  null
+
+KtParameterList(147,159): '(val f: Foo)'
+  null
+
+KtParameter(148,158): 'val f: Foo'
+  null
+
+KtTypeReference(155,158): 'Foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Foo
+    ]
+
+KtUserType(155,158): 'Foo'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Foo
+    ]
+
+KtNameReferenceExpression(155,158): 'Foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Foo
+    ]
+
+KtNamedFunction(161,191): '@Anno(Foo.BAR)'
+  null
+
+KtDeclarationModifierList(161,175): '@Anno(Foo.BAR)'
+  null
+
+KtAnnotationEntry(161,175): '@Anno(Foo.BAR)'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      <constructor>(f: main.Foo): main.Anno
+    ]
+
+KtConstructorCalleeExpression(162,166): 'Anno'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      <constructor>(f: main.Foo): main.Anno
+    ]
+
+KtTypeReference(162,166): 'Anno'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Anno
+    ]
+
+KtUserType(162,166): 'Anno'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Anno
+    ]
+
+KtNameReferenceExpression(162,166): 'Anno'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Anno
+    ]
+
+KtValueArgumentList(166,175): '(Foo.BAR)'
+  null
+
+KtValueArgument(167,174): 'Foo.BAR'
+  null
+
+KtDotQualifiedExpression(167,174): 'Foo.BAR'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Foo.BAR
+    ]
+
+KtNameReferenceExpression(167,170): 'Foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Foo
+    ]
+
+KtNameReferenceExpression(171,174): 'BAR'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: QualifierCanBeRemoved
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      main/Foo.BAR
+    ]
+
+KtParameterList(185,187): '()'
+  null
+
+KtBlockExpression(188,191): '{'
+  null

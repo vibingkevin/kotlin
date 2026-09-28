@@ -1,0 +1,395 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi
+
+import com.intellij.extapi.psi.PsiFileBase
+import com.intellij.lang.ASTNode
+import com.intellij.openapi.fileTypes.FileType
+import com.intellij.psi.*
+import com.intellij.psi.stubs.StubElement
+import com.intellij.psi.tree.IElementType
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.util.IncorrectOperationException
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.idea.KotlinFileType
+import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.psi.psiUtil.children
+import org.jetbrains.kotlin.psi.psiUtil.hasExpectModifier
+import org.jetbrains.kotlin.psi.stubs.KotlinFileStub
+import org.jetbrains.kotlin.psi.stubs.KotlinFileStubKind
+import org.jetbrains.kotlin.psi.stubs.KotlinImportDirectiveStub
+
+/**
+ * A Kotlin PSI file implementation independent of Java PSI (it does not implement [PsiClassOwner]).
+ *
+ * It can be created by `org.jetbrains.kotlin.parsing.KotlinCommonParserDefinition` when Java PSI is not available, for example, on JB
+ * Client.
+ *
+ * This class is not intended for direct use. Prefer [PsiFile], or check the file type or language if you need to distinguish it from other
+ * PSI files.
+ */
+@Deprecated("Don't use directly, use file.getFileType() instead")
+@SubclassOptInRequired(KtImplementationDetail::class)
+open class KtCommonFile(viewProvider: FileViewProvider, val isCompiled: Boolean) :
+    PsiFileBase(viewProvider, KotlinLanguage.INSTANCE),
+    KtDeclarationContainer,
+    KtAnnotated,
+    KtElement,
+    PsiNamedElement {
+
+    @Volatile
+    private var isScript: Boolean? = null
+
+    @Volatile
+    private var hasTopLevelCallables: Boolean? = null
+
+    @Volatile
+    private var pathCached: String? = null
+
+    /**
+     * The primary import list of this file, or `null` if the file has no imports.
+     */
+    open val importList: KtImportList?
+        get() {
+            val stub = greenStub
+            if (stub != null) {
+                return stub.findChildStubByElementType(KtNodeTypes.IMPORT_LIST)?.psi as KtImportList?
+            }
+
+            return findChildByClass(KtImportList::class.java)
+        }
+
+    @Volatile
+    private var hasImportAlias: Boolean? = null
+
+    /**
+     * Returns `true` if any import in this file introduces an alias (`import foo.Bar as Baz`).
+     *
+     * This is a fast pre-check used to avoid scanning the imports when no aliases are present.
+     */
+    fun hasImportAlias(): Boolean {
+        val hasImportAlias = hasImportAlias
+        if (hasImportAlias != null) return hasImportAlias
+
+        val newValue = importLists.any(KtImportList::computeHasImportAlias)
+        this.hasImportAlias = newValue
+        return newValue
+    }
+
+    protected open val importLists: List<KtImportList>
+        get() {
+            val stub = greenStub
+            if (stub != null) {
+                return stub.getChildrenByType(KtNodeTypes.IMPORT_LIST, KtImportList.EMPTY_ARRAY).asList()
+            }
+
+            return findChildrenByClass(KtImportList::class.java).asList()
+        }
+
+    /**
+     * The file-level annotation list holding the `@file:...` annotations, or `null` if the file has none.
+     */
+    val fileAnnotationList: KtFileAnnotationList?
+        get() = findChildBeforeFirstDeclarationInclusiveByType(KtNodeTypes.FILE_ANNOTATION_LIST)
+
+    /**
+     * The import directives of this file, in source order; empty if the file has no imports.
+     */
+    open val importDirectives: List<KtImportDirective>
+        get() = importLists.flatMap { it.imports }
+
+    /**
+     * The package directive of this file, or `null` if the file has no explicit `package` statement (root package).
+     */
+    val packageDirective: KtPackageDirective?
+        get() = findChildBeforeFirstDeclarationInclusiveByType(KtNodeTypes.PACKAGE_DIRECTIVE)
+
+    /**
+     * The fully qualified name of the file's package, or [FqName.ROOT] for the default (root) package.
+     */
+    var packageFqName: FqName
+        get() = greenStub?.getPackageFqName() ?: packageDirective?.fqName ?: FqName.ROOT
+        @Deprecated(
+            message = "Use setPackageFqName(value) instead",
+            replaceWith = ReplaceWith("this.setPackageFqName(value)", "org.jetbrains.kotlin.idea.base.psi.setPackageFqName"),
+        )
+        @OptIn(KtNonPublicApi::class)
+        set(value) {
+            KtPsiMutationService.getInstance().setPackageFqName(this, value)
+        }
+
+    /**
+     * A compatibility alias for [packageFqName] that may use the stub-based fast path despite its historical name.
+     *
+     * @deprecated use [packageFqName]
+     */
+    @Deprecated(
+        message = "Use 'packageFqName' property instead",
+        replaceWith = ReplaceWith("packageFqName"),
+    )
+    val packageFqNameByTree: FqName
+        get() = packageFqName
+
+    /**
+     * The script declaration if this file is a Kotlin script, or `null` for a regular Kotlin file.
+     */
+    val script: KtScript?
+        get() {
+            isScript?.let { if (!it) return null }
+            greenStub?.let { if (!it.isScript()) return null }
+
+            val result = findChildBeforeFirstDeclarationInclusiveByType<KtScript>(KtNodeTypes.SCRIPT)
+            if (isScript == null) {
+                isScript = result != null
+            }
+
+            return result
+        }
+
+    /**
+     * The path of the backing virtual file. The value is cached after the first access.
+     */
+    val virtualFilePath
+        get(): String {
+            pathCached?.let { return it }
+
+            return virtualFile.path.also {
+                pathCached = it
+            }
+        }
+
+    /**
+     * A compatibility alias for [isScript] that may use the stub-based fast path despite its historical name.
+     *
+     * @deprecated use [isScript]
+     */
+    @Deprecated(
+        message = "Use 'isScript()' instead",
+        replaceWith = ReplaceWith("isScript()"),
+    )
+    val isScriptByTree: Boolean
+        get() = isScript()
+
+    /**
+     * @return modifier lists that do not belong to any declaration due to incomplete code or syntax errors
+     */
+    val danglingModifierLists: Array<out KtModifierList>
+        get() = greenStub?.getChildrenByType(KtNodeTypes.MODIFIER_LIST, KtDeclarationModifierList.EMPTY_ARRAY)
+            ?: findChildrenByClass(KtModifierList::class.java)
+
+    /**
+     * @return annotations that do not belong to any declaration due to incomplete code or syntax errors
+     */
+    val danglingAnnotations: List<KtAnnotationEntry>
+        get() = danglingModifierLists.flatMap { obj: KtModifierList -> obj.annotationEntries }
+
+    override fun getFileType(): FileType = KotlinFileType.INSTANCE
+
+    override fun toString(): String = "KtFile: $name"
+
+    /**
+     * A stub builder to be used instead of the language-wide one from [com.intellij.psi.stubs.LanguageStubDefinition].
+     *
+     * The platform provides a single stub builder per language, so this is the only way for a decompiled file to reuse the stub
+     * of the original binary file instead of building a new one from the decompiled text.
+     */
+    @KtImplementationDetail
+    open val customStubBuilder: StubBuilder? get() = null
+
+    override fun getDeclarations(): List<KtDeclaration> {
+        return greenStub?.getChildrenByType(KtFile.FILE_DECLARATION_TYPES, KtDeclaration.ARRAY_FACTORY)?.toList()
+            ?: PsiTreeUtil.getChildrenOfTypeAsList(this, KtDeclaration::class.java)
+    }
+
+    /**
+     * This is an optimized way to find a file child element in the header.
+     *
+     * Regular lookup will iterate through all children, which is especially expensive in the case of [findChildByClass].
+     * It will trigger PSI calculation for all children even if the wanted element is the first child.
+     *
+     * So this function will iterate at most through all leading non-declarations plus one declaration. Processing one declaration is
+     * required to support the optimization for [KtScript], as it can only appear at the beginning.
+     */
+    private fun <T : KtElementImplStub<out StubElement<T>>> findChildBeforeFirstDeclarationInclusiveByType(
+        elementType: IElementType,
+    ): T? {
+        val stub = greenStub
+        if (stub != null) {
+            for (stubElement in stub.childrenStubs) {
+                val stubType = stubElement.elementType
+                when (stubType) {
+                    // Required element found
+                    elementType -> {
+                        @Suppress("UNCHECKED_CAST")
+                        return stubElement.psi as T
+                    }
+
+                    // Elements from the header can be declared only before declarations
+                    in KtFile.FILE_DECLARATION_TYPES -> return null
+                    else -> {}
+                }
+            }
+
+            // No element found, there is no sense to search further via ast
+            return null
+        }
+
+        val children: Sequence<ASTNode> = node.children()
+        for (child in children) {
+            val childType = child.elementType
+            when (childType) {
+                // Required element found
+                elementType -> {
+                    @Suppress("UNCHECKED_CAST")
+                    return child.psi as T
+                }
+
+                // Elements from the header can be declared only before declarations
+                in KtFile.FILE_DECLARATION_TYPES -> return null
+                else -> {}
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Returns the import directive that introduces the given alias [name], or `null` if this file has no such alias.
+     */
+    fun findImportByAlias(name: String): KtImportDirective? {
+        if (!hasImportAlias()) return null
+
+        return importDirectives.firstOrNull { name == it.aliasName }
+    }
+
+    /**
+     * Returns the [KtImportAlias] under which the declaration with the given [fqName] is imported, or `null` if that declaration is not
+     * imported with an alias in this file.
+     */
+    fun findAliasByFqName(fqName: FqName): KtImportAlias? {
+        if (!hasImportAlias()) return null
+
+        return importDirectives.firstOrNull {
+            it.alias != null && fqName == it.importedFqName
+        }?.alias
+    }
+
+    /**
+     * Returns the original short name that the given alias [name] refers to, or `null` if [name] is not an alias declared in this file.
+     */
+    fun getNameForGivenImportAlias(name: Name): Name? {
+        if (!hasImportAlias()) return null
+
+        return importDirectives.find { it.importedName == name }?.importedFqName?.pathSegments()?.last()
+    }
+
+    override fun getStub(): KotlinFileStub? = super.getStub()?.let { it as KotlinFileStub }
+
+    protected open val greenStub: KotlinFileStub?
+        get() = stubTreeOrFileElement.first?.root?.let { it as KotlinFileStub }
+
+    override fun clearCaches() {
+        @Suppress("RemoveExplicitSuperQualifier")
+        super<PsiFileBase>.clearCaches()
+        isScript = null
+        hasTopLevelCallables = null
+        pathCached = null
+        hasImportAlias = null
+    }
+
+    /**
+     * Returns `true` if this file is a Kotlin script.
+     */
+    fun isScript(): Boolean = isScript ?: greenStub?.isScript() ?: (script != null)
+
+    /**
+     * Returns `true` if this file declares top-level callables (functions or properties), a type alias, or a script, that is, if it
+     * contributes a file facade class. Expected (`expect`) declarations are not counted.
+     */
+    fun hasTopLevelCallables(): Boolean {
+        hasTopLevelCallables?.let { return it }
+
+        val greenStub = greenStub
+        val result = if (greenStub != null) {
+            greenStub.kind is KotlinFileStubKind.WithPackage.Facade
+        } else {
+            node.children().any {
+                val psi = it.psi
+                (psi is KtProperty ||
+                        psi is KtNamedFunction ||
+                        psi is KtScript ||
+                        psi is KtTypeAlias) && !psi.hasExpectModifier()
+            }
+        }
+
+        hasTopLevelCallables = result
+        return result
+    }
+
+    override fun accept(visitor: PsiElementVisitor) {
+        if (visitor is KtVisitor<*, *>) {
+            @Suppress("UNCHECKED_CAST")
+            accept(visitor as KtVisitor<Any, Any?>, null)
+        } else {
+            visitor.visitFile(this)
+        }
+    }
+
+    override fun getContainingKtFile(): KtFile = this as KtFile
+
+    override fun <D> acceptChildren(visitor: KtVisitor<Void, D>, data: D) {
+        KtPsiUtil.visitChildren(this, visitor, data)
+    }
+
+    override fun <R, D> accept(visitor: KtVisitor<R, D>, data: D): R {
+        return visitor.visitKtCommonFile(this)
+    }
+
+    override fun getAnnotations(): List<KtAnnotation> =
+        fileAnnotationList?.annotations ?: emptyList()
+
+    override fun getAnnotationEntries(): List<KtAnnotationEntry> =
+        fileAnnotationList?.annotationEntries ?: emptyList()
+
+    @OptIn(KtNonPublicApi::class)
+    @Throws(IncorrectOperationException::class)
+    override fun setName(name: String): PsiElement = KtPsiMutationService.getInstance().setCommonFileName(this, name)
+
+    override fun getPsiOrParent(): KtElement = this
+
+    @KtNonPublicApi
+    override fun rawDelete() {
+        super.delete()
+    }
+
+    /**
+     * Always returns `false`: for Kotlin files the modification count is tracked entirely by the code-block modification listener, so
+     * changes within this file never bump the out-of-code-block modification count.
+     *
+     * Kept for compatibility with potential plugins.
+     */
+    @Suppress("unused") //keep for compatibility with potential plugins
+    fun shouldChangeModificationCount(@Suppress("UNUSED_PARAMETER") place: PsiElement): Boolean {
+        // Modification count for Kotlin files is tracked entirely by KotlinCodeBlockModificationListener
+        return false
+    }
+}
+
+private fun KtImportList.computeHasImportAlias(): Boolean {
+    val stub = greenStub
+    if (stub != null) {
+        return stub.childrenStubs.any {
+            it is KotlinImportDirectiveStub && it.findChildStubByElementType(KtNodeTypes.IMPORT_ALIAS) != null
+        }
+    }
+
+    return node.children().any {
+        val psi = it.psi
+        psi is KtImportDirective && psi.alias != null
+    }
+}

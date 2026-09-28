@@ -1,0 +1,80 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.wasm.test.klib
+
+import org.jetbrains.kotlin.cli.common.ExitCode
+import org.jetbrains.kotlin.cli.common.arguments.KotlinWasmCompilerArguments
+import org.jetbrains.kotlin.cli.common.messages.MessageCollectorImpl
+import org.jetbrains.kotlin.cli.js.KotlinWasmCompiler
+import org.jetbrains.kotlin.compilerRunner.toArgumentStrings
+import org.jetbrains.kotlin.config.Services
+import org.jetbrains.kotlin.konan.target.KonanTarget
+import org.jetbrains.kotlin.library.AbstractKlibLoaderTest
+import org.jetbrains.kotlin.library.loader.KlibPlatformChecker
+import org.jetbrains.kotlin.platform.wasm.WasmTarget
+import org.jetbrains.kotlin.test.services.configuration.WasmEnvironmentConfigurator
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.nameWithoutExtension
+import kotlin.io.path.pathString
+import kotlin.test.fail
+
+abstract class AbstractWasmKlibLoaderTest(private val target: WasmTarget) : AbstractKlibLoaderTest() {
+    @Suppress("JUnitTestCaseWithNoTests")
+    class WasmJsKlibLoaderTest : AbstractWasmKlibLoaderTest(WasmTarget.JS)
+
+    @Suppress("JUnitTestCaseWithNoTests")
+    class WasmWasiKlibLoaderTest : AbstractWasmKlibLoaderTest(WasmTarget.WASI)
+
+    override val stdlib: String
+        get() = WasmEnvironmentConfigurator.stdlibPath(target)
+
+    override val ownPlatformCheckers: List<KlibPlatformChecker>
+        get() = listOf(
+            KlibPlatformChecker.Wasm(),
+            KlibPlatformChecker.Wasm(target.alias)
+        )
+
+    override val alienPlatformCheckers: List<KlibPlatformChecker>
+        get() = listOf(
+            KlibPlatformChecker.JS,
+            KlibPlatformChecker.Wasm(WasmTarget.entries.first { it != target }.alias),
+            KlibPlatformChecker.Native(),
+            KlibPlatformChecker.Native(KonanTarget.IOS_ARM64.name),
+            KlibPlatformChecker.NativeMetadata(KonanTarget.IOS_ARM64.name),
+        )
+
+    override fun compileKlib(
+        parameters: CompilationParameters
+    ) {
+        val args = KotlinWasmCompilerArguments().apply {
+            if (parameters.asFile) {
+                outputDir = parameters.klibLocation.parent.pathString
+            } else {
+                nopack = true
+                outputDir = parameters.klibLocation.pathString
+            }
+            wasmTarget = this@AbstractWasmKlibLoaderTest.target.alias
+            libraries = stdlib
+            moduleName = parameters.sourceFile.nameWithoutExtension
+            irModuleName = parameters.sourceFile.nameWithoutExtension
+            customKlibAbiVersion = parameters.abiVersion.toString()
+            freeArgs = listOf(parameters.sourceFile.absolutePathString())
+            if (parameters.withCompanionBlocksAndExtensionsFeature) companionBlocksAndExtensions = true
+        }
+
+        val messageCollector = MessageCollectorImpl()
+
+        val exitCode = KotlinWasmCompiler().exec(messageCollector, Services.EMPTY, args)
+        if (exitCode != ExitCode.OK) fail(
+            buildString {
+                appendLine("Compilation failed with exit code: $exitCode")
+                appendLine("Command-line arguments: " + args.toArgumentStrings().joinToString(" "))
+                appendLine("Compiler output:")
+                appendLine(messageCollector.toString())
+            }
+        )
+    }
+}

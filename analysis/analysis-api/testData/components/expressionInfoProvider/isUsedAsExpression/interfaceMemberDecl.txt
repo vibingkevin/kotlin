@@ -1,0 +1,4 @@
+expression: FUNCTION
+text: fun i(t: T): Int
+isUsedAsExpression: false
+isUsedAsResultOfLambda: false

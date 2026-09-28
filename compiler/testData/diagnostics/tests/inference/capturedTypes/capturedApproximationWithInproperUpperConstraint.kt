@@ -1,0 +1,10 @@
+// RUN_PIPELINE_TILL: BACKEND
+// WITH_STDLIB
+// LANGUAGE: +ImprovedCapturedTypeApproximationInInference
+fun <R> sequenceOf(elements: Array<R>) {}
+
+fun test(overriddenDescriptors: MutableCollection<out CharSequence>) {
+    sequenceOf(overriddenDescriptors.toTypedArray())
+}
+
+/* GENERATED_FIR_TAGS: functionDeclaration, nullableType, outProjection, typeParameter */

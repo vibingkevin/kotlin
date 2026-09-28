@@ -1,0 +1,16 @@
+/* anchor (KtScript) --> *//* anchor (KtClass) --> */class A /* anchor (KtPrimaryConstructor) --> */constructor(/* anchor (KtParameter) --> */a: Int/* <-- */)/* <-- */ {
+    /* anchor (KtNamedFunction) --> */fun boo() {
+        fun bar() {
+
+        }
+    }/* <-- */
+
+    /* anchor (KtProperty) --> */val i: Int = 42/* <-- */
+
+    /* anchor (KtClassInitializer) --> */init {
+        fun foo() {
+
+        }
+    }/* <-- */
+}/* <-- */
+/* <-- */

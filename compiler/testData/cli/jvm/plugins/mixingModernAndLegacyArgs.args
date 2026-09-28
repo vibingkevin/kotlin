@@ -1,0 +1,8 @@
+-d
+$TEMP_DIR$
+-Xcompiler-plugin=$NOARG-COMPILER-PLUGIN-JAR$=annotation=foo.NoArg
+-Xplugin=$ALLOPEN-COMPILER-PLUGIN-JAR$
+-P
+plugin\:org.jetbrains.kotlin.allopen\:annotation=foo.AllOpen
+
+$TESTDATA_DIR$/mixingModernAndLegacyArgs.kt

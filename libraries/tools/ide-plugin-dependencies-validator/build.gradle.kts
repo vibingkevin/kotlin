@@ -1,0 +1,158 @@
+import org.gradle.kotlin.dsl.testImplementation
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import kotlin.io.path.readLines
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    application
+    kotlin("jvm")
+}
+
+
+dependencies {
+    implementation(project(":compiler:psi:psi-api"))
+    implementation(project(":compiler:cli"))
+    implementation(intellijCore())
+    implementation(kotlinStdlib())
+
+    // runtime dependencies for IJ
+    runtimeOnly(libs.intellij.fastutil)
+    runtimeOnly(libs.opentelemetry.api)
+    runtimeOnly(commonDependency("org.codehaus.woodstox:stax2-api"))
+    runtimeOnly(commonDependency("com.fasterxml:aalto-xml"))
+
+    // test dependencies
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+projectTests {
+    testTask {
+        workingDir = rootDir
+    }
+}
+
+application {
+    mainClass.set("org.jetbrains.kotlin.ide.plugin.dependencies.validator.MainKt")
+}
+
+val projectsDependingOnStableStdlib: Array<String> = CompilerModules.projectsDependingOnStableStdlib
+val kotlinApiVersionForProjectsDependingOnStableStdlib: String = project.providers.gradleProperty("kotlinApiVersionForProjectsDependingOnStableStdlib").get()
+
+tasks.withType<JavaExec> {
+    notCompatibleWithConfigurationCache("Uses project in task action")
+    workingDir = rootProject.projectDir
+
+    doFirst {
+        val srcDirsOfProjectsDependingOnStableStdlib = projectsDependingOnStableStdlib.flatMap {
+            project(it).extensions
+                .findByType(JavaPluginExtension::class.java)
+                ?.sourceSets?.flatMap { sourceSet ->
+                    sourceSet.allSource.srcDirs.map { it.path }
+                }.orEmpty()
+        }
+        args = buildList {
+            add(project(":kotlin-stdlib").projectDir.path)
+            addAll(srcDirsOfProjectsDependingOnStableStdlib)
+        }
+    }
+}
+
+tasks.register("checkIdeDependenciesConfiguration") {
+    notCompatibleWithConfigurationCache("Uses project in task action")
+    doFirst {
+        for (projectName in projectsDependingOnStableStdlib) {
+            project(projectName).checkIdeDependencyConfiguration()
+        }
+    }
+}
+
+fun Project.checkIdeDependencyConfiguration() {
+    val expectedApiVersion = KotlinVersion.fromVersion(kotlinApiVersionForProjectsDependingOnStableStdlib)
+    for (compileTask in tasks.withType<KotlinJvmCompile>()) {
+        val projectApiVersion = compileTask.compilerOptions.apiVersion.get()
+        check(projectApiVersion <= expectedApiVersion) {
+            "Expected the API Version to be less or equal to `$kotlinApiVersionForProjectsDependingOnStableStdlib`" +
+                    " for the project `$path`, " +
+                    "but `$projectApiVersion` found. The project is used in the IntelliJ, so it should use the same API version" +
+                    "for binary compatibility with Kotlin stdlib . " +
+                    "See KT-62510 for details."
+        }
+
+        val enabledExperimentalAnnotations =
+            ExperimentalAnnotationsCollector().getUsedExperimentalAnnotations(compileTask.compilerOptions.freeCompilerArgs.get())
+
+        check(enabledExperimentalAnnotations.isEmpty()) {
+            "`$path` allows using experimental kotlin stdlib API marked with ${enabledExperimentalAnnotations.joinToString()}. " +
+                    "The project is used in the IntelliJ Kotlin Plugin, so it cannot use experimental Kotlin stdlib API " +
+                    "for binary compatibility with Kotlin stdlib . " +
+                    "See KT-62510 for details."
+        }
+    }
+}
+
+tasks.register("checkIdeDependencies") {
+    dependsOn("checkIdeDependenciesConfiguration")
+    dependsOn("run")
+}
+
+val validatorProject: Project get() = project
+
+private class ExperimentalAnnotationsCollector() {
+    val experimentalAnnotations: Set<String> by lazy {
+        validatorProject.projectDir.toPath().resolve(EXPERIMENTAL_ANNOTATIONS_FILE)
+            .readLines()
+            .map { it.trim() }
+            .filterNot { it.startsWith("#") || it.isBlank() }
+            .toSet()
+    }
+
+    fun getUsedExperimentalAnnotations(arguments: List<String>): List<String> {
+        return buildList {
+            addAll(getOptInAnnotationsByMultipleArguments(arguments))
+            arguments.flatMapTo(this) { getOptInAnnotationsBySingleArgument(it) }
+            removeAll { it !in experimentalAnnotations }
+        }
+    }
+
+    /**
+     * Returns a list of experimental annotation used in an argument list of kind `["-opt-in", "kotlin.ExperimentalStdlibApi,kotlin.time.ExperimentalTime"]`
+     */
+    private fun getOptInAnnotationsByMultipleArguments(arguments: List<String>): List<String> {
+        return arguments.windowed(2).flatMap { (argumentName, value) ->
+            if (argumentName == "-Xopt-in" || argumentName == "-opt-in") value.split(",").map { it.trim() }
+            else emptyList()
+        }
+    }
+
+    private fun getOptInAnnotationsBySingleArgument(argument: String): List<String> {
+        @Suppress("NAME_SHADOWING")
+        var argument = argument.trim()
+        argument = when {
+            argument.startsWith("-opt-in=") -> {
+                argument.removePrefix("-opt-in=")
+            }
+            argument.startsWith("-Xopt-in=") -> {
+                argument.removePrefix("-Xopt-in=")
+            }
+            else -> {
+                return emptyList()
+            }
+        }
+        return argument.split(",").map { it.trim() }
+    }
+
+
+    companion object {
+        private const val EXPERIMENTAL_ANNOTATIONS_FILE = "ExperimentalAnnotations.txt"
+    }
+}
+
+sourceSets {
+    "main" { projectDefault() }
+    "test" { projectDefault() }
+}

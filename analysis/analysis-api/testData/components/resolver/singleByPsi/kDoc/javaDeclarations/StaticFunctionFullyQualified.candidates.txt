@@ -1,0 +1,2 @@
+KDocName(25,55): 'dependency.JavaClass.staticFun'
+  NO_CANDIDATES

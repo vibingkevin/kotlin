@@ -1,0 +1,71 @@
+import org.jetbrains.kotlin.buildtools.api.ExecutionPolicy
+import org.jetbrains.kotlin.buildtools.api.KotlinLogger
+import org.jetbrains.kotlin.buildtools.api.ProjectId
+import org.jetbrains.kotlin.buildtools.internal.ExecutionContext
+import org.jetbrains.kotlin.buildtools.internal.CancellableBuildOperationImpl
+import org.jetbrains.kotlin.buildtools.internal.KotlinToolchainsImpl
+import org.jetbrains.kotlin.buildtools.internal.Options
+import org.jetbrains.kotlin.progress.CompilationCanceledException
+import java.io.File
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.thread
+import kotlin.test.Test
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+private class ExampleCancellableOperation(override val options: Options = Options(ExampleCancellableOperation::class)) :
+    CancellableBuildOperationImpl<Unit>() {
+    override fun executeCancellableImpl(
+        projectId: ProjectId,
+        executionPolicy: ExecutionPolicy,
+        logger: KotlinLogger?,
+        executionContext: ExecutionContext,
+    ) {
+        repeat(10) {
+            Thread.sleep(100)
+            cancellationHandle.checkCanceled()
+        }
+    }
+
+    override val usesApplicationEnvironment: Boolean
+        get() = false
+}
+
+
+class CancellableOperationTest {
+    @OptIn(ExperimentalAtomicApi::class)
+    @Test
+    fun example() {
+        val operation = ExampleCancellableOperation()
+
+        val result = AtomicReference<Unit?>(null)
+        val operationWasCancelled = AtomicBoolean(false)
+
+        val thread =
+            thread {
+                try {
+                    result.store(
+                        operation.execute(
+                            ProjectId.RandomProjectUUID(),
+                            KotlinToolchainsImpl().createInProcessExecutionPolicy(),
+                            executionContext = ExecutionContext(lazy { File(".") }, null),
+                        )
+                    )
+                } catch (_: CompilationCanceledException) {
+                    operationWasCancelled.store(true)
+                }
+            }
+        operation.cancel()
+        thread.join()
+
+        assertNull(result.load())
+        assertTrue { operationWasCancelled.load() }
+    }
+}

@@ -1,0 +1,208 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.backend.common.actualizer
+
+import org.jetbrains.kotlin.analyzer.ModuleInfo
+import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.ir.IrDiagnosticReporter
+import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.atPotentiallyNonSource
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.IrAnnotation
+import org.jetbrains.kotlin.ir.symbols.IrSymbol
+import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.moduleFragment
+import org.jetbrains.kotlin.ir.util.render
+import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualAnnotationsIncompatibilityType
+import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualIncompatibility
+import org.jetbrains.kotlin.resolve.multiplatform.ExpectActualMatchingCompatibility
+
+internal fun recordActualForExpectDeclaration(
+    expectSymbol: IrSymbol,
+    actualSymbol: IrSymbol,
+    expectActualMap: IrExpectActualMap,
+    diagnosticsReporter: IrDiagnosticReporter,
+) {
+    val expectDeclaration = expectSymbol.owner as IrDeclarationBase
+    val actualDeclaration = actualSymbol.owner as IrDeclaration
+    val registeredActual = expectActualMap.putRegular(expectSymbol, actualSymbol)
+    if (registeredActual != null && registeredActual != actualSymbol) {
+        diagnosticsReporter.reportAmbiguousActuals(expectDeclaration)
+    }
+    if (expectDeclaration is IrTypeParametersContainer) {
+        recordTypeParametersMapping(expectActualMap, expectDeclaration, actualDeclaration as IrTypeParametersContainer)
+    }
+    if (expectDeclaration is IrProperty) {
+        require(actualDeclaration is IrProperty)
+
+        expectDeclaration.getter?.let { expectGetter ->
+            val actualGetter = actualDeclaration.getter
+            if (actualGetter != null) {
+                expectActualMap.putRegular(expectGetter.symbol, actualGetter.symbol)
+                recordTypeParametersMapping(expectActualMap, expectGetter, actualGetter)
+            } else if (actualDeclaration.isPropertyForJavaField()) {
+                // In the case when expect property is actualized by a Java field, there is no getter.
+                // So, record it in `IrExpectActualMap.propertyAccessorsActualizedByFields`.
+                expectActualMap.propertyAccessorsActualizedByFields[expectGetter.symbol] = actualDeclaration.symbol
+            } else {
+                error("Actual property ${actualDeclaration.render()} has not getter while expect property ${expectDeclaration.render()} has it")
+            }
+        }
+
+        expectDeclaration.setter?.let { expectSetter ->
+            val actualSetter = actualDeclaration.setter
+            if (actualSetter != null) {
+                expectActualMap.putRegular(expectSetter.symbol, actualSetter.symbol)
+            } else if (actualDeclaration.isPropertyForJavaField()) {
+                // In the case when expect property is actualized by a Java field, there is no setter.
+                // So, record it in `IrExpectActualMap.propertyAccessorsActualizedByFields`.
+                expectActualMap.propertyAccessorsActualizedByFields[expectSetter.symbol] = actualDeclaration.symbol
+            } else {
+                error("Actual property ${actualDeclaration.render()} has not setter while expect property ${expectDeclaration.render()} has it")
+            }
+        }
+    }
+}
+
+private fun recordTypeParametersMapping(
+    expectActualMap: IrExpectActualMap,
+    expectTypeParametersContainer: IrTypeParametersContainer,
+    actualTypeParametersContainer: IrTypeParametersContainer,
+) {
+    expectTypeParametersContainer.typeParameters
+        .zip(actualTypeParametersContainer.typeParameters)
+        .forEach { [expectTypeParameter, actualTypeParameter] ->
+            expectActualMap.putRegular(expectTypeParameter.symbol, actualTypeParameter.symbol)
+        }
+}
+
+internal fun IrDiagnosticReporter.reportMissingActual(expectSymbol: IrSymbol) {
+    reportMissingActual(expectSymbol.owner as IrDeclaration)
+}
+
+internal fun IrDiagnosticReporter.reportMissingActual(irDeclaration: IrDeclaration) {
+    atPotentiallyNonSource(irDeclaration).report(
+        IrActualizationErrors.NO_ACTUAL_FOR_EXPECT,
+        irDeclaration.symbol,
+        irDeclaration.moduleFragment.toModuleInfoForDiagnostic()
+    )
+}
+
+internal fun IrDiagnosticReporter.reportAmbiguousActuals(expectSymbol: IrDeclaration) {
+    atPotentiallyNonSource(expectSymbol).report(
+        IrActualizationErrors.AMBIGUOUS_ACTUALS,
+        expectSymbol.symbol,
+        expectSymbol.moduleFragment.toModuleInfoForDiagnostic()
+    )
+}
+
+private fun IrModuleFragment.toModuleInfoForDiagnostic(): ModuleInfoForDiagnostic {
+    return ModuleInfoForDiagnostic(
+        name = descriptor.getCapability(ModuleInfo.Capability)?.displayedName ?: name.asString(),
+        platform = descriptor.platform,
+    )
+}
+
+internal fun IrDiagnosticReporter.reportExpectActualIrIncompatibility(
+    expectSymbol: IrSymbol,
+    actualSymbol: IrSymbol,
+    incompatibility: ExpectActualIncompatibility<*>,
+) {
+    val expectDeclaration = expectSymbol.owner as IrDeclaration
+    atPotentiallyNonSource(expectDeclaration).report(
+        IrActualizationErrors.EXPECT_ACTUAL_IR_INCOMPATIBILITY,
+        expectSymbol,
+        actualSymbol,
+        incompatibility
+    )
+}
+
+internal fun IrDiagnosticReporter.reportExpectActualIrMismatch(
+    expectSymbol: IrSymbol,
+    actualSymbol: IrSymbol,
+    incompatibility: ExpectActualMatchingCompatibility.Mismatch,
+) {
+    val expectDeclaration = expectSymbol.owner as IrDeclaration
+    atPotentiallyNonSource(expectDeclaration).report(
+        IrActualizationErrors.EXPECT_ACTUAL_IR_MISMATCH,
+        expectSymbol,
+        actualSymbol,
+        incompatibility
+    )
+}
+
+internal fun IrDiagnosticReporter.reportActualAnnotationsNotMatchExpect(
+    expectSymbol: IrSymbol,
+    actualSymbol: IrSymbol,
+    incompatibilityType: ExpectActualAnnotationsIncompatibilityType<IrAnnotation>,
+    reportOn: IrSymbol,
+) {
+    atPotentiallyNonSource(reportOn.owner as IrDeclaration).report(
+        IrActualizationErrors.ACTUAL_ANNOTATIONS_NOT_MATCH_EXPECT,
+        expectSymbol,
+        actualSymbol,
+        incompatibilityType,
+    )
+}
+
+internal fun IrDiagnosticReporter.reportJavaDirectActualWithoutExpect(actual: IrDeclaration, reportOn: IrSymbol) {
+    atPotentiallyNonSource(reportOn.owner as IrDeclaration).report(
+        IrActualizationErrors.JAVA_DIRECT_ACTUAL_WITHOUT_EXPECT,
+        actual.symbol
+    )
+}
+
+internal fun IrDiagnosticReporter.reportKotlinActualAnnotationMissing(actual: IrDeclaration, reportOn: IrSymbol) {
+    atPotentiallyNonSource(reportOn.owner as IrDeclaration).report(
+        IrActualizationErrors.KOTLIN_ACTUAL_ANNOTATION_MISSING,
+        actual.symbol
+    )
+}
+
+internal fun IrDiagnosticReporter.reportJavaDirectActualizationDefaultParametersInActualFunction(
+    actualFunction: IrFunction,
+    reportOn: IrSymbol,
+) {
+    atPotentiallyNonSource(reportOn.owner as IrDeclaration).report(
+        IrActualizationErrors.JAVA_DIRECT_ACTUALIZATION_DEFAULT_PARAMETERS_IN_ACTUAL_FUNCTION,
+        actualFunction.symbol
+    )
+}
+
+internal fun IrDiagnosticReporter.reportJavaDirectActualizationDefaultParametersInExpectFunction(
+    expectFunction: IrFunction,
+    reportOn: IrSymbol,
+) {
+    atPotentiallyNonSource(reportOn.owner as IrDeclaration).report(
+        IrActualizationErrors.JAVA_DIRECT_ACTUALIZATION_DEFAULT_PARAMETERS_IN_EXPECT_FUNCTION,
+        expectFunction.symbol
+    )
+}
+
+internal fun IrDiagnosticReporter.reportActualAnnotationConflictingDefaultArgumentValue(
+    reportOn: IrElement,
+    file: IrFile,
+    actualParam: IrValueParameter,
+) {
+    atPotentiallyNonSource(reportOn, file).report(
+        IrActualizationErrors.ACTUAL_ANNOTATION_CONFLICTING_DEFAULT_ARGUMENT_VALUE,
+        actualParam,
+    )
+}
+
+internal fun IrElement.containsOptionalExpectation(): Boolean {
+    return this is IrClass &&
+            this.kind == ClassKind.ANNOTATION_CLASS &&
+            this.hasAnnotation(StandardClassIds.Annotations.OptionalExpectation)
+}
+
+/**
+ * Properties created for Java fields have non-null backing field, but don't have accessors.
+ */
+internal fun IrProperty.isPropertyForJavaField(): Boolean {
+    return getter == null && setter == null && backingField != null
+}

@@ -1,0 +1,5 @@
+$TESTDATA_DIR$/warningsSuppressionDisablesErrors_Jvm.kt
+-d
+$TEMP_DIR$
+-Xwarning-level=non-existing-diagnostic\:disabled
+-Xwarning-level=UNINITIALIZED_VARIABLE\:disabled

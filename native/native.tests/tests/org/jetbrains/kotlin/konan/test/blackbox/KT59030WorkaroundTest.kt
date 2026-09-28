@@ -1,0 +1,199 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.konan.test.blackbox
+
+import kotlinx.metadata.klib.KlibMetadataVersion
+import kotlinx.metadata.klib.KlibModuleMetadata
+import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
+import org.jetbrains.kotlin.io.unzipTo
+import org.jetbrains.kotlin.io.zipDirAs
+import org.jetbrains.kotlin.konan.target.HostManager
+import org.jetbrains.kotlin.konan.test.blackbox.support.EnforcedHostTarget
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestCase
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestCompilerArgs
+import org.jetbrains.kotlin.konan.test.blackbox.support.TestKind
+import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.TestCompilationArtifact
+import org.jetbrains.kotlin.konan.test.blackbox.support.compilation.TestCompilationResult.Companion.assertSuccess
+import org.jetbrains.kotlin.konan.test.blackbox.support.group.UsePartialLinkage
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.CacheMode
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.CacheMode.WithStaticCache
+import org.jetbrains.kotlin.library.*
+import org.jetbrains.kotlin.library.components.KlibMetadataComponent
+import org.jetbrains.kotlin.library.components.KlibMetadataComponentLayout
+import org.jetbrains.kotlin.library.components.metadata
+import org.jetbrains.kotlin.library.impl.BuiltInsPlatform
+import org.jetbrains.kotlin.library.loader.KlibLoader
+import org.jetbrains.kotlin.library.writer.KlibWriter
+import org.jetbrains.kotlin.library.writer.includeMetadata
+import org.jetbrains.kotlin.metadata.deserialization.MetadataVersion
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
+import java.nio.file.Path
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.deleteRecursively
+import kotlin.io.path.moveTo
+import kotlin.io.path.name
+import kotlin.io.path.pathString
+import kotlin.metadata.KmAnnotation
+import kotlin.metadata.KmAnnotationArgument
+import kotlin.metadata.KmClass
+import kotlin.metadata.KmDeclarationContainer
+
+// See KT-59030.
+@OptIn(ExperimentalPathApi::class)
+@Tag("partial-linkage")
+@EnforcedHostTarget
+@UsePartialLinkage(UsePartialLinkage.Mode.ERROR)
+class KT59030WorkaroundTest : AbstractNativeSimpleTest() {
+    // This test relies on static caches. So, run it along with other PL tests but only when caches are enabled.
+    @BeforeEach
+    fun assumeOnlyStaticCacheEverywhere() {
+        val cacheMode = testRunSettings.get<CacheMode>()
+        assumeTrue(cacheMode is WithStaticCache)
+        assumeTrue(cacheMode.useStaticCacheForUserLibraries)
+    }
+
+    @Test
+    fun kt59030() {
+        val library = cinteropToLibrary(
+            defFile = ForTestCompileRuntime.transformTestDataPath(DEF_FILE_PATH),
+            outputDir = buildDir,
+            freeCompilerArgs = TestCompilerArgs.EMPTY
+        ).assertSuccess().resultingArtifact
+        spoilDeprecatedAnnotationsInLibrary(library)
+
+        // For this test it's ok to compile executable in the simplest way, not respecting possible `mode=TWO_STAGE_MULTI_MODULE`
+        // KT-66014: Extract this test from usual Native test run, and run it in scope of new test module
+        compileToExecutableInOneStage(
+            generateTestCaseWithSingleFile(
+                sourceFile = ForTestCompileRuntime.transformTestDataPath(MAIN_FILE_PATH),
+                testKind = TestKind.STANDALONE_NO_TR,
+                extras = TestCase.NoTestRunnerExtras("main")
+            ),
+            library.asLibraryDependency()
+        ).assertSuccess()
+    }
+
+    @OptIn(ExperimentalPathApi::class)
+    private fun spoilDeprecatedAnnotationsInLibrary(klib: TestCompilationArtifact.KLIB) {
+        // Move the original library to a different location. The former location will be used for the patched library.
+        val originalLibraryFile = with(klib.klibFile.toPath()) { parent.newDir("__backup__").resolve(name) }
+        val patchedLibraryFile = klib.klibFile.toPath()
+        patchedLibraryFile.moveTo(originalLibraryFile)
+
+        // Read the original library.
+        val oldLibrary = KlibLoader { libraryPaths(originalLibraryFile) }.load().librariesStdlibFirst.single()
+
+        // Patch the metadata.
+        val patchedMetadata = spoilDeprecatedAnnotationsInMetadata(
+            metadataVersion = oldLibrary.metadataVersion!!.run { KlibMetadataVersion(major, minor, patch) },
+            originalMetadata = oldLibrary.metadata
+        )
+
+        // Write the patched library.
+        val patchedLibraryTmpDir = Path(patchedLibraryFile.pathString + "-tmp")
+
+        KlibWriter {
+            manifest {
+                moduleName(oldLibrary.uniqueName)
+                versions(oldLibrary.versions)
+                platformAndTargets(BuiltInsPlatform.NATIVE, HostManager.host.name)
+            }
+            includeMetadata(patchedMetadata)
+            // Note: The IR will be copied from the original library anyway.
+        }.writeTo(patchedLibraryTmpDir)
+
+        // Unzip the original library.
+        val originalLibraryTmpDir = Path(originalLibraryFile.pathString + "-tmp")
+        originalLibraryFile.unzipTo(originalLibraryTmpDir)
+
+        // Drop the metadata from the original library.
+        val originalLibraryMetadataDir = KlibMetadataComponentLayout(originalLibraryTmpDir).metadataDir
+        originalLibraryMetadataDir.deleteRecursively()
+
+        // Copy the metadata from the patched library.
+        val patchedLibraryMetadataDir = KlibMetadataComponentLayout(patchedLibraryTmpDir).metadataDir
+        patchedLibraryMetadataDir.moveTo(originalLibraryMetadataDir)
+
+        // Zip the resulting library.
+        originalLibraryTmpDir.zipDirAs(patchedLibraryFile)
+    }
+
+    companion object {
+        private const val TEST_DATA_DIR = "native/native.tests/testData/CInterop/KT-59030"
+        const val DEF_FILE_PATH = "${TEST_DATA_DIR}/cvectors.def"
+        const val MAIN_FILE_PATH = "${TEST_DATA_DIR}/vectors.kt"
+
+        private const val DEPRECATED_CLASS_NAME = "kotlin/Deprecated"
+        private const val REPLACE_WITH_ARG = "replaceWith"
+        private const val EXPRESSION_ARG = "expression"
+
+        private fun Path.newDir(name: String): Path = resolve(name).apply { createDirectories() }
+
+        private fun spoilDeprecatedAnnotationsInMetadata(
+            metadataVersion: KlibMetadataVersion,
+            originalMetadata: KlibMetadataComponent,
+        ): SerializedMetadata {
+            // Read the metadata.
+            val moduleMetadata = KlibModuleMetadata.readStrict(
+                object : KlibModuleMetadata.MetadataLibraryProvider {
+                    override val metadataVersion get() = metadataVersion
+                    override val moduleHeaderData get() = originalMetadata.moduleHeaderData
+                    override fun packageMetadataParts(fqName: String) = originalMetadata.getPackageFragmentNames(fqName)
+                    override fun packageMetadata(fqName: String, partName: String) = originalMetadata.getPackageFragment(fqName, partName)
+                }
+            )
+
+            // Patch the metadata.
+            moduleMetadata.fragments.forEach { fragment ->
+                fragment.pkg?.let(this::spoilDeprecatedAnnotationsInMetadataContainer)
+                fragment.classes.forEach(this::spoilDeprecatedAnnotationsInMetadataClass)
+            }
+
+            // Write back the metadata.
+            return with(moduleMetadata.write()) {
+                SerializedMetadata(module = header, fragments, fragmentNames, MetadataVersion.INSTANCE.toArray())
+            }
+        }
+
+        private fun spoilDeprecatedAnnotationsInMetadataContainer(container: KmDeclarationContainer) {
+            container.functions.forEach { spoilDeprecatedAnnotationsInMetadataAnnotationList(it.annotations) }
+            container.properties.forEach { spoilDeprecatedAnnotationsInMetadataAnnotationList(it.annotations) }
+            container.typeAliases.forEach { spoilDeprecatedAnnotationsInMetadataAnnotationList(it.annotations) }
+        }
+
+        private fun spoilDeprecatedAnnotationsInMetadataClass(clazz: KmClass) {
+            spoilDeprecatedAnnotationsInMetadataAnnotationList(clazz.annotations)
+            clazz.constructors.forEach { spoilDeprecatedAnnotationsInMetadataAnnotationList(it.annotations) }
+            spoilDeprecatedAnnotationsInMetadataContainer(clazz)
+        }
+
+        private fun spoilDeprecatedAnnotationsInMetadataAnnotationList(annotations: MutableList<KmAnnotation>) {
+            annotations.replaceAll { annotation ->
+                if (annotation.className == DEPRECATED_CLASS_NAME) spoilDeprecatedAnnotationInMetadata(annotation) else annotation
+            }
+        }
+
+        private fun spoilDeprecatedAnnotationInMetadata(deprecated: KmAnnotation): KmAnnotation = KmAnnotation(
+            className = deprecated.className,
+            arguments = deprecated.arguments.mapValues { [argName, argValue] ->
+                if (argName == REPLACE_WITH_ARG) spoilReplaceWithAnnotationInMetadata(argValue.unwrap()).wrap() else argValue
+            }
+        )
+
+        private fun spoilReplaceWithAnnotationInMetadata(replaceWith: KmAnnotation): KmAnnotation = KmAnnotation(
+            className = replaceWith.className,
+            arguments = replaceWith.arguments.filterKeys { argName -> argName != EXPRESSION_ARG }
+        )
+
+        private fun KmAnnotationArgument.unwrap(): KmAnnotation = (this as KmAnnotationArgument.AnnotationValue).annotation
+        private fun KmAnnotation.wrap(): KmAnnotationArgument.AnnotationValue = KmAnnotationArgument.AnnotationValue(this)
+    }
+}

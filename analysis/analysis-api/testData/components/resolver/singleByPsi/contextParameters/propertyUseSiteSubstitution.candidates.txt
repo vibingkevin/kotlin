@@ -1,0 +1,94 @@
+KtNameReferenceExpression(150,153): 'foo'
+  KaApplicableCallCandidate:
+    candidate = KaSimpleVariableAccessCall:
+      contextArguments = [
+        KaImplicitReceiverValue:
+          symbol = KaReceiverParameterSymbol:
+            anchorPsi: KtFunctionLiteral
+            annotations: []
+            callableId: null
+            contextParameters: []
+            contextReceivers: []
+            isActual: false
+            isCompanion: false
+            isDelegated: false
+            isExpect: false
+            isExtension: false
+            isExternal: false
+            isVal: true
+            location: LOCAL
+            modality: FINAL
+            name: <receiver>
+            origin: SOURCE
+            owningCallableSymbol: KaAnonymousFunctionSymbol(<local>/<no name provided>)
+            psi: KtFunctionLiteral
+            realPsi: KtFunctionLiteral
+            receiverParameter: null
+            returnType: KaUsualClassType:
+              annotations: []
+              typeArguments: []
+              type: kotlin/Long
+            typeParameters: []
+            visibility: PUBLIC
+          type = kotlin.Long,
+        KaImplicitReceiverValue:
+          symbol = KaReceiverParameterSymbol:
+            anchorPsi: KtTypeReference
+            annotations: []
+            callableId: null
+            contextParameters: []
+            contextReceivers: []
+            isActual: false
+            isCompanion: false
+            isDelegated: false
+            isExpect: false
+            isExtension: false
+            isExternal: false
+            isVal: true
+            location: LOCAL
+            modality: FINAL
+            name: <receiver>
+            origin: SOURCE
+            owningCallableSymbol: KaNamedFunctionSymbol(/usage)
+            psi: KtTypeReference
+            realPsi: KtTypeReference
+            receiverParameter: null
+            returnType: KaUsualClassType:
+              annotations: []
+              typeArguments: []
+              type: kotlin/Boolean
+            typeParameters: []
+            visibility: PUBLIC
+          type = kotlin.Boolean
+      ]
+      dispatchReceiver = KaExplicitReceiverValue:
+        expression = base
+        isSafeNavigation = false
+        type = Base<kotlin.Long>
+      extensionReceiver = null
+      isContextSensitive = false
+      kind = Read
+      signature = KaVariableSignature:
+        name = foo
+        receiverType = null
+        returnType = kotlin.Long
+        symbol = val foo: T
+        contextParameters = [
+          KaVariableSignature:
+            name = <unused var>
+            receiverType = null
+            returnType = kotlin.Long
+            symbol = <unused var>: T
+            contextParameters = []
+            callableId = null,
+          KaVariableSignature:
+            name = cp2
+            receiverType = null
+            returnType = kotlin.Boolean
+            symbol = cp2: kotlin.Boolean
+            contextParameters = []
+            callableId = null
+        ]
+        callableId = /Base.foo
+      typeArgumentsMapping = {}
+    isInBestCandidates = true

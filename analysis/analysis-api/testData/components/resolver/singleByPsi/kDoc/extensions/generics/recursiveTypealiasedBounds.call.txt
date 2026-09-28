@@ -1,0 +1,39 @@
+<caret_1>:
+  KDocName(341,355): 'BaseAlias.ext1'
+    null
+
+<caret_2>:
+  KDocName(361,371): 'Child.ext1'
+    null
+
+<caret_3>:
+  KDocName(377,392): 'ChildAlias.ext1'
+    null
+
+<caret_4>:
+  KDocName(398,420): 'ChildGenericAlias.ext1'
+    null
+
+<caret_5>:
+  KDocName(459,484): 'ChildGenericAliasInt.ext1'
+    null
+
+<caret_6>:
+  KDocName(523,537): 'BaseAlias.ext2'
+    null
+
+<caret_7>:
+  KDocName(543,553): 'Child.ext2'
+    null
+
+<caret_8>:
+  KDocName(559,574): 'ChildAlias.ext2'
+    null
+
+<caret_9>:
+  KDocName(580,602): 'ChildGenericAlias.ext2'
+    null
+
+<caret_10>:
+  KDocName(641,666): 'ChildGenericAliasInt.ext2'
+    null

@@ -1,0 +1,18 @@
+
+interface I {
+    var Int.zoo: Unit
+    fun foo()
+    fun Int.smth(): Short
+    val foo: Int
+    var bar: Long
+    val Int.doo: String
+}
+
+class A(
+    private val p: I
+) : I by p {
+    fun regularFunction(): String = "string"
+    val regularProperty: Int = 5
+}
+
+// class: A

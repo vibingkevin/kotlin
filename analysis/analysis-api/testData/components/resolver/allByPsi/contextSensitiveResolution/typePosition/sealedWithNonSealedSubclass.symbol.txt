@@ -1,0 +1,377 @@
+KtFile: 'sealedWithNonSealedSubclass.kt'
+  null
+
+KtPackageDirective(0,0): ''
+  null
+
+KtImportList(0,0): ''
+  null
+
+KtClass(78,231): 'sealed interface MySealed {'
+  null
+
+KtDeclarationModifierList(78,84): 'sealed'
+  null
+
+KtClassBody(104,231): '{'
+  null
+
+KtClass(110,145): 'class Left(val x: String): MySealed'
+  null
+
+KtPrimaryConstructor(120,135): '(val x: String)'
+  null
+
+KtParameterList(120,135): '(val x: String)'
+  null
+
+KtParameter(121,134): 'val x: String'
+  null
+
+KtTypeReference(128,134): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtUserType(128,134): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtNameReferenceExpression(128,134): 'String'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtSuperTypeList(137,145): 'MySealed'
+  null
+
+KtSuperTypeEntry(137,145): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtTypeReference(137,145): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtUserType(137,145): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtNameReferenceExpression(137,145): 'MySealed'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtClass(150,186): 'class Right(val y: String): MySealed'
+  null
+
+KtPrimaryConstructor(161,176): '(val y: String)'
+  null
+
+KtParameterList(161,176): '(val y: String)'
+  null
+
+KtParameter(162,175): 'val y: String'
+  null
+
+KtTypeReference(169,175): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtUserType(169,175): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtNameReferenceExpression(169,175): 'String'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtSuperTypeList(178,186): 'MySealed'
+  null
+
+KtSuperTypeEntry(178,186): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtTypeReference(178,186): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtUserType(178,186): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtNameReferenceExpression(178,186): 'MySealed'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtClass(191,229): 'class NonSealedSubclass(val z: String)'
+  null
+
+KtPrimaryConstructor(214,229): '(val z: String)'
+  null
+
+KtParameterList(214,229): '(val z: String)'
+  null
+
+KtParameter(215,228): 'val z: String'
+  null
+
+KtTypeReference(222,228): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtUserType(222,228): 'String'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtNameReferenceExpression(222,228): 'String'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/String
+    ]
+
+KtNamedFunction(233,340): 'fun MySealed.getOrElse() = when (this) {'
+  null
+
+KtTypeReference(237,245): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtUserType(237,245): 'MySealed'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtNameReferenceExpression(237,245): 'MySealed'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed
+    ]
+
+KtParameterList(255,257): '()'
+  null
+
+KtWhenExpression(260,340): 'when (this) {'
+  null
+
+KtThisExpression(266,270): 'this'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/getOrElse)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: MySealed
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtNameReferenceExpression(266,270): 'this'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      KaReceiverParameterSymbol:
+        anchorPsi: KtTypeReference
+        annotations: []
+        callableId: null
+        contextParameters: []
+        contextReceivers: []
+        isActual: false
+        isCompanion: false
+        isDelegated: false
+        isExpect: false
+        isExtension: false
+        isExternal: false
+        isVal: true
+        location: LOCAL
+        modality: FINAL
+        name: <receiver>
+        origin: SOURCE
+        owningCallableSymbol: KaNamedFunctionSymbol(/getOrElse)
+        psi: KtTypeReference
+        realPsi: KtTypeReference
+        receiverParameter: null
+        returnType: KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: MySealed
+        typeParameters: []
+        visibility: PUBLIC
+    ]
+
+KtWhenEntry(278,290): 'is Left -> x'
+  null
+
+KtWhenConditionIsPattern(278,285): 'is Left'
+  null
+
+KtTypeReference(281,285): 'Left'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed.Left
+    ]
+
+KtUserType(281,285): 'Left'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed.Left
+    ]
+
+KtNameReferenceExpression(281,285): 'Left'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: Used
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed.Left
+    ]
+
+KtNameReferenceExpression(289,290): 'x'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val x: kotlin.String
+    ]
+
+KtWhenEntry(295,308): 'is Right -> y'
+  null
+
+KtWhenConditionIsPattern(295,303): 'is Right'
+  null
+
+KtTypeReference(298,303): 'Right'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed.Right
+    ]
+
+KtUserType(298,303): 'Right'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed.Right
+    ]
+
+KtNameReferenceExpression(298,303): 'Right'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: Used
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MySealed.Right
+    ]
+
+KtNameReferenceExpression(307,308): 'y'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      val y: kotlin.String
+    ]
+
+KtWhenEntry(313,338): 'is NonSealedSubclass -> z'
+  null
+
+KtWhenConditionIsPattern(313,333): 'is NonSealedSubclass'
+  null
+
+KtTypeReference(316,333): 'NonSealedSubclass'
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = []
+    diagnostic = ERROR<UNRESOLVED_REFERENCE: Unresolved reference 'NonSealedSubclass'.>
+
+KtUserType(316,333): 'NonSealedSubclass'
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = []
+    diagnostic = ERROR<UNRESOLVED_REFERENCE: Unresolved reference 'NonSealedSubclass'.>
+
+KtNameReferenceExpression(316,333): 'NonSealedSubclass'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = []
+    diagnostic = ERROR<UNRESOLVED_REFERENCE: Unresolved reference 'NonSealedSubclass'.>
+
+KtNameReferenceExpression(337,338): 'z'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = []
+    diagnostic = ERROR<UNRESOLVED_REFERENCE: Unresolved reference 'z'.>

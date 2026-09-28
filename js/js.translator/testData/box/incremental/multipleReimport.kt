@@ -1,0 +1,22 @@
+// NO_COMMON_FILES
+// MODULE: lib1
+// FILE: lib1.kt
+
+fun foo() = "O"
+
+fun bar() = "K"
+
+// MODULE: lib2(lib1)
+// FILE: lib2a.kt
+
+inline fun o() = foo()
+
+// FILE: lib2b.kt
+
+inline fun k() = bar()
+
+// MODULE: main(lib2)
+// FILE: main.kt
+// RECOMPILE
+
+fun box() = o() + k()

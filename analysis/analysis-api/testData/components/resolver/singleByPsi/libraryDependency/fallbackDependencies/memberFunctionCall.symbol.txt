@@ -1,0 +1,5 @@
+KtCallExpression(136,149): 'foo(1, "foo")'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Bar.foo(<dispatch receiver>: Bar, a: kotlin.Int, b: kotlin.String): kotlin.Unit
+    ]

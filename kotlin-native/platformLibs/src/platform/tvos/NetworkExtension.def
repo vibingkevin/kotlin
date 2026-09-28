@@ -1,0 +1,8 @@
+depends = CFCGTypes CFNetwork CoreFoundation CoreFoundationBase Foundation Network Security darwin posix
+language = Objective-C
+package = platform.NetworkExtension
+
+modules = NetworkExtension
+apiNotesSwiftName = true
+compilerOpts = -framework NetworkExtension
+linkerOpts = -framework NetworkExtension

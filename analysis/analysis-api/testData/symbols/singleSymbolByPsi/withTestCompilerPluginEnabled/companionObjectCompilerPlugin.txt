@@ -1,0 +1,36 @@
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: [
+    org/jetbrains/kotlin/plugin/sandbox/CompanionWithFoo()
+      psi: KtAnnotationEntry
+  ]
+  classId: test/WithGeneratedCompanion
+  classKind: CLASS
+  companionObject: KaNamedClassSymbol(test/WithGeneratedCompanion.Companion)
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: WithGeneratedCompanion
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(companionObjectCompilerPlugin.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: test.WithGeneratedCompanion

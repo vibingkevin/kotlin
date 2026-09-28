@@ -1,0 +1,1 @@
+Declaration deprecation: KaDeprecation(level=WARNING, isPropagatedToOverrides=false)

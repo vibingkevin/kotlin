@@ -1,0 +1,28 @@
+KaNamedClassSymbol:
+  anchorPsi: null
+  annotations: []
+  classId: kotlin/Any
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: false
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: false
+  isInner: false
+  location: TOP_LEVEL
+  modality: OPEN
+  name: Any
+  origin: LIBRARY
+  psi: null
+  realPsi: null
+  superTypes: []
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: null
+  getContainingModule: KaBuiltinsModule "Builtins for JVM (1.8)"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: kotlin.Any

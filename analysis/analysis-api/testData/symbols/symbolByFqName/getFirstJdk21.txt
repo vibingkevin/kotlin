@@ -1,0 +1,50 @@
+KaNamedFunctionSymbol:
+  anchorPsi: ClsMethodImpl
+  annotations: []
+  callableId: kotlin/collections/List.getFirst
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: []
+  hasStableParameterNames: false
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: CLASS
+  modality: OPEN
+  name: getFirst
+  origin: JAVA_SOURCE
+  psi: ClsMethodImpl
+  realPsi: null
+  receiverParameter: null
+  returnType: KaFlexibleType:
+    annotations: []
+    type: E!
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaUsualClassType:
+    annotations: []
+    typeArguments: [
+      KaTypeParameterType:
+        annotations: []
+        type: E
+    ]
+    type: kotlin/collections/List<E>
+  getContainingFileSymbol: null
+  getContainingJvmClassName: kotlin.collections.List
+  canBeOperator: false
+  getContainingModule: KaBuiltinsModule "Builtins for JVM (1.8)"
+  deprecation: KaDeprecation(level=HIDDEN, isPropagatedToOverrides=true)
+  returnValueStatus: Unspecified
+  javaMethodName: getFirst
+  importableFqName: null

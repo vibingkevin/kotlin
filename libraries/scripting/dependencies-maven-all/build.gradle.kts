@@ -1,0 +1,177 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.github.jengelman.gradle.plugins.shadow.transformers.ComponentsXmlResourceTransformer
+import org.gradle.internal.jvm.Jvm
+import org.gradle.kotlin.dsl.support.serviceOf
+
+description = "Shaded Maven dependencies resolver"
+
+val jarBaseName = the<BasePluginExtension>().archivesName
+
+val embedded = configurations.embedded.get()
+
+embedded.apply {
+    exclude("org.slf4j", "slf4j-api")
+}
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+}
+
+val proguardLibraryJars = configurations.create("proguardLibraryJars") {
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+    }
+}
+
+dependencies {
+    api(project(":kotlin-scripting-dependencies"))
+    proguardLibraryJars(project(":kotlin-scripting-dependencies"))
+
+    embedded(project(":kotlin-scripting-dependencies-maven")) { isTransitive = false }
+
+    embedded(libs.guava) { isTransitive = false }
+    embedded(libs.guava.failureaccess) { isTransitive = false }
+    embedded("org.apache.maven.resolver:maven-resolver-connector-basic:1.9.27")
+    embedded("org.apache.maven.resolver:maven-resolver-transport-file:1.9.27")
+    embedded("org.apache.maven.resolver:maven-resolver-transport-http:1.9.27")
+    embedded("org.apache.maven.resolver:maven-resolver-impl:1.9.27")
+    embedded("org.apache.maven:maven-core:3.9.16")
+    embedded(libs.apache.commons.io)
+
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+
+    testRuntimeOnly("org.slf4j:slf4j-nop:1.7.36")
+    testImplementation(project(":kotlin-scripting-dependencies-maven-all"))
+
+    constraints {
+        embedded(libs.apache.commons.lang)
+    }
+}
+
+sourceSets {
+    "main" {}
+    "test" { projectDefault() }
+}
+
+publish()
+
+sourcesJar()
+javadocJar()
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+val mavenPackagesToRelocate = listOf(
+    "org.eclipse",
+    "org.codehaus",
+    "org.jsoup",
+    "afu",
+    "org.aopalliance",
+    "org.checkerframework",
+    "org.sonatype"
+)
+
+val relocatedJar = tasks.register<ShadowJar>("relocatedJar") {
+    configurations = listOf(embedded)
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    destinationDirectory.set(layout.buildDirectory.dir("libs"))
+    archiveClassifier.set("relocated")
+
+    transform(ComponentsXmlResourceTransformer())
+
+    if (kotlinBuildProperties.relocation) {
+        (packagesToRelocate + mavenPackagesToRelocate).forEach {
+            relocate(it, "$kotlinEmbeddableRootPackage.$it")
+        }
+    }
+}
+
+val normalizeComponentsXmlEndings = tasks.register("normalizeComponentsXmlEndings") {
+    dependsOn(relocatedJar)
+    val outputFile = layout.buildDirectory.file("$name/${ComponentsXmlResourceTransformer.COMPONENTS_XML_PATH}")
+    val relocatedJarFile = relocatedJar.map { it.singleOutputFile(layout) }
+    val archiveOperations = serviceOf<ArchiveOperations>()
+    outputs.file(outputFile)
+
+    doFirst {
+        val componentsXml = archiveOperations.zipTree(relocatedJarFile.get()).matching {
+            include { it.path == ComponentsXmlResourceTransformer.COMPONENTS_XML_PATH }
+        }.single().readText()
+        val processedComponentsXml = componentsXml.replace("\r\n", "\n")
+        val outputAsFile = outputFile.get().asFile
+        outputAsFile.parentFile.mkdirs()
+        outputAsFile.writeText(processedComponentsXml)
+    }
+}
+
+val normalizedJar = tasks.register<Jar>("normalizeJar") {
+    dependsOn(relocatedJar)
+    dependsOn(normalizeComponentsXmlEndings)
+
+    archiveClassifier.set("normalized")
+
+    from {
+        zipTree(relocatedJar.get().singleOutputFile(layout)).matching {
+            exclude(ComponentsXmlResourceTransformer.COMPONENTS_XML_PATH)
+        }
+    }
+
+    into(ComponentsXmlResourceTransformer.COMPONENTS_XML_PATH.substringBeforeLast("/")) {
+        from {
+            normalizeComponentsXmlEndings.map { it.singleOutputFile(layout) }
+        }
+    }
+}
+
+val proguard = tasks.register<CacheableProguardTask>("proguard") {
+    dependsOn(normalizedJar)
+    configuration("dependencies-maven.pro")
+
+    injars(mapOf("filter" to "!META-INF/versions/**,!kotlinx/coroutines/debug/**"), normalizedJar.get().outputs.files)
+
+    outjars(layout.buildDirectory.file(jarBaseName.map { "libs/$it-$version-after-proguard.jar" }))
+
+    javaLauncher.set(project.getToolchainLauncherFor(JdkMajorVersion.JDK_1_8))
+
+    libraryjars(mapOf("filter" to "!META-INF/versions/**"), proguardLibraryJars)
+    libraryjars(
+        files(
+            javaLauncher.map {
+                firstFromJavaHomeThatExists(
+                    "jre/lib/rt.jar",
+                    "../Classes/classes.jar",
+                    jdkHome = it.metadata.installationPath.asFile
+                )!!
+            },
+            javaLauncher.map {
+                firstFromJavaHomeThatExists(
+                    "jre/lib/jsse.jar",
+                    "../Classes/jsse.jar",
+                    jdkHome = it.metadata.installationPath.asFile
+                )!!
+            },
+            javaLauncher.map {
+                Jvm.forHome(it.metadata.installationPath.asFile).toolsJar!!
+            }
+        )
+    )
+}
+
+val resultJar = tasks.register<Jar>("resultJar") {
+    val pack = if (kotlinBuildProperties.proguard) proguard else normalizedJar
+    dependsOn(pack)
+    setupPublicJar(jarBaseName)
+    from {
+        zipTree(pack.map { it.singleOutputFile(layout) })
+    }
+}
+
+
+setPublishableArtifact(resultJar)

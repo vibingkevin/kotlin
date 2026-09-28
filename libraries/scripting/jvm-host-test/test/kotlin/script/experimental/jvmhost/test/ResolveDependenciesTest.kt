@@ -1,0 +1,143 @@
+/*
+ * Copyright 2010-2019 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package kotlin.script.experimental.jvmhost.test
+
+import org.jetbrains.kotlin.codegen.forTestCompile.ForTestCompileRuntime
+import org.junit.jupiter.api.Disabled
+import kotlin.script.experimental.api.*
+import kotlin.script.experimental.host.toScriptSource
+import kotlin.script.experimental.jvm.JvmDependencyFromClassLoader
+import kotlin.script.experimental.jvm.baseClassLoader
+import kotlin.script.experimental.jvm.jvm
+import kotlin.script.experimental.jvm.updateClasspath
+import kotlin.script.experimental.jvm.util.classpathFromClass
+import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
+import kotlin.script.experimental.jvmhost.test.ReplTest.Companion.checkEvaluateInRepl
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class ResolveDependenciesTest {
+
+    private val configurationWithDependenciesFromClassloader = ScriptCompilationConfiguration {
+        dependencies(JvmDependencyFromClassLoader { ShouldBeVisibleFromScript::class.java.classLoader })
+    }
+
+    private val configurationWithDependenciesFromClasspath = ScriptCompilationConfiguration {
+        updateClasspath(classpathFromClass(ShouldBeVisibleFromScript::class))
+    }
+
+    private val thisPackage = ShouldBeVisibleFromScript::class.java.`package`.name
+
+    private val classAccessScript = "${thisPackage}.ShouldBeVisibleFromScript().x".toScriptSource()
+    private val classImportScript = "import ${thisPackage}.ShouldBeVisibleFromScript\nShouldBeVisibleFromScript().x".toScriptSource()
+
+    val funAndValAccessScriptText = "$thisPackage.funShouldBeVisibleFromScript($thisPackage.valShouldBeVisibleFromScript)"
+    private val funAndValAccessScript = funAndValAccessScriptText.toScriptSource()
+
+    private val funAndValImportScriptText =
+        """
+            import $thisPackage.funShouldBeVisibleFromScript
+            import $thisPackage.valShouldBeVisibleFromScript
+            funShouldBeVisibleFromScript(valShouldBeVisibleFromScript)
+        """.trimMargin()
+    private val funAndValImportScript = funAndValImportScriptText.toScriptSource()
+
+    // All tests with dependencies from classloader are expected to fail until the KT-60443 is implemented
+    @Test
+    @Disabled("KT-60443")
+    fun testResolveClassFromClassloader() {
+        runScriptAndCheckResult(classAccessScript, configurationWithDependenciesFromClassloader, null, 42)
+        runScriptAndCheckResult(classImportScript, configurationWithDependenciesFromClassloader, null, 42)
+    }
+
+    @Test
+    fun testResolveClassFromClasspath() {
+        runScriptAndCheckResult(classAccessScript, configurationWithDependenciesFromClasspath, null, 42)
+        runScriptAndCheckResult(classImportScript, configurationWithDependenciesFromClasspath, null, 42)
+    }
+
+    @Test
+    @Disabled("KT-60443")
+    fun testResolveFunAndValFromClassloader() {
+        runScriptAndCheckResult(funAndValAccessScript, configurationWithDependenciesFromClassloader, null, 42)
+        runScriptAndCheckResult(funAndValImportScript, configurationWithDependenciesFromClassloader, null, 42)
+    }
+
+    @Test
+    @Disabled("KT-60443")
+    fun testReplResolveFunAndValFromClassloader() {
+        checkEvaluateInRepl(
+            sequenceOf(funAndValAccessScriptText, funAndValAccessScriptText), sequenceOf(42, 42),
+            configurationWithDependenciesFromClassloader,
+            null
+        )
+        checkEvaluateInRepl(
+            funAndValImportScriptText.split('\n').asSequence(), sequenceOf(null, null, 42),
+            configurationWithDependenciesFromClassloader,
+            null
+        )
+        runScriptAndCheckResult(funAndValImportScript, configurationWithDependenciesFromClassloader, null, 42)
+    }
+
+    @Test
+    fun testResolveFunAndValFromClasspath() {
+        runScriptAndCheckResult(funAndValAccessScript, configurationWithDependenciesFromClasspath, null, 42)
+        runScriptAndCheckResult(funAndValImportScript, configurationWithDependenciesFromClasspath, null, 42)
+    }
+
+    @Test
+    @Disabled("KT-60443")
+    fun testResolveClassFromClassloaderIsolated() {
+        val evaluationConfiguration = ScriptEvaluationConfiguration {
+            jvm {
+                baseClassLoader(null)
+            }
+        }
+        runScriptAndCheckResult(classAccessScript, configurationWithDependenciesFromClassloader, evaluationConfiguration, 42)
+    }
+
+    @Test
+    @Disabled("KT-60443")
+    fun testResolveClassesFromClassloaderAndClassPath() {
+        val script = """
+            org.jetbrains.kotlin.mainKts.MainKtsConfigurator()
+            ${thisPackage}.ShouldBeVisibleFromScript().x
+        """.trimIndent().toScriptSource()
+        val classpath = listOf(
+            ForTestCompileRuntime.mainKtsJar(),
+        )
+        val compilationConfiguration = configurationWithDependenciesFromClassloader.with {
+            updateClasspath(classpath)
+        }
+        runScriptAndCheckResult(script, compilationConfiguration, null, 42)
+    }
+
+    private fun <T> runScriptAndCheckResult(
+        script: SourceCode,
+        compilationConfiguration: ScriptCompilationConfiguration,
+        evaluationConfiguration: ScriptEvaluationConfiguration?,
+        expectedResult: T
+    ) {
+        val host = BasicJvmScriptingHost()
+        val res = host.eval(script, compilationConfiguration, evaluationConfiguration).valueOrThrow().returnValue
+        when (res) {
+            is ResultValue.Value -> assertEquals(expectedResult, res.value)
+            is ResultValue.Error -> throw res.error
+            else -> throw Exception("Unexpected evaluation result: $res")
+        }
+    }
+}
+
+@Suppress("unused")
+class ShouldBeVisibleFromScript {
+    val x = 42
+}
+
+@Suppress("unused")
+fun funShouldBeVisibleFromScript(x: Int) = x * 7
+
+@Suppress("unused")
+val valShouldBeVisibleFromScript = 6

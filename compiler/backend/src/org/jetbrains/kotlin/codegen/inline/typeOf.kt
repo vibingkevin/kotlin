@@ -1,0 +1,231 @@
+/*
+ * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.codegen.inline
+
+import org.jetbrains.kotlin.codegen.AsmUtil
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.ir.types.IrStarProjection
+import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.types.IrTypeArgument
+import org.jetbrains.kotlin.ir.types.IrTypeProjection
+import org.jetbrains.kotlin.ir.util.arguments
+import org.jetbrains.kotlin.ir.util.isSuspendFunction
+import org.jetbrains.kotlin.resolve.jvm.AsmTypes.*
+import org.jetbrains.kotlin.types.TypeSystemCommonBackendContext
+import org.jetbrains.kotlin.types.model.KotlinTypeMarker
+import org.jetbrains.kotlin.types.model.TypeParameterMarker
+import org.jetbrains.kotlin.types.model.TypeVariance
+import org.jetbrains.org.objectweb.asm.Type
+import org.jetbrains.org.objectweb.asm.commons.InstructionAdapter
+import kotlin.reflect.KVariance
+
+private inline fun InstructionAdapter.unrollArrayIfFewerThan(n: Int, limit: Int, type: Type, element: (Int) -> Unit): Array<Type> {
+    if (n < limit) {
+        return Array(n) { i ->
+            element(i)
+            type
+        }
+    }
+    iconst(n)
+    newarray(type)
+    for (i in 0 until n) {
+        dup()
+        iconst(i)
+        element(i)
+        astore(type)
+    }
+    return arrayOf(AsmUtil.getArrayType(type))
+}
+
+/**
+ * Returns the number of local slots used by the emitted bytecode.
+ */
+fun TypeSystemCommonBackendContext.generateTypeOf(
+    v: InstructionAdapter,
+    type: IrType,
+    intrinsicsSupport: ReifiedTypeInliner.IntrinsicsSupport,
+    localsOffset: Int,
+): Int {
+    val repeatedNonReifiedTypeParameters = collectRepeatedNonReifiedTypeParameters(type)
+    val builder = TypeOfBuilder(v, repeatedNonReifiedTypeParameters, localsOffset, intrinsicsSupport, this)
+    builder.generateRepeatedNonReifiedTypeParameters()
+    builder.generateTypeOf(type, isTypeParameterBound = false)
+    return repeatedNonReifiedTypeParameters.size
+}
+
+private class TypeOfBuilder(
+    val v: InstructionAdapter,
+    val repeatedNonReifiedTypeParameters: List<TypeParameterMarker>,
+    val localsOffset: Int,
+    val intrinsicsSupport: ReifiedTypeInliner.IntrinsicsSupport,
+    val typeSystemContext: TypeSystemCommonBackendContext,
+) {
+    fun generateRepeatedNonReifiedTypeParameters(): Unit = with(typeSystemContext) {
+        for ([i, typeParameter] in repeatedNonReifiedTypeParameters.withIndex()) {
+            generateNonReifiedTypeParameterWithoutUpperBounds(typeParameter)
+            v.store(localsOffset + i, K_TYPE_PARAMETER)
+        }
+        for ([i, typeParameter] in repeatedNonReifiedTypeParameters.withIndex()) {
+            if (typeParameter.upperBoundCount() > 0) {
+                v.load(localsOffset + i, K_TYPE_PARAMETER)
+                generateSetUpperBounds(typeParameter)
+            }
+        }
+    }
+
+    fun generateTypeOf(type: IrType, isTypeParameterBound: Boolean): Unit = with(typeSystemContext) {
+        val typeParameter = type.typeConstructor().getTypeParameterClassifier()
+        val methodArguments = if (typeParameter == null) {
+            intrinsicsSupport.putClassInstance(v, type)
+            val argumentsValues = type.arguments.orEmpty()
+            val arguments = v.unrollArrayIfFewerThan(argumentsValues.size, 3, K_TYPE_PROJECTION) { i ->
+                generateTypeOfArgument(argumentsValues[i], isTypeParameterBound)
+            }
+            arrayOf(JAVA_CLASS_TYPE, *arguments)
+        } else if (!isTypeParameterBound && typeParameter.isReified()) {
+            val argument = ReificationArgument(typeParameter.getName().asString(), type.isMarkedNullable(), 0)
+            ReifiedTypeInliner.putReifiedOperationMarker(ReifiedTypeInliner.OperationKind.TYPE_OF, argument, v)
+            v.aconst(null)
+            return
+        } else if (
+            !intrinsicsSupport.config.languageVersionSettings.supportsFeature(LanguageFeature.JvmSupportRecursiveTypeOf) &&
+            typeReferencesParameterWithRecursiveBound(type)
+        ) {
+            intrinsicsSupport.reportNonReifiedTypeParameterWithRecursiveBoundUnsupported(typeParameter.getName())
+            v.aconst(null)
+            return
+        } else {
+            when (val cachedIndex = repeatedNonReifiedTypeParameters.indexOf(typeParameter)) {
+                -1 -> generateNonReifiedTypeParameterWithUpperBounds(typeParameter)
+                else -> v.load(localsOffset + cachedIndex, K_TYPE_PARAMETER)
+            }
+            arrayOf(K_CLASSIFIER_TYPE)
+        }
+
+        val methodName = if (type.isMarkedNullable()) "nullableTypeOf" else "typeOf"
+        val signature = Type.getMethodDescriptor(K_TYPE, *methodArguments)
+        v.invokestatic(REFLECTION, methodName, signature, false)
+
+        if (type.isSuspendFunction()) {
+            intrinsicsSupport.reportSuspendTypeUnsupported()
+        }
+
+        if (intrinsicsSupport.config.stableTypeOf) {
+            if (intrinsicsSupport.isMutableCollectionType(type)) {
+                v.invokestatic(REFLECTION, "mutableCollectionType", Type.getMethodDescriptor(K_TYPE, K_TYPE), false)
+            } else if (type.typeConstructor().isNothingConstructor()) {
+                v.invokestatic(REFLECTION, "nothingType", Type.getMethodDescriptor(K_TYPE, K_TYPE), false)
+            }
+
+            if (type.isFlexible()) {
+                // If this is a flexible type, we've just generated its lower bound and have it on the stack.
+                // Let's generate the upper bound now and call the method that takes lower and upper bound and constructs a flexible KType.
+                generateTypeOf(type.upperBoundIfFlexible() as IrType, isTypeParameterBound)
+
+                v.invokestatic(REFLECTION, "platformType", Type.getMethodDescriptor(K_TYPE, K_TYPE, K_TYPE), false)
+            }
+        }
+    }
+
+    fun generateTypeOfArgument(projection: IrTypeArgument, isTypeParameterBound: Boolean): Unit = with(typeSystemContext) {
+        when (projection) {
+            is IrStarProjection -> {
+                v.getstatic(K_TYPE_PROJECTION.internalName, "star", K_TYPE_PROJECTION.descriptor)
+            }
+            is IrTypeProjection -> {
+                generateTypeOf(projection.type, isTypeParameterBound)
+                val methodName = when (projection.getVariance()) {
+                    TypeVariance.INV -> "invariant"
+                    TypeVariance.IN -> "contravariant"
+                    TypeVariance.OUT -> "covariant"
+                }
+                v.invokestatic(K_TYPE_PROJECTION.internalName, methodName, Type.getMethodDescriptor(K_TYPE_PROJECTION, K_TYPE), false)
+            }
+        }
+    }
+
+    fun generateNonReifiedTypeParameterWithoutUpperBounds(typeParameter: TypeParameterMarker): Unit = with(typeSystemContext) {
+        intrinsicsSupport.generateTypeParameterContainer(v, typeParameter)
+        v.aconst(typeParameter.getName().asString())
+        val variance = when (typeParameter.getVariance()) {
+            TypeVariance.INV -> KVariance.INVARIANT
+            TypeVariance.IN -> KVariance.IN
+            TypeVariance.OUT -> KVariance.OUT
+        }
+        v.getstatic(K_VARIANCE.internalName, variance.name, K_VARIANCE.descriptor)
+        v.iconst(if (typeParameter.isReified()) 1 else 0)
+        v.invokestatic(
+            REFLECTION, "typeParameter",
+            Type.getMethodDescriptor(K_TYPE_PARAMETER, OBJECT_TYPE, JAVA_STRING_TYPE, K_VARIANCE, Type.BOOLEAN_TYPE),
+            false,
+        )
+    }
+
+    fun generateSetUpperBounds(typeParameter: TypeParameterMarker): Unit = with(typeSystemContext) {
+        val argumentsForBounds = v.unrollArrayIfFewerThan(typeParameter.upperBoundCount(), 2, K_TYPE) { i ->
+            generateTypeOf(typeParameter.getUpperBound(i) as IrType, isTypeParameterBound = true)
+        }
+        v.invokestatic(
+            REFLECTION, "setUpperBounds", Type.getMethodDescriptor(Type.VOID_TYPE, K_TYPE_PARAMETER, *argumentsForBounds),
+            false
+        )
+    }
+
+    fun generateNonReifiedTypeParameterWithUpperBounds(typeParameter: TypeParameterMarker) {
+        generateNonReifiedTypeParameterWithoutUpperBounds(typeParameter)
+        v.dup()
+        generateSetUpperBounds(typeParameter)
+    }
+}
+
+private fun TypeSystemCommonBackendContext.collectRepeatedNonReifiedTypeParameters(type: IrType): List<TypeParameterMarker> {
+    fun visitTypeParameters(type: KotlinTypeMarker, isTypeParameterBound: Boolean, usages: MutableMap<TypeParameterMarker, Int>) {
+        when (val typeParameter = type.typeConstructor().getTypeParameterClassifier()) {
+            null -> {
+                for (i in 0 until type.argumentsCount()) {
+                    type.getArgument(i).getType()?.let { argumentType ->
+                        visitTypeParameters(argumentType, isTypeParameterBound, usages)
+                    }
+                }
+            }
+            else -> {
+                if (!typeParameter.isReified() || isTypeParameterBound) {
+                    val oldUsage = usages.getOrDefault(typeParameter, 0)
+                    usages[typeParameter] = oldUsage + 1
+                    if (oldUsage == 0) {
+                        for (i in 0 until typeParameter.upperBoundCount()) {
+                            visitTypeParameters(typeParameter.getUpperBound(i), true, usages)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val usages = mutableMapOf<TypeParameterMarker, Int>()
+    visitTypeParameters(type, false, usages)
+    return usages.filter { it.value > 1 }.keys.toList()
+}
+
+private fun TypeSystemCommonBackendContext.typeReferencesParameterWithRecursiveBound(
+    type: KotlinTypeMarker,
+    used: MutableSet<TypeParameterMarker> = linkedSetOf()
+): Boolean {
+    val typeParameter = type.typeConstructor().getTypeParameterClassifier()
+    if (typeParameter != null) {
+        if (!used.add(typeParameter)) return true
+        for (i in 0 until typeParameter.upperBoundCount()) {
+            if (typeReferencesParameterWithRecursiveBound(typeParameter.getUpperBound(i), used)) return true
+        }
+        used.remove(typeParameter)
+    } else {
+        for (i in 0 until type.argumentsCount()) {
+            val argument = type.getArgument(i)
+            if (argument.getType().let { it != null && typeReferencesParameterWithRecursiveBound(it, used) }) return true
+        }
+    }
+    return false
+}

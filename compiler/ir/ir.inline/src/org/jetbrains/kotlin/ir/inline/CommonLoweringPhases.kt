@@ -1,0 +1,96 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.ir.inline
+
+import org.jetbrains.kotlin.backend.common.LoweringContext
+import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
+import org.jetbrains.kotlin.backend.common.PreSerializationLoweringContext
+import org.jetbrains.kotlin.ir.util.isTypeOfIntrinsic
+import org.jetbrains.kotlin.backend.common.lower.ArrayConstructorLowering
+import org.jetbrains.kotlin.backend.common.lower.LateinitLowering
+import org.jetbrains.kotlin.backend.common.lower.RedundantCastsRemoverLowering
+import org.jetbrains.kotlin.backend.common.lower.SharedVariablesLowering
+import org.jetbrains.kotlin.backend.common.lower.VersionOverloadsLowering
+import org.jetbrains.kotlin.backend.common.lower.inline.AvoidLocalFOsInInlineFunctionsLowering
+import org.jetbrains.kotlin.backend.common.lower.inline.InlineCallCycleCheckerLowering
+import org.jetbrains.kotlin.backend.common.lower.inline.LocalClassesInInlineLambdasLowering
+import org.jetbrains.kotlin.backend.common.phaser.IrValidationAfterInliningAllFunctionsKlibFirstStagePhase
+import org.jetbrains.kotlin.backend.common.phaser.IrValidationAfterInliningPrivateFunctionsKlibPhase
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.LanguageVersionSettings
+import org.jetbrains.kotlin.utils.addToStdlib.runUnless
+
+private fun createSharedVariablesLoweringPhase(context: LoweringContext): SharedVariablesLowering {
+    return SharedVariablesLowering(context)
+}
+
+private fun createSyntheticAccessorGeneration(context: LoweringContext): SyntheticAccessorLowering {
+    return SyntheticAccessorLowering(context, isExecutedOnFirstPhase = true)
+}
+
+fun loweringsOfTheFirstPhase(
+    languageVersionSettings: LanguageVersionSettings
+): List<(PreSerializationLoweringContext) -> ModuleLoweringPass> {
+    val inlineIntraModule = languageVersionSettings.supportsFeature(LanguageFeature.IrIntraModuleInlinerBeforeKlibSerialization)
+    val inlineCrossModuleFunctions =
+        languageVersionSettings.supportsFeature(LanguageFeature.IrCrossModuleInlinerBeforeKlibSerialization)
+
+    fun createInlineAllFunctionsPhase(context: PreSerializationLoweringContext): FunctionInlining {
+        return if (inlineCrossModuleFunctions) PreSerializationIntraModuleFunctionInlining(context) else PreSerializationAllFunctionInlining(context)
+    }
+
+    fun createInlineFunctionSerializationPreProcessing(context: PreSerializationLoweringContext): InlineFunctionSerializationPreProcessing {
+        // Run the cross-module inliner against pre-processed functions (and only pre-processed functions) if cross-module
+        // inlining is not enabled in the main IR tree.
+        val inliner: FunctionInlining? = runUnless(inlineCrossModuleFunctions) {
+            PreSerializationIntraModuleFunctionInlining(context)
+        }
+
+        return InlineFunctionSerializationPreProcessing(crossModuleFunctionInliner = inliner)
+    }
+
+    fun createIrValidationAfterInliningAllFunctionsKlibFirstStagePhase(context: PreSerializationLoweringContext): IrValidationAfterInliningAllFunctionsKlibFirstStagePhase<LoweringContext> {
+        val resolver = PreSerializationNonPrivateInlineFunctionResolver(context, inlineCrossModuleFunctions)
+        return IrValidationAfterInliningAllFunctionsKlibFirstStagePhase(
+            context,
+            checkInlineFunctionCallSites = check@{ inlineFunctionUseSite ->
+                // No inline function call sites should remain at this stage.
+                val actualCallee = resolver.getFunctionDeclarationToInline(inlineFunctionUseSite)
+                when {
+                    actualCallee?.body == null -> true // does not have a body <=> should not be inlined
+                    // it's fine to have typeOf<T>, it would be ignored by inliner and handled on the second stage of compilation
+                    actualCallee.symbol.isTypeOfIntrinsic() -> true
+                    else -> false // forbidden
+                }
+            }
+        )
+    }
+
+    return buildList {
+        this += ::AvoidLocalFOsInInlineFunctionsLowering
+        this += ::VersionOverloadsLowering
+        this += ::InlineCallCycleCheckerLowering
+        if (inlineIntraModule) {
+            this += ::LateinitLowering
+            this += ::createSharedVariablesLoweringPhase
+            this += ::LocalClassesInInlineLambdasLowering
+            this += ::ArrayConstructorLowering
+            this += ::PreSerializationPrivateFunctionInlining
+            this += ::InlineDeclarationCheckerLowering
+            this += ::OuterThisInInlineFunctionsSpecialAccessorLowering
+            this += ::createSyntheticAccessorGeneration
+            this += ::IrValidationAfterInliningPrivateFunctionsKlibPhase
+            this += ::createInlineAllFunctionsPhase
+            this += ::createInlineFunctionSerializationPreProcessing
+            this += ::RedundantCastsRemoverLowering
+            this += ::createIrValidationAfterInliningAllFunctionsKlibFirstStagePhase
+        } else {
+            // Drawback: without IR Inliner, no invocation of PreSerializationPrivateFunctionInlining happens,
+            //           so InlineDeclarationCheckerLowering won't report any *CASCADING* diagnostics.
+            this += ::InlineDeclarationCheckerLowering
+        }
+    }
+}

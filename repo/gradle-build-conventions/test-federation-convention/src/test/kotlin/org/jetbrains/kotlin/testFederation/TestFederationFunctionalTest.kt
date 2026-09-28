@@ -1,0 +1,529 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+@file:Suppress("FunctionName")
+
+package org.jetbrains.kotlin.testFederation
+
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.gradle.testkit.runner.UnexpectedBuildFailure
+import org.jetbrains.kotlin.testFederation.TestBuildResult.TestResult
+import org.junit.jupiter.api.io.TempDir
+import java.io.File
+import java.nio.file.Path
+import kotlin.collections.filterNot
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
+import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.fail
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * Runs `:repo:test-runtime:test` with different modes and domain selections, then checks which tests ran.
+ * Covers full test runs, selection by annotations and automatic sampling, and nightly filters.
+ */
+class TestFederationFunctionalTest {
+
+    @Test
+    fun `test - smoke - compiler contract`() {
+        val result = runTestBuild(TestFederationMode.Smoke, Domain.CompilerInfrastructure)
+        assertEquals(
+            setOf(TestResult("PseudoTest", "smoke test")),
+            result.executedTests
+        )
+    }
+
+    @Test
+    fun `test - smoke - js contract`() {
+        val result = runTestBuild(TestFederationMode.Smoke, Domain.Js)
+        assertEquals(
+            setOf(
+                TestResult("PseudoTest", "smoke test"),
+                TestResult("PseudoTest", "js contract test"),
+            ),
+            result.executedTests
+        )
+    }
+
+    @Test
+    fun `test - smoke - wasm contract`() {
+        val result = runTestBuild(TestFederationMode.Smoke, Domain.Wasm)
+        assertEquals(
+            setOf(
+                TestResult("PseudoTest", "smoke test"),
+                TestResult("PseudoTest", "wasm contract test"),
+            ),
+            result.executedTests
+        )
+    }
+
+
+    @Test
+    fun `test - smoke - js and wasm contract`() {
+        val result = runTestBuild(TestFederationMode.Smoke, Domain.Wasm, Domain.Js)
+        assertEquals(
+            setOf(
+                TestResult("PseudoTest", "smoke test"),
+                TestResult("PseudoTest", "js contract test"),
+                TestResult("PseudoTest", "wasm contract test"),
+            ),
+            result.executedTests
+        )
+    }
+
+    @Test
+    fun `test - smoke - executes contracts of changed domains only`() {
+        val result = runTestBuild(
+            TestFederationMode.Smoke,
+            changed = arrayOf(Domain.Js, Domain.Gradle),
+            affected = listOf(Domain.Js, Domain.Gradle, Domain.Wasm)
+        )
+        assertEquals(
+            setOf(
+                TestResult("PseudoTest", "smoke test"),
+                TestResult("PseudoTest", "js contract test"),
+                TestResult("PseudoTest", "gradle contract test"),
+            ),
+            result.executedTests
+        )
+    }
+
+    @Test
+    fun `test - mode full`() {
+        val result = runTestBuild(TestFederationMode.Full)
+        assertEquals(allTests, result.executedTests)
+    }
+
+    @Test
+    fun `test - mode full - nightly disabled`() {
+        val result = runTestBuild(TestFederationMode.Full, nightly = false)
+        assertEquals(
+            setOf(
+                TestResult("PseudoTest", "domain test"),
+                TestResult("PseudoTest", "smoke test"),
+                TestResult("PseudoTest", "js contract test"),
+                TestResult("PseudoTest", "wasm contract test"),
+                TestResult("PseudoTest", "gradle contract test"),
+            ),
+            result.executedTests
+        )
+    }
+
+    @Test
+    fun `test - mode full - nightly enabled`() {
+        val result = runTestBuild(TestFederationMode.Full, nightly = true)
+        assertEquals(allTests, result.executedTests)
+    }
+
+
+    /**
+     * Configuring RunAllTests selects all tests even when a different mode is explicitly requested.
+     */
+    @Test
+    fun `test - smokeTestConfig RunAllTests`() {
+        val result = runTestBuild(TestFederationMode.Smoke, smokeTestConfig = "RunAllTests")
+        assertEquals(allTests, result.executedTests)
+    }
+
+    /**
+     * Configuring Disabled skips the task when it is not selected for a full test run.
+     */
+    @Test
+    fun `test - smokeTestConfig Disabled`() {
+        val result = runTestBuild(TestFederationMode.Smoke, smokeTestConfig = "Disabled")
+        assertEquals(
+            emptySet(),
+            result.executedTests
+        )
+    }
+
+    /**
+     * Overriding the task's domains changes whether it is selected for a full test run.
+     */
+    @Test
+    fun `test - Test testFederationDomains`() {
+        /* Js contains changes, task belongs to no domain -> select @MustRunAlways and @MustRunOnChangesInJs tests. */
+        run {
+            val result = runTestBuild(changed = arrayOf(Domain.Js), testTaskDomainsOverride = listOf())
+            assertEquals(
+                setOf(
+                    TestResult("PseudoTest", "smoke test"),
+                    TestResult("PseudoTest", "js contract test")
+                ),
+                result.executedTests
+            )
+        }
+
+        /* Js contains changes, task belongs to Js and Wasm -> select all tests. */
+        run {
+            val result = runTestBuild(changed = arrayOf(Domain.Js), testTaskDomainsOverride = listOf(Domain.Js, Domain.Wasm))
+            assertEquals(allTests, result.executedTests)
+        }
+    }
+
+    @Test
+    fun `test - test federation disabled`() {
+        /* Test with federation enabled */
+        run {
+            val result = runTestBuild(TestFederationMode.Smoke, testFederationEnabled = true)
+            assertEquals(setOf(TestResult("PseudoTest", "smoke test")), result.executedTests)
+        }
+
+        /* Test with federation disabled */
+        run {
+            val result = runTestBuild(TestFederationMode.Smoke, testFederationEnabled = false)
+            assertEquals(
+                setOf(
+                    TestResult("PseudoTest", "domain test"),
+                    TestResult("PseudoTest", "smoke test"),
+                    TestResult("PseudoTest", "js contract test"),
+                    TestResult("PseudoTest", "wasm contract test"),
+                    TestResult("PseudoTest", "gradle contract test"),
+                    TestResult("PseudoTest", "nightly test"),
+                ),
+                result.executedTests
+            )
+        }
+    }
+
+    /**
+     * We will check if  running a test with test federation (full mode) produces a cache entry, which can be used
+     * by running the same test task with test federation disabled.
+     */
+    @Test
+    fun `test - build with test federation enabled (full) - build with test federation disabled - reuses build caches`(@TempDir cache: Path) {
+        val buildCacheArgs = buildCacheArgs(cache)
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Full,
+            changed = Domain.entries.toTypedArray(),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false
+        ).apply {
+            assertEquals(TaskOutcome.SUCCESS, buildResult.requireTask(":repo:test-runtime:test").outcome)
+            cache.listDirectoryEntries().filterNot { it.name == "gc.properties" }.ifEmpty {
+                fail("No build cache entries produced after first build")
+            }
+        }
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Full,
+            changed = Domain.entries.toTypedArray(),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+            testFederationEnabled = false
+        ).apply {
+            assertEquals(TaskOutcome.FROM_CACHE, buildResult.requireTask(":repo:test-runtime:test").outcome)
+        }
+    }
+
+    /**
+     * We will check if running a test with test federation disabled produces a cache entry, which can be used
+     * by running the same test with test federation enabled (full mode)
+     */
+    @Test
+    fun `test - build with test federation disabled - build with test federation enabled (full) - reuses build caches`(@TempDir cache: Path) {
+        val buildCacheArgs = buildCacheArgs(cache)
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Full,
+            changed = Domain.entries.toTypedArray(),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+            testFederationEnabled = false
+        ).apply {
+            assertEquals(TaskOutcome.SUCCESS, buildResult.requireTask(":repo:test-runtime:test").outcome)
+            cache.listDirectoryEntries().filterNot { it.name == "gc.properties" }.ifEmpty {
+                fail("No build cache entries produced after first build")
+            }
+        }
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Full,
+            changed = Domain.entries.toTypedArray(),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+            testFederationEnabled = true
+        ).apply {
+            assertEquals(TaskOutcome.FROM_CACHE, buildResult.requireTask(":repo:test-runtime:test").outcome)
+        }
+    }
+
+    @Test
+    fun `test - build with test federation disabled - build with test federation enabled (full) and smoke+runAllTests - reuses build caches`(
+        @TempDir cache: Path,
+    ) {
+        val buildCacheArgs = buildCacheArgs(cache)
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Full,
+            smokeTestConfig = "RunAllTests",
+            changed = Domain.entries.toTypedArray(),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+            testFederationEnabled = false
+        ).apply {
+            assertEquals(TaskOutcome.SUCCESS, buildResult.requireTask(":repo:test-runtime:test").outcome)
+            cache.listDirectoryEntries().filterNot { it.name == "gc.properties" }.ifEmpty {
+                fail("No build cache entries produced after first build")
+            }
+        }
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Smoke,
+            smokeTestConfig = "RunAllTests",
+            changed = Domain.entries.toTypedArray(),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+            testFederationEnabled = true
+        ).apply {
+            assertEquals(TaskOutcome.FROM_CACHE, buildResult.requireTask(":repo:test-runtime:test").outcome)
+        }
+    }
+
+    @Test
+    fun `test - build with test federation disabled - build in smoke mode - cant reuse caches`(@TempDir cache: Path) {
+        val buildCacheArgs = buildCacheArgs(cache)
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Full,
+            changed = Domain.entries.toTypedArray(),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+            testFederationEnabled = false
+        ).apply {
+            assertEquals(TaskOutcome.SUCCESS, buildResult.requireTask(":repo:test-runtime:test").outcome)
+            cache.listDirectoryEntries().filterNot { it.name == "gc.properties" }.ifEmpty {
+                fail("No build cache entries produced after first build")
+            }
+        }
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Smoke,
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+            testFederationEnabled = true
+        ).apply {
+            assertEquals(TaskOutcome.SUCCESS, buildResult.requireTask(":repo:test-runtime:test").outcome)
+            assertEquals(setOf(TestResult("PseudoTest", "smoke test")), executedTests)
+        }
+    }
+
+    @Test
+    fun `test - build cache can be reused in smoke mode - if affected domains match`(@TempDir cache: Path) {
+        val buildCacheArgs = buildCacheArgs(cache)
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Smoke,
+            changed = arrayOf(Domain.Js),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+        ).apply {
+            assertEquals(TaskOutcome.SUCCESS, buildResult.requireTask(":repo:test-runtime:test").outcome)
+            assertEquals(setOf(TestResult("PseudoTest", "smoke test"), TestResult("PseudoTest", "js contract test")), executedTests)
+        }
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Smoke,
+            changed = arrayOf(Domain.Js),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+        ).apply {
+            assertEquals(TaskOutcome.FROM_CACHE, buildResult.requireTask(":repo:test-runtime:test").outcome)
+        }
+
+        cleanTest()
+        runTestBuild(
+            mode = TestFederationMode.Smoke,
+            changed = arrayOf(Domain.Wasm),
+            additionalCliArgs = buildCacheArgs,
+            rerun = false,
+        ).apply {
+            assertEquals(TaskOutcome.SUCCESS, buildResult.requireTask(":repo:test-runtime:test").outcome)
+            assertEquals(setOf(TestResult("PseudoTest", "smoke test"), TestResult("PseudoTest", "wasm contract test")), executedTests)
+        }
+    }
+
+    @Test
+    fun `infer affected domains reports changed domains to TeamCity`() {
+        val result = createGradleRunner().withArguments(
+            "inferAffectedDomains",
+            "-P$TEST_FEDERATION_ENABLED_KEY=true",
+            "-P$TEST_FEDERATION_AFFECTED_DOMAINS_KEY=Js;Wasm",
+            "-P$TEST_FEDERATION_CHANGED_DOMAINS_KEY=Js",
+            "-P$TEST_FEDERATION_CHANGED_FILES_KEY=",
+            "-Dorg.gradle.daemon.idletimeout=${10.seconds.inWholeMilliseconds}",
+        ).build()
+
+        assertContains(
+            result.output,
+            "##teamcity[setParameter name='$TEST_FEDERATION_AFFECTED_DOMAINS_KEY' value='Wasm;Js']"
+        )
+
+        assertContains(
+            result.output,
+            "##teamcity[setParameter name='$TEST_FEDERATION_CHANGED_DOMAINS_KEY' value='Js']"
+        )
+    }
+}
+
+private val allTests = setOf(
+    TestResult("PseudoTest", "domain test"),
+    TestResult("PseudoTest", "smoke test"),
+    TestResult("PseudoTest", "js contract test"),
+    TestResult("PseudoTest", "wasm contract test"),
+    TestResult("PseudoTest", "gradle contract test"),
+    TestResult("PseudoTest", "nightly test")
+)
+
+private data class TestBuildResult(
+    val buildResult: BuildResult,
+    val executedTests: Set<TestResult>,
+) {
+    data class TestResult(val className: String, val methodName: String, val status: String = "PASSED") {
+        override fun toString(): String {
+            return "$className > $methodName() $status"
+        }
+    }
+}
+
+/**
+ * Runs `:repo:test-runtime:test` with the given [mode] and [changed] domains.
+ * All executed tests are parsed and returned in [TestBuildResult.executedTests].
+ */
+private fun runTestBuild(
+    mode: TestFederationMode? = null,
+    vararg changed: Domain,
+    affected: List<Domain> = changed.toList(),
+    smokeTestConfig: String? = null,
+    testTaskDomainsOverride: List<Domain>? = null,
+    testFederationEnabled: Boolean = true,
+    nightly: Boolean? = null,
+    rerun: Boolean = true,
+    additionalCliArgs: List<String> = emptyList(),
+): TestBuildResult {
+    val environment = defaultEnv().toMutableMap().apply {
+        remove(TEST_FEDERATION_ENABLED_ENV_KEY)
+        remove(TEST_FEDERATION_MODE_ENV_KEY)
+        remove(TEST_FEDERATION_AFFECTED_DOMAINS_ENV_KEY)
+        remove(TEST_FEDERATION_CHANGED_DOMAINS_ENV_KEY)
+
+        if (mode != null) {
+            this[TEST_FEDERATION_MODE_ENV_KEY] = mode.name
+        }
+
+        if (smokeTestConfig != null) {
+            this["_PSEUDO_TEST_"] = smokeTestConfig
+        }
+
+        if (testTaskDomainsOverride != null) {
+            this["_DOMAINS_OVERRIDE_"] = testTaskDomainsOverride.toArgumentString()
+        }
+
+        this[TEST_FEDERATION_CHANGED_DOMAINS_ENV_KEY] = if (changed.isNotEmpty()) {
+            changed.joinToString(";") { it.name }
+        } else {
+            "<none>"
+        }
+
+        this[TEST_FEDERATION_AFFECTED_DOMAINS_ENV_KEY] = if (affected.isNotEmpty()) {
+            affected.joinToString(";") { it.name }
+        } else {
+            "<none>"
+        }
+    }
+
+    val arguments = buildList {
+        add(":repo:test-runtime:test")
+        add("-P$TEST_FEDERATION_ENABLED_KEY=$testFederationEnabled")
+        if (nightly != null) add("-Pnightly=$nightly")
+        add("-Dorg.gradle.daemon.idletimeout=${5.seconds.inWholeMilliseconds}")
+        if (rerun) add("--rerun")
+        addAll(additionalCliArgs)
+    }
+
+    val buildResult = try {
+        createGradleRunner(environment = environment).withArguments(arguments).build()
+    } catch (failure: UnexpectedBuildFailure) {
+        val output = failure.buildResult.output
+        error(buildString {
+            appendLine("Build failed with non-zero exit code")
+            appendLine("Output:")
+            output.lineSequence().forEach { appendLine(it) }
+        })
+    }
+
+    val output = buildResult.output.lineSequence().toList()
+
+    val testResultRegex = Regex("(?<testClass>.*) > (?<testName>.*)\\(\\) (?<status>.*)")
+    val tests = output.mapNotNull { line ->
+        val match = testResultRegex.matchEntire(line) ?: return@mapNotNull null
+        TestResult(match.groupValues[1], match.groupValues[2], match.groupValues[3])
+
+    }
+        /**
+         * Can be removed again after:
+         * https://youtrack.jetbrains.com/issue/KT-88303
+         */
+        .filterNot { it.status == "SKIPPED" }.toSet()
+
+    return TestBuildResult(buildResult, tests)
+}
+
+private fun cleanTest(): BuildResult {
+    return try {
+        createGradleRunner().withArguments(
+            ":repo:test-runtime:cleanTest",
+            "-Dorg.gradle.daemon.idletimeout=${10.seconds.inWholeMilliseconds}",
+        ).build()
+    } catch (failure: UnexpectedBuildFailure) {
+        error(buildString {
+            appendLine("Gradle cleaning failed with non-zero exit code")
+            appendLine("Output:")
+            failure.buildResult.output.lineSequence().forEach { appendLine(it) }
+        })
+    }
+}
+
+private fun createGradleRunner(
+    environment: Map<String, String> = defaultEnv(),
+): GradleRunner {
+    val gradleUserHome = System.getenv("GRADLE_USER_HOME") ?: error("Missing 'GRADLE_USER_HOME' environment variable")
+    return GradleRunner.create()
+        .withProjectDir(Path("").toAbsolutePath().toFile())
+        .withEnvironment(System.getenv() + environment)
+        .withTestKitDir(File(gradleUserHome))
+}
+
+private fun defaultEnv(): Map<String, String> {
+    return System.getenv().toMutableMap().apply {
+        remove(TEST_FEDERATION_ENABLED_ENV_KEY)
+        remove(TEST_FEDERATION_MODE_ENV_KEY)
+        remove(TEST_FEDERATION_AFFECTED_DOMAINS_ENV_KEY)
+        remove(TEST_FEDERATION_CHANGED_DOMAINS_ENV_KEY)
+    }
+}
+
+private fun buildCacheArgs(cache: Path) = listOf(
+    "-Pkotlin.build.cache.local.directory=$cache",
+    "-Pkotlin.build.cache.local.enabled=true"
+)
+
+private fun BuildResult.requireTask(path: String) =
+    task(path) ?: fail("Task '$path' could not be found\nTasks: ${tasks.joinToString("\n")}")

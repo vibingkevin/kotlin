@@ -1,0 +1,105 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.ContributedReferenceHost;
+import com.intellij.psi.LiteralTextEscaper;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiLanguageInjectionHost;
+import com.intellij.psi.tree.TokenSet;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub;
+
+/**
+ * Represents a string literal, including simple strings and string templates with interpolation.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * val greeting = "Hello, $name!"
+ * //             ^_____________^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtStringTemplateExpression extends KtExpressionImplStub<KotlinPlaceHolderStub<KtStringTemplateExpression>>
+        implements PsiLanguageInjectionHost, ContributedReferenceHost {
+    private static final TokenSet CLOSE_QUOTE_TOKEN_SET = TokenSet.create(KtTokens.CLOSING_QUOTE);
+
+    @KtImplementationDetail
+    public KtStringTemplateExpression(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtStringTemplateExpression(@NotNull KotlinPlaceHolderStub<KtStringTemplateExpression> stub) {
+        super(stub, KtNodeTypes.STRING_TEMPLATE);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitStringTemplateExpression(this, data);
+    }
+
+    private static final TokenSet STRING_ENTRIES_TYPES = TokenSet.create(
+            KtNodeTypes.LONG_STRING_TEMPLATE_ENTRY,
+            KtNodeTypes.SHORT_STRING_TEMPLATE_ENTRY,
+            KtNodeTypes.LITERAL_STRING_TEMPLATE_ENTRY,
+            KtNodeTypes.ESCAPE_STRING_TEMPLATE_ENTRY
+    );
+
+    /**
+     * @return The interpolation prefix if it is defined
+     *
+     * @see KtStringInterpolationPrefix
+     */
+    @Nullable
+    public KtStringInterpolationPrefix getInterpolationPrefix() {
+        return getStubOrPsiChild(KtNodeTypes.STRING_INTERPOLATION_PREFIX, KtStringInterpolationPrefix.class);
+    }
+
+    /**
+     * Returns the segments that make up this string: literal text, escape sequences, and interpolated expressions, in source order. Empty
+     * for an empty string {@code ""}.
+     */
+    @NotNull
+    public KtStringTemplateEntry[] getEntries() {
+        return getStubOrPsiChildren(STRING_ENTRIES_TYPES, KtStringTemplateEntry.EMPTY_ARRAY);
+    }
+
+    @Override
+    public boolean isValidHost() {
+        return getNode().getChildren(CLOSE_QUOTE_TOKEN_SET).length != 0;
+    }
+
+    @Override
+    public PsiLanguageInjectionHost updateText(@NotNull String text) {
+        return KtPsiMutationService.getInstance().updateStringTemplateText(this, text);
+    }
+
+    @NotNull
+    @Override
+    public LiteralTextEscaper<? extends PsiLanguageInjectionHost> createLiteralTextEscaper() {
+        return new KotlinStringLiteralTextEscaper(this);
+    }
+
+    /**
+     * Returns {@code true} if this string contains at least one interpolated expression ({@code $name} or {@code ${...}}), as opposed to a
+     * plain string literal.
+     */
+    public boolean hasInterpolation() {
+        for (PsiElement child : getChildren()) {
+            if (child instanceof KtSimpleNameStringTemplateEntry || child instanceof KtBlockStringTemplateEntry) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}

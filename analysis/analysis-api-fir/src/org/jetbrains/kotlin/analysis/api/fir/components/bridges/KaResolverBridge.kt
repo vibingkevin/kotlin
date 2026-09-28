@@ -1,0 +1,163 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.analysis.api.fir.components.bridges
+
+import org.jetbrains.kotlin.analysis.api.components.KaResolver
+import org.jetbrains.kotlin.analysis.api.fir.KaFirSession
+import org.jetbrains.kotlin.analysis.api.impl.base.components.KaBaseSessionComponent
+import org.jetbrains.kotlin.analysis.api.internals.KaInternalsResolver
+import org.jetbrains.kotlin.analysis.api.resolution.*
+import org.jetbrains.kotlin.analysis.api.symbols.*
+import org.jetbrains.kotlin.idea.references.KtReference
+import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.resolution.KtResolvable
+import org.jetbrains.kotlin.resolution.KtResolvableCall
+import org.jetbrains.kotlin.analysis.api.expressions.contextSensitiveResolutionStatus as contextSensitiveResolutionStatusEndpoint
+import org.jetbrains.kotlin.analysis.api.expressions.isImplicitReferenceToCompanion as isImplicitReferenceToCompanionEndpoint
+import org.jetbrains.kotlin.analysis.api.resolution.collectCallCandidates as collectCallCandidatesEndpoint
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveCall as tryResolveCallEndpoint
+import org.jetbrains.kotlin.analysis.api.resolution.tryResolveSymbols as tryResolveSymbolsEndpoint
+
+/**
+ * Routes the legacy [KaResolver] surface through the new public `context(session: KaSession)` resolution endpoints, which in turn reach the
+ * [KaInternalsResolver] proxy. Members without a public endpoint (the legacy reference-based API) are forwarded straight to the proxy.
+ */
+internal class KaResolverBridge(
+    override val analysisSessionProvider: () -> KaFirSession,
+) : KaBaseSessionComponent<KaFirSession>(), KaResolver {
+    private val proxy: KaInternalsResolver
+        get() = analysisSession.resolver
+
+    override fun KtResolvable.tryResolveSymbols(): KaSymbolResolutionAttempt? = context(analysisSession) { tryResolveSymbolsEndpoint() }
+
+    override fun KtResolvable.resolveSymbols(): Collection<KaSymbol> = context(analysisSession) { resolveSuccessfulSymbols() }
+
+    override fun KtResolvable.resolveSymbol(): KaSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtAnnotationEntry.resolveSymbol(): KaConstructorSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtSuperTypeCallEntry.resolveSymbol(): KaConstructorSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtConstructorDelegationCall.resolveSymbol(): KaConstructorSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtConstructorDelegationReferenceExpression.resolveSymbol(): KaConstructorSymbol? =
+        context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtCallElement.resolveSymbol(): KaFunctionSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtCallableReferenceExpression.resolveSymbol(): KaCallableSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtArrayAccessExpression.resolveSymbol(): KaNamedFunctionSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtCollectionLiteralExpression.resolveSymbol(): KaNamedFunctionSymbol? =
+        context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtEnumEntrySuperclassReferenceExpression.resolveSymbol(): KaNamedClassSymbol? =
+        context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtLabelReferenceExpression.resolveSymbol(): KaDeclarationSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtReturnExpression.resolveSymbol(): KaFunctionSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtWhenConditionInRange.resolveSymbol(): KaNamedFunctionSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtDestructuringDeclarationEntry.resolveSymbol(): KaCallableSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtQualifiedExpression.resolveSymbol(): KaCallableSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtConstructorCalleeExpression.resolveSymbol(): KaConstructorSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtInstanceExpressionWithLabel.resolveSymbol(): KaDeclarationSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtNullableType.resolveSymbol(): KaClassifierSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtFunctionType.resolveSymbol(): KaClassSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtTypeReference.resolveSymbol(): KaClassifierSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtClassLiteralExpression.resolveSymbol(): KaClassifierSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtSuperTypeEntry.resolveSymbol(): KaClassifierSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtDelegatedSuperTypeEntry.resolveSymbol(): KaClassifierSymbol? = context(analysisSession) { resolveSuccessfulSymbol() }
+
+    override fun KtResolvableCall.tryResolveCall(): KaCallResolutionAttempt? = context(analysisSession) { tryResolveCallEndpoint() }
+
+    override fun KtForExpression.tryResolveCall(): KaForLoopCallResolutionAttempt? = context(analysisSession) { tryResolveCallEndpoint() }
+
+    override fun KtPropertyDelegate.tryResolveCall(): KaDelegatedPropertyCallResolutionAttempt? =
+        context(analysisSession) { tryResolveCallEndpoint() }
+
+    override fun KtResolvableCall.resolveCall(): KaSimpleOrMultiCall? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtAnnotationEntry.resolveCall(): KaAnnotationCall? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtSuperTypeCallEntry.resolveCall(): KaFunctionCall<KaConstructorSymbol>? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtConstructorDelegationCall.resolveCall(): KaDelegatedConstructorCall? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtConstructorDelegationReferenceExpression.resolveCall(): KaDelegatedConstructorCall? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtCallElement.resolveCall(): KaFunctionCall<*>? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtCallableReferenceExpression.resolveCall(): KaCallableReferenceCall<*, *>? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtArrayAccessExpression.resolveCall(): KaFunctionCall<KaNamedFunctionSymbol>? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtCollectionLiteralExpression.resolveCall(): KaFunctionCall<KaNamedFunctionSymbol>? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtEnumEntrySuperclassReferenceExpression.resolveCall(): KaDelegatedConstructorCall? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtWhenConditionInRange.resolveCall(): KaFunctionCall<KaNamedFunctionSymbol>? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtDestructuringDeclarationEntry.resolveCall(): KaSimpleCall<*, *>? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtQualifiedExpression.resolveCall(): KaSimpleCall<*, *>? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtForExpression.resolveCall(): KaForLoopCall? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtPropertyDelegate.resolveCall(): KaDelegatedPropertyCall? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtConstructorCalleeExpression.resolveCall(): KaFunctionCall<KaConstructorSymbol>? =
+        context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtNameReferenceExpression.resolveCall(): KaSimpleCall<*, *>? = context(analysisSession) { resolveSuccessfulCall() }
+
+    override fun KtResolvableCall.collectCallCandidates(): List<KaCallCandidate> =
+        context(analysisSession) { collectCallCandidatesEndpoint() }
+
+    override fun KtElement.resolveToCall(): KaCallInfo? = proxy.resolveToCall(this)
+
+    override fun KtElement.resolveToCallCandidates(): List<KaCallCandidateInfo> = proxy.resolveToCallCandidates(this)
+
+    override val KtSimpleNameExpression.isImplicitReferenceToCompanion: Boolean
+        get() = context(analysisSession) { isImplicitReferenceToCompanionEndpoint }
+
+    override val KtSimpleNameExpression.contextSensitiveResolutionStatus: KaContextSensitiveResolutionStatus
+        get() = context(analysisSession) { contextSensitiveResolutionStatusEndpoint }
+
+    override fun KtReference.resolveToSymbols(): Collection<KaSymbol> = proxy.resolveToSymbols(this)
+
+    override fun KtReference.resolveToSymbol(): KaSymbol? = proxy.resolveToSymbol(this)
+
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun KtReference.isImplicitReferenceToCompanion(): Boolean = proxy.isImplicitReferenceToCompanion(this)
+
+    @Suppress("OVERRIDE_DEPRECATION")
+    override val KtReference.usesContextSensitiveResolution: Boolean
+        get() = proxy.usesContextSensitiveResolution(this)
+
+    @Suppress("OVERRIDE_DEPRECATION")
+    override val KtSimpleNameExpression.usesContextSensitiveResolution: Boolean
+        get() = proxy.usesContextSensitiveResolution(this)
+}

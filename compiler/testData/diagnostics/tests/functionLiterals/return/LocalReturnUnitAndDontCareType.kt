@@ -1,0 +1,22 @@
+// RUN_PIPELINE_TILL: FRONTEND
+val flag = true
+
+// type of a was checked by txt
+val a = run { // () -> Unit
+    return@run
+}
+
+// Unit
+val b = run {
+    if (flag) return@run
+    5
+}
+
+// Unit
+val c = run {
+    if (flag) return@run
+
+    return@run <!RETURN_TYPE_MISMATCH!>4<!>
+}
+
+/* GENERATED_FIR_TAGS: ifExpression, integerLiteral, lambdaLiteral, propertyDeclaration */

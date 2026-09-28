@@ -1,0 +1,171 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.java.direct
+
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.SessionConfiguration
+import org.jetbrains.kotlin.fir.resolve.providers.FirSymbolProvider
+import org.jetbrains.kotlin.java.direct.resolution.cycleGuardedSupertypeWalk
+import org.jetbrains.kotlin.java.direct.resolution.cycleSafeClassLikeSymbol
+import org.jetbrains.kotlin.java.direct.resolution.registerJavaModelInFlightResolutionsIfAbsent
+import org.jetbrains.kotlin.java.direct.resolution.registerJavaModelSupertypeWalkGuardIfAbsent
+import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+
+/**
+ * Targeted regression tests for the module's two independent cycle breakers:
+ *
+ *  - [org.jetbrains.kotlin.java.direct.resolution.cycleGuardedSupertypeWalk] backed by
+ *    [org.jetbrains.kotlin.java.direct.resolution.JavaModelSupertypeWalkGuard] — bounds Java
+ *    inheritance-graph cycles (`A extends B`, `B extends A`) when
+ *    [org.jetbrains.kotlin.java.direct.resolution.directSupertypeClassIds] re-enters itself for
+ *    the same `ClassId` (e.g. via a supertype's own `.classifier` resolution looping back).
+ *  - [FirSession.cycleSafeClassLikeSymbol] backed by
+ *    [org.jetbrains.kotlin.java.direct.resolution.JavaModelInFlightResolutions] — breaks the
+ *    `FirJavaClass.declarations` PUBLICATION-lazy re-entrance cycle (KT-74097), where a
+ *    symbol-provider lookup materialises declarations that probe the same `ClassId` again.
+ *
+ * Each breaker has a pair of tests: one showing the breaker terminates the cycle, and one
+ * showing the same path without the breaker exhausts the stack — proving the guard is
+ * load-bearing rather than dead code.
+ */
+class JavaCycleBreakerTest {
+    private val a = ClassId(FqName("test"), Name.identifier("A"))
+    private val b = ClassId(FqName("test"), Name.identifier("B"))
+
+    // --- cycleGuardedSupertypeWalk / JavaModelSupertypeWalkGuard --------------------------------
+    //
+    // Hypothetical code / usage pattern that invokes this breaker:
+    //
+    //   // A.java
+    //   public class A extends B {
+    //       public Nested f() { return null; }   // `Nested` is inherited from B
+    //   }
+    //   // B.java
+    //   public class B extends A {                // <-- malformed: A and B extend each other
+    //       public static class Nested {}
+    //   }
+    //
+    // This is *invalid* Java (a `cyclic inheritance` error), but the model layer still has to walk
+    // the supertype graph during error recovery — e.g. `directSupertypeClassIds(A)`'s source arm
+    // reads A's supertype `B` via its `.classifier`, whose own resolution can loop back into
+    // `directSupertypeClassIds(A)` again before the first call returns. Without a bound the walk
+    // recurses A -> B -> A -> ... until a StackOverflowError. `cycleGuardedSupertypeWalk` marks each
+    // ClassId in-flight for the duration of its walk, so re-entering an already-active ClassId
+    // returns the caller's default and the walk terminates. (In practice such Java cycles are
+    // usually pre-bounded by FIR's `SupertypeComputationStatus.Computing` sentinel before the
+    // model-side walk re-enters, so this guard is a defense-in-depth net for degenerate
+    // error-recovery paths.)
+
+    @OptIn(SessionConfiguration::class)
+    @Test
+    fun testSupertypeWalkGuardBreaksReentrantWalk() {
+        val session = createDummyFirSessionForTests()
+        // Register the per-session supertype-walk guard — this is what bounds the cyclic walk.
+        session.registerJavaModelSupertypeWalkGuardIfAbsent()
+
+        // Cyclic Java inheritance: A extends B, B extends A.
+        val directSupertypes = mapOf(a to listOf(b), b to listOf(a))
+
+        var visits = 0
+
+        // Mirrors how directSupertypeClassIds can recurse into itself for the same ClassId
+        // under session.cycleGuardedSupertypeWalk(...).
+        fun walk(classId: ClassId): Unit = session.cycleGuardedSupertypeWalk(classId, default = Unit) {
+            visits++
+            for (supertype in directSupertypes.getValue(classId)) {
+                walk(supertype)
+            }
+        }
+
+        walk(a)
+
+        assertEquals(2, visits, "Each class in the cycle must be entered exactly once; re-entry is broken by the guard")
+    }
+
+    @OptIn(SessionConfiguration::class)
+    @Test
+    fun testSupertypeWalkWithoutGuardStackOverflows() {
+        val session = createDummyFirSessionForTests()
+        // Intentionally do NOT register JavaModelSupertypeWalkGuard, so cycleGuardedSupertypeWalk
+        // cannot mark a ClassId in-flight and the cyclic walk is unbounded.
+        val directSupertypes = mapOf(a to listOf(b), b to listOf(a))
+
+        fun walk(classId: ClassId): Unit = session.cycleGuardedSupertypeWalk(classId, default = Unit) {
+            for (supertype in directSupertypes.getValue(classId)) {
+                walk(supertype)
+            }
+        }
+
+        // Without the guard the walk recurses A -> B -> A -> ... until the stack is exhausted,
+        // demonstrating the session guard is what makes the cyclic walk terminate.
+        assertThrows<StackOverflowError> { walk(a) }
+    }
+
+    // --- cycleSafeClassLikeSymbol / JavaModelInFlightResolutions -------------------------------
+
+    // What this breaker protects:
+    //
+    // Resolving an unqualified name inside a Java class yields enclosing-qualified candidate
+    // `ClassId`s (`Outer.Nested.Deprecated`). With compiler plugins enabled such a candidate is
+    // probed through `FirExtensionDeclarationsSymbolProvider` -> `FirNestedClassifierScopeImpl`,
+    // which forces `FirJavaClass.declarations` — a PUBLICATION lazy that re-runs its initializer on
+    // same-thread re-entrance (KT-74097). Member annotations are deferred, but the class's own
+    // annotations are read from inside that lazy by type-parameter bound enhancement (default
+    // qualifier extraction), and the lazy also resolves enum-entry return types, so a probe can
+    // still arrive for a ClassId whose `declarations` are in flight. `cycleSafeClassLikeSymbol`
+    // marks the ClassId in-flight so the re-entrant probe returns null instead of re-running the
+    // initializer. The guard also bounds probes with no annotation involved at all: const-field
+    // values, `@Target` lookups, supertype and type-argument ClassIds.
+    //
+    // The test below reproduces this re-entrance shape using a minimal stub provider.
+
+    @OptIn(SessionConfiguration::class)
+    @Test
+    fun testInFlightGuardBreaksReentrantSymbolLookup() {
+        val session = createDummyFirSessionForTests()
+        // Register the in-flight guard component — this is what enables the re-entrance break.
+        session.registerJavaModelInFlightResolutionsIfAbsent()
+
+        var providerInvocations = 0
+        val provider = StubSymbolProvider(session) { classId ->
+            providerInvocations++
+            // Simulate the KT-74097 PUBLICATION-lazy re-entrance: materialising this class's
+            // declarations probes the very same ClassId again through the model chokepoint.
+            session.cycleSafeClassLikeSymbol(classId)
+        }
+        session.register(FirSymbolProvider::class, provider)
+
+        val result = session.cycleSafeClassLikeSymbol(a)
+
+        assertNull(result, "The re-entrant probe for an in-flight ClassId must be short-circuited to null")
+        assertEquals(
+            1,
+            providerInvocations,
+            "The provider must be entered exactly once; the re-entrant probe for the same in-flight " +
+                    "ClassId short-circuits before reaching the provider again"
+        )
+    }
+
+    @OptIn(SessionConfiguration::class)
+    @Test
+    fun testReentrantSymbolLookupWithoutInFlightGuardStackOverflows() {
+        val session = createDummyFirSessionForTests()
+        // Intentionally do NOT register JavaModelInFlightResolutions, so the guard is disabled and
+        // cycleSafeClassLikeSymbol cannot mark the ClassId as in-flight.
+        val provider = StubSymbolProvider(session) { classId ->
+            session.cycleSafeClassLikeSymbol(classId)
+        }
+        session.register(FirSymbolProvider::class, provider)
+
+        assertThrows<StackOverflowError> { session.cycleSafeClassLikeSymbol(a) }
+    }
+}

@@ -1,0 +1,34 @@
+KaJavaFieldSymbol:
+  anchorPsi: PsiFieldImpl
+  annotations: []
+  callableId: /Config.minValue
+  contextParameters: []
+  contextReceivers: []
+  isActual: false
+  isCompanion: false
+  isDelegated: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isStatic: false
+  isVal: true
+  location: CLASS
+  modality: FINAL
+  name: minValue
+  origin: INTERSECTION_OVERRIDE
+  psi: PsiFieldImpl
+  realPsi: null
+  receiverParameter: null
+  returnType: KaFlexibleType:
+    annotations: []
+    type: ft<it(kotlin/Int & T), it(kotlin/Int? & T?)>
+  typeParameters: []
+  visibility: PUBLIC
+  getDispatchReceiver(): KaIntersectionType:
+    annotations: []
+    type: it(Config<kotlin/Int> & Config<T>)
+  getContainingFileSymbol: null
+  getContainingJvmClassName: Config
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  importableFqName: null

@@ -1,0 +1,404 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.ir.backend.js.ir
+
+import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.descriptors.ClassKind
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
+import org.jetbrains.kotlin.ir.backend.js.JsLoweredDeclarationOrigin
+import org.jetbrains.kotlin.ir.backend.js.lower.coroutines.PrepareSuspendFunctionsForExportLowering.Companion.promisifiedWrapperFunction
+import org.jetbrains.kotlin.ir.backend.js.lower.coroutines.isPromisifiedMemberWrapper
+import org.jetbrains.kotlin.ir.backend.js.lower.hasDefaultArgumentBridge
+import org.jetbrains.kotlin.ir.backend.js.staticInitFunction
+import org.jetbrains.kotlin.ir.backend.js.tsexport.Exportability
+import org.jetbrains.kotlin.ir.backend.js.tsexport.ExportedVisibility
+import org.jetbrains.kotlin.ir.backend.js.tsexport.toExportedVisibility
+import org.jetbrains.kotlin.ir.backend.js.utils.*
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.defaultArgumentsDispatchFunction
+import org.jetbrains.kotlin.ir.suspendFunction
+import org.jetbrains.kotlin.ir.util.*
+import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.utils.addToStdlib.runIf
+import org.jetbrains.kotlin.utils.filterIsInstanceAnd
+import org.jetbrains.kotlin.utils.memoryOptimizedPlus
+
+internal fun IrClass.exportability(): Exportability {
+    if (isJsImplicitExport()) {
+        return Exportability.Implicit
+    }
+
+    return Exportability.Allowed
+}
+
+private val bridgeOrigins = hashSetOf(
+    JsLoweredDeclarationOrigin.BRIDGE_WITHOUT_STABLE_NAME,
+    JsLoweredDeclarationOrigin.BRIDGE_PROPERTY_ACCESSOR,
+    JsLoweredDeclarationOrigin.BRIDGE_WITH_STABLE_NAME,
+)
+
+internal fun IrFunction?.isBridge(): Boolean =
+    this != null && origin in bridgeOrigins
+
+internal fun IrSimpleFunction.exportability(context: JsIrBackendContext, specializedName: String? = null): Exportability {
+    if (isInline && typeParameters.any { it.isReified })
+        return Exportability.Prohibited("Inline reified function")
+    if (isSuspend)
+        return Exportability.Prohibited("Suspend function")
+    if (isFakeOverride && !isAllowedFakeOverriddenDeclaration(context))
+        return Exportability.NotNeeded
+    if (isBridge())
+        return Exportability.NotNeeded
+
+    if (
+        origin == JsLoweredDeclarationOrigin.OBJECT_GET_INSTANCE_FUNCTION ||
+        origin == JsLoweredDeclarationOrigin.ENUM_GET_INSTANCE_FUNCTION ||
+        hasDefaultArgumentBridge
+    ) {
+        return Exportability.NotNeeded
+    }
+
+    val parentClass = parent as? IrClass
+
+    if (parentClass != null && parentClass.staticInitFunction == this) {
+        return Exportability.NotNeeded
+    }
+
+    val nameString = name.asString()
+    if (nameString.endsWith("-impl"))
+        return Exportability.NotNeeded
+
+
+    // Workaround in case IrDeclarationOrigin.FUNCTION_FOR_DEFAULT_PARAMETER is rewritten.
+    // TODO: Remove this check KT-75095
+    if (nameString.endsWith("\$") && parameters.any { "\$mask" in it.name.asString() }) {
+        return Exportability.NotNeeded
+    }
+
+    val name = specializedName ?: getExportedIdentifier()
+    // TODO: Use [] syntax instead of prohibiting
+    if (parentClass == null && name in allReservedWords)
+        return Exportability.Prohibited("Name is a reserved word")
+
+    return Exportability.Allowed
+}
+
+internal fun getExportCandidate(declaration: IrDeclaration): IrDeclarationWithName? {
+    // Only actual public declarations with name can be exported
+    if (declaration !is IrDeclarationWithVisibility ||
+        declaration !is IrDeclarationWithName ||
+        !declaration.visibility.isPublicAPI ||
+        declaration.isExpect
+    ) {
+        return null
+    }
+
+    // Workaround to get property declarations instead of its lowered accessors.
+    if (declaration is IrSimpleFunction) {
+        val property = declaration.correspondingPropertySymbol?.owner
+        if (property != null) {
+            val customJsName = declaration.getJsNameForOverriddenDeclaration()
+            // Return property for getter accessors only to prevent
+            // returning it twice (for getter and setter) in the same scope
+            return when {
+                // to respect defined @JsName on accessors, we need to export them as regular functions
+                // not as a property
+                customJsName != null -> declaration
+                property.getter == declaration -> property
+                else -> null
+            }
+        }
+    }
+
+    return declaration
+}
+
+internal fun shouldDeclarationBeExportedImplicitlyOrExplicitly(
+    declaration: IrDeclarationWithName,
+    context: JsIrBackendContext,
+    source: IrDeclaration = declaration
+): Boolean {
+    return declaration.couldBeConvertedToExplicitExport() == false || shouldDeclarationBeExported(declaration, context, source)
+}
+
+private fun shouldDeclarationBeExported(
+    declaration: IrDeclarationWithName,
+    context: JsIrBackendContext,
+    source: IrDeclaration = declaration
+): Boolean {
+    // Formally, user have no ability to annotate EnumEntry as exported, without Enum Class
+    // But, when we add @file:JsExport, the annotation appears on the all of enum entries
+    // what make a wrong behaviour on non-exported members inside Enum Entry (check exportEnumClass and exportFileWithEnumClass tests)
+    if (declaration is IrClass && declaration.kind == ClassKind.ENUM_ENTRY)
+        return false
+
+    if (declaration.isJsExportIgnore() || (declaration as? IrDeclarationWithVisibility)?.visibility?.isPublicAPI == false)
+        return false
+
+    if (declaration is IrField && declaration.isObjectInstanceField()) {
+        // Object instance fields are generated with the public visibility because after InlineObjectsWithPureInitializationLowering
+        // we replace calls to object getters with direct field accesses, which can be cross-module.
+        // But those fields aren't meant to end up in DCE roots, which they would otherwise.
+        return false
+    }
+
+    if (context.additionalExportedDeclarationNames.contains(declaration.fqNameWhenAvailable))
+        return true
+
+    if (context.additionalExportedDeclarations.contains(declaration))
+        return true
+
+    if (source is IrOverridableDeclaration<*>) {
+        val overriddenNonEmpty = source.overriddenSymbols.isNotEmpty()
+
+        if (overriddenNonEmpty) {
+            return (source as? IrSimpleFunction)?.isMethodOfAny() == true // Handle names for special functions
+                    || source.isAllowedFakeOverriddenDeclaration(context)
+                    || source.isOverriddenExported(context)
+        }
+    }
+
+    val parentModality = declaration.parentClassOrNull?.modality
+    if (declaration is IrDeclarationWithVisibility
+        && !(declaration is IrConstructor && declaration.isPrimary)
+        && declaration.visibility == DescriptorVisibilities.PROTECTED
+        && (parentModality == Modality.FINAL || parentModality == Modality.SEALED)
+    ) {
+        // Protected members inside final classes are effectively private.
+        // Protected members inside sealed classes are effectively module-private.
+        // The only exception is the primary constructor: we will set its visibility to private during
+        // TypeScript export model generation, otherwise, if no (private) primary constructor is exported, there will be
+        // a default constructor, which we don't want.
+        return false
+    }
+
+    if (declaration.isExplicitlyExported())
+        return true
+
+    return declaration.shouldParentBeExported(context) &&
+            (!declaration.isDataClassCopy || declaration.shouldExportDataClassCopy(context))
+}
+
+private fun IrDeclaration.shouldParentBeExported(context: JsIrBackendContext): Boolean =
+    when (val parent = parent) {
+        is IrDeclarationWithName -> shouldDeclarationBeExported(parent, context)
+        is IrAnnotationContainer -> parent.isExplicitlyExported()
+        else -> false
+    }
+
+/**
+ * The rules for exporting data class copy functions are inheriting rules for consistent `copy` visibility,
+ * described in KT-11914. The migration process is exactly the same as for the visibility modifiers (described in details in the same ticket)
+ *
+ * So, in a few words, the rules are following:
+ * - If the primary constructor is exported, then the copy function should be exported as well
+ * - If the primary constructor is not exported, but the data class has `@ExposedCopyVisibility` annotation - then the copy function should be exported
+ * - If the primary constructor is not exported, and the data class has `@ConsistentCopyVisibility` annotation - then the copy function should not be exported
+ * - If the primary constructor is not exported, and DataClassCopyRespectsConstructorVisibility language feature is turned on, then the copy function should not be exported
+ * - Otherwise, the copy is exported
+ *
+ * This sequence is following the Migration plan described in KT-11914. So, as soon as the feature is turned on, by default, nothing should be changed in this part of the compiler.
+ *
+ * **Important Note**: There is an Analysis-API-based version of this function in [org.jetbrains.kotlin.js.tsexport.shouldExportDataClassCopy].
+ * Changes here should be synchronized with the Analysis-API-based version.
+ * Also, the same rules are defined on the FIR side for the exportability checks. see [org.jetbrains.kotlin.fir.analysis.checkers.FirVisibilityHelpers]
+ */
+private fun IrDeclaration.shouldExportDataClassCopy(context: JsIrBackendContext): Boolean {
+    val parentDataClass = parentAsClass
+    // `parentDataClass.primaryConstructor` could be null at this stage, since in ES2015 classes generating schema
+    // we don't generate a JS constructor for classes which constructor is not exported
+    val primaryConstructor = parentDataClass.primaryConstructor
+
+    return when {
+        parentDataClass.hasAnnotation(StandardClassIds.Annotations.ExposedCopyVisibility) -> true
+        primaryConstructor != null && shouldDeclarationBeExported(primaryConstructor, context) -> true
+        context.configuration.languageVersionSettings.supportsFeature(LanguageFeature.DataClassCopyRespectsConstructorVisibility) -> false
+        else -> !parentDataClass.hasAnnotation(StandardClassIds.Annotations.ConsistentCopyVisibility)
+    }
+}
+
+internal fun IrOverridableDeclaration<*>.isAllowedFakeOverriddenDeclaration(context: JsIrBackendContext): Boolean {
+    if (isPromisifiedMemberWrapper || isOverriddenEnumProperty(context)) return true
+
+    val firstExportedRealOverride = runIf(isFakeOverride) {
+        resolveFakeOverrideMaybeAbstract { it === this || it.isFakeOverride || it.parentClassOrNull?.isExported(context) != true }
+    } ?: return false
+
+    return firstExportedRealOverride.parentClassOrNull.isExportedInterface(context) && !firstExportedRealOverride.isJsExportIgnore()
+}
+
+internal fun IrOverridableDeclaration<*>.isOverriddenEnumProperty(context: JsIrBackendContext) =
+    overriddenSymbols
+        .map { it.owner }
+        .filterIsInstanceAnd<IrOverridableDeclaration<*>> {
+            it.overriddenSymbols.isEmpty() && it.parentClassOrNull?.symbol == context.irBuiltIns.enumClass
+        }
+        .isNotEmpty()
+
+internal fun IrOverridableDeclaration<*>.isOverriddenExported(context: JsIrBackendContext): Boolean =
+    overriddenSymbols
+        .any {
+            val owner = it.owner as IrDeclarationWithName
+            val candidate = getExportCandidate(owner) ?: owner
+            shouldDeclarationBeExported(candidate, context, owner)
+        }
+
+internal fun IrDeclaration.isExported(context: JsIrBackendContext): Boolean {
+    val candidate = getExportCandidate(this) ?: return false
+    return shouldDeclarationBeExported(candidate, context, this)
+}
+
+private val reservedWords = setOf(
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "enum",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "new",
+    "null",
+    "return",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with"
+)
+
+private val strictModeReservedWords = setOf(
+    "as",
+    "implements",
+    "interface",
+    "let",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "static",
+    "yield"
+)
+
+internal val allReservedWords = reservedWords + strictModeReservedWords
+
+fun IrDeclarationWithName.getExportedIdentifier(): String =
+    with(getJsNameOrKotlinName()) {
+        if (isSpecial)
+            irError("Cannot export special name: ${name.asString()} for declaration") {
+                withIrEntry("this", this@getExportedIdentifier)
+            }
+        else identifier
+    }
+
+internal val IrConstructor.exportedVisibility: ExportedVisibility
+    get() = when (constructedClass.modality) {
+        Modality.SEALED -> ExportedVisibility.PRIVATE
+        Modality.FINAL if visibility == DescriptorVisibilities.PROTECTED -> ExportedVisibility.PRIVATE
+        else -> visibility.toExportedVisibility()
+    }
+
+internal fun IrClass.hasNotExportedAbstractMembers(): Boolean {
+    /**
+     * We only process interfaces because it's impossible to cover the following case:
+     * an abstract class that extends another abstract class which contain an ignored abstract member
+     * but the current inheritor overrides them all and converting them into non-abstract members
+     * Example of code:
+     * ```kotlin
+     * @JsExport
+     * abstract class A {
+     *   @JsExport.Ignore
+     *   abstract fun a(): Int
+     * }
+     *
+     *
+     * @JsExport
+     * interface B {
+     *   @JsExport.Ignore
+     *   fun b(): Int
+     * }
+     *
+     * @JsExport
+     * abstract class ProblemOne : A(), B {
+     *    override fun a(): Int = 1
+     *    // Here we should generate our magic `__doNotUseItOrImplementIt` both as abstract and non-abstract member
+     *    // It's impossible to express in TypeScript
+     * }
+     * ```
+     */
+    if (!isInterface) return false
+    for (declaration in declarations) {
+        val candidate = getExportCandidate(declaration) ?: continue
+
+        if (
+            candidate !is IrOverridableDeclaration<*> ||
+            candidate.isFakeOverride ||
+            candidate.overriddenSymbols.isNotEmpty()
+        ) continue
+
+        // Since we built a lot of bridges for the suspend function export, the check is more complicated
+        if (candidate.origin == IrDeclarationOrigin.LOWERED_SUSPEND_FUNCTION) {
+            val originalSuspendFunction = (candidate as IrSimpleFunction).suspendFunction
+                ?.takeIf { it.origin == IrDeclarationOrigin.DEFINED } ?: continue
+
+            if (originalSuspendFunction.promisifiedWrapperFunction == null) {
+                return true
+            } else continue
+        }
+
+
+        if (candidate.isJsExportIgnore() && candidate.origin == IrDeclarationOrigin.DEFINED) {
+            val defaultArgumentsBridge = (candidate as? IrFunction)?.defaultArgumentsDispatchFunction ?: return true
+            if (defaultArgumentsBridge.isJsExportIgnore()) return true
+        }
+    }
+
+    return false
+}
+
+internal fun IrClass.forEachExportedMember(
+    context: JsIrBackendContext,
+    action: (candidate: IrDeclarationWithName, declaration: IrDeclaration) -> Unit,
+) {
+    val isImplicitlyExportedClass = isJsImplicitExport()
+    for (declaration in declarations) {
+        val candidate = getExportCandidate(declaration) ?: continue
+        if (isImplicitlyExportedClass && candidate !is IrClass) continue
+        if (!shouldDeclarationBeExportedImplicitlyOrExplicitly(candidate, context, declaration)) continue
+        if (candidate.isFakeOverride && isInterface) continue
+        action(candidate, declaration)
+    }
+}
+
+
+internal fun IrDeclaration.excludeFromJsExport(context: JsIrBackendContext) {
+    val jsExportIgnoreClass = context.symbols.jsExportIgnoreAnnotationSymbol.owner
+    val jsExportIgnoreCtor = jsExportIgnoreClass.primaryConstructor ?: return
+    annotations = annotations memoryOptimizedPlus JsIrBuilder.buildAnnotation(jsExportIgnoreCtor.symbol)
+}

@@ -1,0 +1,32 @@
+KaAnonymousObjectSymbol:
+  anchorPsi: KtObjectDeclaration
+  annotations: []
+  classId: null
+  classKind: ANONYMOUS_OBJECT
+  isActual: false
+  isExpect: false
+  isExternal: false
+  location: LOCAL
+  modality: FINAL
+  name: null
+  origin: SOURCE
+  psi: KtObjectDeclaration
+  realPsi: KtObjectDeclaration
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: [
+        KaUsualClassType:
+          annotations: []
+          typeArguments: []
+          type: kotlin/Int
+      ]
+      type: A<kotlin/Int>
+  ]
+  typeParameters: []
+  visibility: LOCAL
+  getContainingFileSymbol: KaFileSymbol(anonymousObjectInInvalidPosition.kt)
+  getContainingModule: KaSourceModule "Sources of main"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: null

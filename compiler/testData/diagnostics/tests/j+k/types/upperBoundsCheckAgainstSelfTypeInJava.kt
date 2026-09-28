@@ -1,0 +1,13 @@
+// RUN_PIPELINE_TILL: BACKEND
+
+// FILE: XBreakpointProperties.java
+public abstract class XBreakpointProperties<T> {}
+// FILE: XBreakpoint.java
+public interface XBreakpoint<P extends XBreakpointProperties> {}
+// FILE: XBreakpointType.java
+public abstract class XBreakpointType<B extends XBreakpoint<P>, P extends XBreakpointProperties> {}
+
+// FILE: main.kt
+fun foo(x: XBreakpointType<XBreakpoint<*>, *>) {}
+
+/* GENERATED_FIR_TAGS: functionDeclaration, javaType, starProjection */

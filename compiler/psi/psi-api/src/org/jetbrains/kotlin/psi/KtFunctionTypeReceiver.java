@@ -1,0 +1,40 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub;
+
+/**
+ * Represents the receiver type in a function type with receiver.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * val block: String.() -> Int = { length }
+ * //         ^_____^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtFunctionTypeReceiver extends KtElementImplStub<KotlinPlaceHolderStub<KtFunctionTypeReceiver>> {
+    @KtImplementationDetail
+    public KtFunctionTypeReceiver(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtFunctionTypeReceiver(@NotNull KotlinPlaceHolderStub<KtFunctionTypeReceiver> stub) {
+        super(stub, KtNodeTypes.FUNCTION_TYPE_RECEIVER);
+    }
+
+    /** Returns the receiver type reference (the type before the {@code .} in a function type with receiver). */
+    @NotNull
+    public KtTypeReference getTypeReference() {
+        return getRequiredStubOrPsiChild(KtNodeTypes.TYPE_REFERENCE, KtTypeReference.class);
+    }
+}

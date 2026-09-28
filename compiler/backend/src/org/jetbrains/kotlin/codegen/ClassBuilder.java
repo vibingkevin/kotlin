@@ -1,0 +1,80 @@
+/*
+ * Copyright 2010-2015 JetBrains s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.jetbrains.kotlin.codegen;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.codegen.inline.SourceMapper;
+import org.jetbrains.kotlin.ir.declarations.IrField;
+import org.jetbrains.kotlin.ir.declarations.IrFunction;
+import org.jetbrains.org.objectweb.asm.*;
+
+public interface ClassBuilder {
+    @NotNull
+    FieldVisitor newField(
+            @Nullable IrField origin,
+            int access,
+            @NotNull String name,
+            @NotNull String desc,
+            @Nullable String signature,
+            @Nullable Object value
+    );
+
+    @NotNull
+    MethodVisitor newMethod(
+            @Nullable IrFunction origin,
+            int access,
+            @NotNull String name,
+            @NotNull String desc,
+            @Nullable String signature,
+            @Nullable String[] exceptions
+    );
+
+    @NotNull RecordComponentVisitor newRecordComponent(
+            @NotNull String name,
+            @NotNull String desc,
+            @Nullable String signature
+    );
+
+    @NotNull
+    AnnotationVisitor newAnnotation(@NotNull String desc, boolean visible);
+
+    void done(boolean generateSmapCopyToAnnotation);
+
+    @NotNull
+    ClassVisitor getVisitor();
+
+    void defineClass(
+            int version,
+            int access,
+            @NotNull String name,
+            @Nullable String signature,
+            @NotNull String superName,
+            @NotNull String[] interfaces
+    );
+
+    void visitSource(@NotNull String name, @Nullable String debug);
+
+    void visitSMAP(@NotNull SourceMapper smap, boolean backwardsCompatibleSyntax, boolean intoInline, boolean validate);
+
+    void visitOuterClass(@NotNull String owner, @Nullable String name, @Nullable String desc);
+
+    void visitInnerClass(@NotNull String name, @Nullable String outerName, @Nullable String innerName, int access);
+
+    @NotNull
+    String getThisName();
+}

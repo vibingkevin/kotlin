@@ -1,0 +1,136 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+@file:JvmName("ArgumentsToStrings")
+
+package org.jetbrains.kotlin.compilerRunner
+
+import org.jetbrains.kotlin.cli.common.arguments.ARGFILE_ARGUMENT
+import org.jetbrains.kotlin.cli.common.arguments.Argument
+import org.jetbrains.kotlin.cli.common.arguments.CommonToolArguments
+import org.jetbrains.kotlin.cli.common.arguments.isAdvanced
+import org.jetbrains.kotlin.cli.common.arguments.resolvedDelimiter
+import kotlin.reflect.KClass
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.javaField
+
+/**
+ * @param allowArgFileInValues when true, allows argument files in argument values. This is the default behavior to preserve previous behavior.
+ *                              However, it might result in loss of information or unexpected behavior when converting back from argument
+ *                              strings to an argument object using [parseCommandLineArguments].
+ *                              when false, argument values other than `freeArgs` that start with "@" are treated as literal strings,
+ *                              and are encoded as "key=value" instead of "key value" to prevent treating them as argument files when
+ *                              converting back using [parseCommandLineArguments].
+ */
+@Suppress("UNCHECKED_CAST")
+@JvmOverloads
+fun CommonToolArguments.toArgumentStrings(
+    shortArgumentKeys: Boolean = false,
+    compactArgumentValues: Boolean = true,
+    allowArgFileInValues: Boolean = true,
+    addFreeArgsDelimiter: Boolean = false,
+): List<String> {
+    return toArgumentStrings(
+        this, this::class as KClass<CommonToolArguments>,
+        shortArgumentKeys = shortArgumentKeys,
+        compactArgumentValues = compactArgumentValues,
+        allowArgFileInValues = allowArgFileInValues,
+        addFreeArgsDelimiter = addFreeArgsDelimiter,
+    )
+}
+
+/**
+ * @param allowArgFileInValues when true, allows argument files in argument values. This is the default behavior to preserve compatibility.
+ *                              However, it might result in loss of information or unexpected behavior when converting back from argument
+ *                              strings to an argument object using [parseCommandLineArguments].
+ *                              when false, argument values other than `freeArgs` that start with "@" are treated as literal strings,
+ *                              and are encoded as "key=value" instead of "key value" to prevent treating them as argument files when
+ *                              converting back using [parseCommandLineArguments].
+ */
+@PublishedApi
+internal fun <T : CommonToolArguments> toArgumentStrings(
+    thisArguments: T, type: KClass<T>,
+    shortArgumentKeys: Boolean,
+    compactArgumentValues: Boolean,
+    allowArgFileInValues: Boolean = true,
+    addFreeArgsDelimiter: Boolean = false,
+): List<String> = ArrayList<String>().apply {
+    val defaultArguments = type.newArgumentsInstance()
+    type.memberProperties.forEach { property ->
+        val argumentAnnotation = property.javaField?.getAnnotation(Argument::class.java) ?: return@forEach
+        val rawPropertyValue = property.get(thisArguments)
+        val rawDefaultValue = property.get(defaultArguments)
+
+        /* Default value can be omitted */
+        if (rawPropertyValue == rawDefaultValue) {
+            return@forEach
+        }
+
+        val argumentStringValues = when {
+            property.returnType.classifier == Boolean::class -> listOf(rawPropertyValue?.toString() ?: false.toString())
+
+            (property.returnType.classifier as? KClass<*>)?.java?.isArray == true ->
+                getArgumentStringValue(argumentAnnotation, rawPropertyValue as Array<*>?, compactArgumentValues)
+
+            property.returnType.classifier == List::class ->
+                getArgumentStringValue(argumentAnnotation, (rawPropertyValue as List<*>?)?.toTypedArray(), compactArgumentValues)
+
+            else -> listOf(rawPropertyValue.toString())
+        }
+
+        val argumentName = if (shortArgumentKeys && argumentAnnotation.shortName.isNotEmpty()) argumentAnnotation.shortName
+        else argumentAnnotation.value
+
+        argumentStringValues.forEach { argumentStringValue ->
+
+            when {
+                /* We can just enable the flag by passing the argument name like -myFlag: Value not required */
+                rawPropertyValue is Boolean && rawPropertyValue -> {
+                    add(argumentName)
+                }
+
+                argumentAnnotation.value == "-XXLanguage" -> {
+                    add("$argumentName:$argumentStringValue")
+                }
+
+                shouldHandleArgFileInValues(argumentStringValue, allowArgFileInValues) -> {
+                    add("${argumentAnnotation.value}=$argumentStringValue")
+                }
+                /* Advanced (e.g. -X arguments) or boolean properties need to be passed using the '=' */
+                argumentAnnotation.isAdvanced || property.returnType.classifier == Boolean::class -> {
+                    add("$argumentName=$argumentStringValue")
+                }
+                else -> {
+                    add(argumentName)
+                    add(argumentStringValue)
+                }
+            }
+        }
+    }
+
+    addAll(thisArguments.internalArguments.map { it.stringRepresentation })
+    if (addFreeArgsDelimiter && thisArguments.freeArgs.isNotEmpty()) {
+        add("--")
+    }
+    addAll(thisArguments.freeArgs)
+}
+
+private fun shouldHandleArgFileInValues(argumentValue: String, allowArgFileInValues: Boolean): Boolean {
+    return !allowArgFileInValues && argumentValue.startsWith(ARGFILE_ARGUMENT)
+}
+
+private fun getArgumentStringValue(argumentAnnotation: Argument, values: Array<*>?, compactArgumentValues: Boolean): List<String> {
+    if (values.isNullOrEmpty()) return emptyList()
+    val delimiter = argumentAnnotation.resolvedDelimiter
+    return if (delimiter.isNullOrEmpty() || !compactArgumentValues) values.map { it.toString() }
+    else listOf(values.joinToString(delimiter))
+}
+
+private fun <T : CommonToolArguments> KClass<T>.newArgumentsInstance(): T {
+    val argumentConstructor = constructors.find { it.parameters.isEmpty() } ?: throw IllegalArgumentException(
+        "$qualifiedName has no empty constructor"
+    )
+    return argumentConstructor.call()
+}

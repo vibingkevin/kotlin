@@ -1,0 +1,7 @@
+depends = darwin osx posix
+language = Objective-C
+package = platform.Hypervisor
+modules = Hypervisor
+
+compilerOpts = -framework Hypervisor
+linkerOpts = -framework Hypervisor

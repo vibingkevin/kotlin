@@ -1,0 +1,8 @@
+KtNameReferenceExpression(77,80): 'foo'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Foo.foo(<dispatch receiver>: Foo, a: kotlin.Int): kotlin.Unit
+    ]

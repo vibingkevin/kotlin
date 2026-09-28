@@ -1,0 +1,86 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.gradle.regressionTests
+
+import org.gradle.api.Project
+import org.gradle.util.GradleVersion
+import org.jetbrains.kotlin.gradle.dsl.kotlinJvmExtension
+import org.jetbrains.kotlin.gradle.dsl.multiplatformExtension
+import org.jetbrains.kotlin.gradle.util.buildProject
+import org.jetbrains.kotlin.gradle.util.buildProjectWithJvm
+import org.jetbrains.kotlin.gradle.util.buildProjectWithMPP
+import org.jetbrains.kotlin.gradle.util.enableDefaultStdlibDependency
+import org.junit.jupiter.api.Assumptions
+import kotlin.test.Test
+import kotlin.test.fail
+
+class KT60388PlainJvmDependingOnJvmWithJavaTest {
+    private val rootProject = buildProject()
+
+    @Test
+    fun `test - plain jvm - depends on - jvm withJava`() {
+        val producer = buildProjectWithMPP(
+            projectBuilder = { withName("producer").withParent(rootProject) },
+            preApplyCode = {
+                enableDefaultStdlibDependency(false)
+            }
+        )
+        val consumer = buildProjectWithJvm(
+            projectBuilder = { withName("consumer").withParent(rootProject) },
+            preApplyCode = { enableDefaultStdlibDependency(false) }
+        )
+
+        producer.multiplatformExtension.apply {
+            @Suppress("DEPRECATION")
+            jvm().withJava()
+        }
+
+        consumer.kotlinJvmExtension.apply {
+            project.dependencies.add("api", project.dependencies.project(":producer"))
+        }
+
+        assertConsumerCanResolveProducer(producer, consumer)
+    }
+
+    @Test
+    fun `test - plain jvm - depends on - jvm withJava and java plugin`() {
+        Assumptions.assumeTrue(GradleVersion.current() < GradleVersion.version("9.0"), ".withJava() is not supported with Gradle 9")
+        val producer = buildProjectWithMPP(
+            projectBuilder = { withName("producer").withParent(rootProject) },
+            preApplyCode = { enableDefaultStdlibDependency(false) }
+        )
+        val consumer = buildProjectWithJvm(
+            projectBuilder = { withName("consumer").withParent(rootProject) },
+            preApplyCode = { enableDefaultStdlibDependency(false) }
+        )
+
+        producer.multiplatformExtension.apply {
+            producer.plugins.apply("java")
+            @Suppress("DEPRECATION")
+            jvm().withJava()
+        }
+
+        consumer.kotlinJvmExtension.apply {
+            project.dependencies.add("api", project.dependencies.project(":producer"))
+        }
+
+        assertConsumerCanResolveProducer(producer, consumer)
+    }
+
+    private fun assertConsumerCanResolveProducer(producer: Project, consumer: Project) {
+        val compileDependencyConfiguration = consumer.project.configurations.getByName(
+            consumer.kotlinJvmExtension.target.compilations.getByName("main").compileDependencyConfigurationName
+        )
+
+        val resolvedCompileDependencyConfiguration = compileDependencyConfiguration.resolvedConfiguration
+        resolvedCompileDependencyConfiguration.rethrowFailure()
+
+        resolvedCompileDependencyConfiguration.firstLevelModuleDependencies.let { resolvedDependencies ->
+            val resolvedProducer = resolvedDependencies.any { dependency -> dependency.module.id.name == "producer" }
+            if (!resolvedProducer) fail("Expected ${producer.displayName} to be resolved by ${consumer.displayName}")
+        }
+    }
+}

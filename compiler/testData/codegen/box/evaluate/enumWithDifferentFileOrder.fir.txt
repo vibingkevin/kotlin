@@ -1,0 +1,21 @@
+FILE: main.kt
+    public final fun box(): R|kotlin/String| {
+        ^box Q|Base1|.R|/Base1.OK|.R|SubstitutionOverride</Base1.name: R|kotlin/String|>|
+    }
+FILE: lib.kt
+    public final enum class Base1 : R|kotlin/Enum<Base1>| {
+        private constructor(): R|Base1| {
+            super<R|kotlin/Enum<Base1>|>()
+        }
+
+        public final static enum entry OK: R|Base1|
+        public final static fun values(): R|kotlin/Array<Base1>| {
+        }
+
+        public final static fun valueOf(value: R|kotlin/String|): R|Base1| {
+        }
+
+        public final static val entries: R|kotlin/enums/EnumEntries<Base1>|
+            public static get(): R|kotlin/enums/EnumEntries<Base1>|
+
+    }

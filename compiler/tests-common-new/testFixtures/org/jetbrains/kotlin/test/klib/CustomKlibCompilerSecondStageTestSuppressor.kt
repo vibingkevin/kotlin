@@ -1,0 +1,110 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.test.klib
+
+import org.jetbrains.kotlin.config.LanguageVersion
+import org.jetbrains.kotlin.test.WrappedException
+import org.jetbrains.kotlin.test.backend.handlers.NoFirCompilationErrorsHandler
+import org.jetbrains.kotlin.test.directives.JsEnvironmentConfigurationDirectives
+import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
+import org.jetbrains.kotlin.test.directives.model.StringDirective
+import org.jetbrains.kotlin.test.klib.CustomKlibCompilerTestDirectives.IGNORE_KLIB_BACKEND_ERRORS_WITH_CUSTOM_SECOND_STAGE
+import org.jetbrains.kotlin.test.klib.CustomKlibCompilerTestDirectives.IGNORE_KLIB_FRONTEND_ERRORS_WITH_CUSTOM_SECOND_STAGE
+import org.jetbrains.kotlin.test.klib.CustomKlibCompilerTestDirectives.IGNORE_KLIB_RUNTIME_ERRORS_WITH_CUSTOM_SECOND_STAGE
+import org.jetbrains.kotlin.test.model.BinaryArtifactHandler
+import org.jetbrains.kotlin.test.model.TestFailureSuppressor
+import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.services.assertions
+import org.jetbrains.kotlin.test.services.moduleStructure
+import org.jetbrains.kotlin.test.testInfraError
+import org.junit.jupiter.api.Assumptions
+
+/**
+ * Mute (ignore) tests where the custom compiler failed to compile test data in the second (backend) stage.
+ * It's only allowed to mute such tests for a specific version of the custom compiler specified in either directive:
+ *   - [IGNORE_KLIB_FRONTEND_ERRORS_WITH_CUSTOM_SECOND_STAGE], or
+ *   - [IGNORE_KLIB_BACKEND_ERRORS_WITH_CUSTOM_SECOND_STAGE], or
+ *   - [IGNORE_KLIB_RUNTIME_ERRORS_WITH_CUSTOM_SECOND_STAGE].
+ */
+class CustomKlibCompilerSecondStageTestSuppressor(
+    testServices: TestServices,
+    private val defaultLanguageVersion: LanguageVersion,
+) : TestFailureSuppressor(testServices) {
+    override val directiveContainers: List<DirectivesContainer>
+        get() = listOf(CustomKlibCompilerTestDirectives)
+
+    override fun suppressIfNeeded(failedAssertions: List<WrappedException>): List<WrappedException> {
+        val newFailedAssertions = failedAssertions.flatMap { wrappedException ->
+            when (wrappedException) {
+                is WrappedException.FromHandler -> when (wrappedException.handler) {
+                    is NoFirCompilationErrorsHandler ->  {
+                        if (defaultLanguageVersion < LanguageVersion.LATEST_STABLE)
+                            emptyList()  // Some tests cannot be compiled with previous LV. These are just ignored
+                        else
+                            listOf(wrappedException)
+                    }
+                    is BinaryArtifactHandler -> processException(  // Execution error
+                        wrappedException,
+                        IGNORE_KLIB_RUNTIME_ERRORS_WITH_CUSTOM_SECOND_STAGE
+                    )
+                    else -> listOf(wrappedException)
+                }
+                is WrappedException.FromFacade -> when (wrappedException.facade) {
+                    is CustomKlibCompilerSecondStageFacade -> processException(
+                        wrappedException,
+                        IGNORE_KLIB_BACKEND_ERRORS_WITH_CUSTOM_SECOND_STAGE
+                    )
+                    else -> processException(wrappedException, IGNORE_KLIB_FRONTEND_ERRORS_WITH_CUSTOM_SECOND_STAGE)
+                }
+                // In the grouped (two-stage) pipeline the second-stage backend compilation runs as a grouping
+                // facade, so a compilation failure there is a backend error.
+                is WrappedException.FromGroupingFacade -> processException(
+                    wrappedException,
+                    IGNORE_KLIB_BACKEND_ERRORS_WITH_CUSTOM_SECOND_STAGE
+                )
+                // In the grouped (two-stage) pipeline the box is executed by a grouping-stage handler,
+                // so a failure there is an execution (runtime) error.
+                is WrappedException.FromGroupingHandler -> processException(
+                    wrappedException,
+                    IGNORE_KLIB_RUNTIME_ERRORS_WITH_CUSTOM_SECOND_STAGE
+                )
+                is WrappedException.FromAfterAnalysisChecker -> {
+                    listOf(wrappedException)
+                }
+                else -> testInfraError("Yet unsupported wrapped exception type: ${wrappedException::class.qualifiedName} ")
+            }
+        }
+
+        if (newFailedAssertions.isEmpty()) {
+            // Explicitly mark the test as "ignored".
+            throw Assumptions.abort<Nothing>()
+        } else {
+            return newFailedAssertions
+        }
+    }
+
+    override fun checkIfTestShouldBeUnmuted() {
+        testServices.assertions.assertAll(
+            { testServices.throwUnmutingErrorIfNeeded(IGNORE_KLIB_FRONTEND_ERRORS_WITH_CUSTOM_SECOND_STAGE, defaultLanguageVersion) },
+            { testServices.throwUnmutingErrorIfNeeded(IGNORE_KLIB_BACKEND_ERRORS_WITH_CUSTOM_SECOND_STAGE, defaultLanguageVersion) },
+            { testServices.throwUnmutingErrorIfNeeded(IGNORE_KLIB_RUNTIME_ERRORS_WITH_CUSTOM_SECOND_STAGE, defaultLanguageVersion) },
+        )
+    }
+
+    private fun processException(wrappedException: WrappedException, ignoreDirective: StringDirective): List<WrappedException> {
+        if (testServices.versionAndTargetAreIgnored(ignoreDirective, defaultLanguageVersion))
+            return emptyList()
+
+        if (testServices.moduleStructure.modules.any {
+                it.files.any { file -> JsEnvironmentConfigurationDirectives.RECOMPILE in file.directives }
+            }) {
+            // Forward compatibility is not guaranteed for incremental caches, so these tests may fail during forward compatibility testing
+            return emptyList()
+        }
+
+        return listOf(wrappedException)
+    }
+}

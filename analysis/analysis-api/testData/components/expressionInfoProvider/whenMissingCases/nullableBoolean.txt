@@ -1,0 +1,3 @@
+BooleanCase(true)
+BooleanCase(false)
+NullCase

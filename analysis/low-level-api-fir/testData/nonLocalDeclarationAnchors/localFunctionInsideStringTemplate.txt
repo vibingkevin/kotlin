@@ -1,0 +1,9 @@
+package one
+
+/* anchor (KtClass) --> */open class ClassWithParameter/* anchor (KtPrimaryConstructor) --> */(/* anchor (KtParameter) --> */s: String/* <-- */)/* <-- *//* <-- */
+
+/* anchor (KtClass) --> */class TopLevelClass : ClassWithParameter("${
+    fun(): String {
+        return ""
+    }()
+}")/* <-- */

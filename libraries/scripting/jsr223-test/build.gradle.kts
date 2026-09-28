@@ -1,0 +1,87 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    kotlin("jvm")
+}
+
+val embeddableTestRuntime = configurations.create("embeddableTestRuntime") {
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+    }
+}
+
+val testJsr223Runtime = configurations.create("testJsr223Runtime") {
+    extendsFrom(configurations["testRuntimeClasspath"])
+}
+
+val testCompilationClasspath = configurations.create("testCompilationClasspath")
+
+dependencies {
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testImplementation(libs.junit.platform.launcher)
+    testImplementation(intellijCore())
+    testCompileOnly(project(":kotlin-scripting-jvm-host-unshaded"))
+    testCompileOnly(project(":compiler:cli"))
+    testCompileOnly(project(":compiler:cli-jvm"))
+    testCompileOnly(project(":core:util.runtime"))
+
+    testImplementation(testFixtures(project(":compiler:test-infrastructure-utils")))
+    testImplementation(testFixtures(project(":plugins:scripting:scripting-tests")))
+
+    testRuntimeOnly(project(":kotlin-scripting-jsr223-unshaded"))
+    testRuntimeOnly(project(":kotlin-compiler"))
+
+    embeddableTestRuntime(libs.junit.platform.launcher)
+    embeddableTestRuntime(libs.junit.jupiter.engine)
+    embeddableTestRuntime(libs.junit.jupiter.api)
+    embeddableTestRuntime(project(":kotlin-scripting-jsr223"))
+    embeddableTestRuntime(project(":kotlin-scripting-compiler-embeddable"))
+    embeddableTestRuntime(testSourceSet.output)
+
+    testCompilationClasspath(kotlinStdlib())
+    testImplementation(kotlinTest("junit5"))
+}
+
+sourceSets {
+    "main" {}
+    "test" { projectDefault() }
+}
+
+tasks.withType<KotlinJvmCompile>().configureEach {
+    compilerOptions.freeCompilerArgs.add("-Xallow-kotlin-package")
+}
+
+projectTests {
+    testTask(defineJDKEnvVariables = listOf(JdkMajorVersion.JDK_17_0)) {
+        dependsOn(":dist")
+        workingDir = rootDir
+        val testRuntimeProvider = project.provider { testJsr223Runtime.asPath }
+        val testCompilationClasspathProvider = project.provider { testCompilationClasspath.asPath }
+        configureProperties(testRuntimeProvider, testCompilationClasspathProvider)
+    }
+
+    testTask("embeddableTest", skipInLocalBuild = false) {
+        workingDir = rootDir
+        classpath = embeddableTestRuntime
+        val testRuntimeProvider = project.provider { embeddableTestRuntime.asPath }
+        val testCompilationClasspathProvider = project.provider { testCompilationClasspath.asPath }
+        configureProperties(testRuntimeProvider, testCompilationClasspathProvider)
+    }
+}
+
+fun Test.configureProperties(testRuntimeProvider: Provider<String>, testCompilationClasspathProvider: Provider<String>) {
+    doFirst {
+        val jsr223RuntimeClasspathFile = temporaryDir.resolve("testJsr223RuntimeClasspath.txt")
+            .apply { writeText(testRuntimeProvider.get()) }
+        systemProperty("testJsr223RuntimeClasspath", jsr223RuntimeClasspathFile)
+        val compilationClasspathFile = temporaryDir.resolve("testCompilationClasspath.txt")
+            .apply { writeText(testCompilationClasspathProvider.get()) }
+        systemProperty("testCompilationClasspath", compilationClasspathFile)
+        systemProperty("kotlin.script.base.compiler.arguments", "-language-version 1.9")
+    }
+}

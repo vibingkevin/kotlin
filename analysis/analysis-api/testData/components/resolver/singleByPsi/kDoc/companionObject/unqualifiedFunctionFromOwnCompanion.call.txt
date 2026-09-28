@@ -1,0 +1,2 @@
+KDocName(8,11): 'foo'
+  null

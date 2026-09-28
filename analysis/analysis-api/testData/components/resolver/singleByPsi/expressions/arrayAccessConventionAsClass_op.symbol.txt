@@ -1,0 +1,9 @@
+KtOperationReferenceExpression(250,252): '+='
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /MyClass.plus(<dispatch receiver>: MyClass, v: MyClass): MyClass,
+      /MyClass.set(<dispatch receiver>: MyClass, i: kotlin.Int, v: MyClass): kotlin.Unit
+    ]

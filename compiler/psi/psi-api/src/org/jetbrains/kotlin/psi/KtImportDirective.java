@@ -1,0 +1,192 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.util.PsiTreeUtil;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.name.FqName;
+import org.jetbrains.kotlin.name.Name;
+import org.jetbrains.kotlin.psi.stubs.KotlinImportDirectiveStub;
+import org.jetbrains.kotlin.psi.stubs.elements.KtTokenSets;
+import org.jetbrains.kotlin.resolve.ImportPath;
+
+/**
+ * Represents a single {@code import} directive.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ *    import kotlin.collections.List
+ * // ^____________________________^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtImportDirective extends KtElementImplStub<KotlinImportDirectiveStub> implements KtImportInfo {
+    /** A shared empty array, which can be reused to avoid unnecessary allocations. */
+    public static final KtImportDirective[] EMPTY_ARRAY = new KtImportDirective[0];
+
+    @KtImplementationDetail
+    public KtImportDirective(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtImportDirective(@NotNull KotlinImportDirectiveStub stub) {
+        super(stub, KtNodeTypes.IMPORT_DIRECTIVE);
+    }
+
+    private volatile FqName importedFqName;
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitImportDirective(this, data);
+    }
+
+    /**
+     * Returns the reference expression naming the imported declaration (for example, {@code kotlin.collections.List}), or {@code null} if
+     * it is absent in incomplete code.
+     */
+    @Nullable
+    @IfNotParsed
+    public KtExpression getImportedReference() {
+        KtExpression[] references = getStubOrPsiChildren(KtTokenSets.INSIDE_DIRECTIVE_EXPRESSIONS, KtExpression.ARRAY_FACTORY);
+        if (references.length > 0) {
+            return references[0];
+        }
+        return null;
+    }
+
+    /** Returns the {@code as} alias of this import, or {@code null} if the import has no alias. */
+    @Nullable
+    public KtImportAlias getAlias() {
+        return getStubOrPsiChild(KtNodeTypes.IMPORT_ALIAS, KtImportAlias.class);
+    }
+
+    @Override
+    @Nullable
+    public String getAliasName() {
+        KtImportAlias alias = getAlias();
+        return alias != null ? alias.getName() : null;
+    }
+
+    @Override
+    public boolean isAllUnder() {
+        KotlinImportDirectiveStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.isAllUnder();
+        }
+        return getNode().findChildByType(KtTokens.MUL) != null;
+    }
+
+    @Nullable
+    @Override
+    public ImportContent getImportContent() {
+        KtExpression reference = getImportedReference();
+        if (reference == null) return null;
+        return new ImportContent.ExpressionBased(reference);
+    }
+
+    @Override
+    @Nullable
+    @IfNotParsed
+    public FqName getImportedFqName() {
+        KotlinImportDirectiveStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.getImportedFqName();
+        }
+
+        FqName importedFqName = this.importedFqName;
+        if (importedFqName != null) return importedFqName;
+        KtExpression importedReference = getImportedReference();
+        // in case it's not parsed
+        if (importedReference == null) return null;
+
+        importedFqName = fqNameFromExpression(importedReference);
+        this.importedFqName = importedFqName;
+        return importedFqName;
+    }
+
+    /**
+     * Returns the import as an {@link ImportPath} (fully qualified name, all-under flag, and optional alias), or {@code null} if the
+     * imported reference is absent in incomplete code.
+     */
+    @Nullable
+    @IfNotParsed
+    public ImportPath getImportPath() {
+        FqName importFqn = getImportedFqName();
+        if (importFqn == null) {
+            return null;
+        }
+
+        Name alias = null;
+        String aliasName = getAliasName();
+        if (aliasName != null) {
+            alias = Name.identifier(aliasName);
+        }
+
+        return new ImportPath(importFqn, isAllUnder(), alias);
+    }
+
+    /** Returns {@code true} if this import is syntactically valid, that is, it contains no error elements. */
+    public boolean isValidImport() {
+        KotlinImportDirectiveStub stub = getGreenStub();
+        if (stub != null) {
+            return stub.isValid();
+        }
+        return !PsiTreeUtil.hasErrorElements(this);
+    }
+
+    @Override
+    public void subtreeChanged() {
+        super.subtreeChanged();
+        importedFqName = null;
+    }
+
+    @Nullable
+    private static FqName fqNameFromExpression(@Nullable KtExpression expression) {
+        if (expression == null) {
+            return null;
+        }
+
+        if (expression instanceof KtDotQualifiedExpression) {
+            KtDotQualifiedExpression dotQualifiedExpression = (KtDotQualifiedExpression) expression;
+            FqName parentFqn = fqNameFromExpression(dotQualifiedExpression.getReceiverExpression());
+            Name child = nameFromExpression(dotQualifiedExpression.getSelectorExpression());
+            if (child == null) {
+                return parentFqn;
+            }
+            if (parentFqn != null) {
+                return parentFqn.child(child);
+            }
+            return null;
+        }
+        else if (expression instanceof KtSimpleNameExpression) {
+            KtSimpleNameExpression simpleNameExpression = (KtSimpleNameExpression) expression;
+            return FqName.topLevel(simpleNameExpression.getReferencedNameAsName());
+        }
+        else {
+            throw new IllegalArgumentException("Can't construct fqn for: " + expression.getClass().toString());
+        }
+    }
+
+    @Nullable
+    private static Name nameFromExpression(@Nullable KtExpression expression) {
+        if (expression == null) {
+            return null;
+        }
+
+        if (expression instanceof KtSimpleNameExpression) {
+            return ((KtSimpleNameExpression) expression).getReferencedNameAsName();
+        }
+        else {
+            throw new IllegalArgumentException("Can't construct name for: " + expression.getClass().toString());
+        }
+    }
+}

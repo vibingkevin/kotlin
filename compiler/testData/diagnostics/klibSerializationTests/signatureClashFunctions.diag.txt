@@ -1,0 +1,70 @@
+/foo.kt:16:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/foo|foo(){}[0]):
+    fun foo(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+    fun foo(): String defined in com.example.klib.serialization.diagnostics in module <main>
+    fun foo(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+
+/foo.kt:19:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/topLevelParametrized|topLevelParametrized@0:0(0:1){0§<kotlin.Any?>;1§<kotlin.Any?>}[0]):
+    fun <T, K> T.topLevelParametrized(s: K): T defined in com.example.klib.serialization.diagnostics in module <main>
+    fun <T, K> T.topLevelParametrized(s: K): T defined in com.example.klib.serialization.diagnostics in module <main>
+
+/foo.kt:22:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/topLevelInternalVararg|topLevelInternalVararg(kotlin.IntArray...){}[0]):
+    fun topLevelInternalVararg(vararg i: Int): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun topLevelInternalVararg(vararg i: Int): Int defined in com.example.klib.serialization.diagnostics in module <main>
+
+/foo.kt:26:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/typealiasReciever|typealiasReciever@kotlin.collections.Map<kotlin.String,kotlin.Int>(){}[0]):
+    fun Map<String, Int>.typealiasReciever(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun Map<String, Int>.typealiasReciever(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:34:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/foo|foo(){}[0]):
+    fun foo(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+    fun foo(): String defined in com.example.klib.serialization.diagnostics in module <main>
+    fun foo(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:37:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/foo|foo(){}[0]):
+    fun foo(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+    fun foo(): String defined in com.example.klib.serialization.diagnostics in module <main>
+    fun foo(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:43:5: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/A.parameterized|parameterized(0:0){0§<kotlin.Any?>}[0]):
+    fun <T> parameterized(a: T): T defined in com.example.klib.serialization.diagnostics in module <main>
+    fun <T> parameterized(a: T): Unit defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:46:5: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/A.parameterized|parameterized(0:0){0§<kotlin.Any?>}[0]):
+    fun <T> parameterized(a: T): T defined in com.example.klib.serialization.diagnostics in module <main>
+    fun <T> parameterized(a: T): Unit defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:48:5: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/A.privateMethod|privateMethod(){}[0]):
+    fun privateMethod(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun privateMethod(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:51:5: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/A.privateMethod|privateMethod(){}[0]):
+    fun privateMethod(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun privateMethod(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:54:1: error: Platform declaration clash: The following functions have the same IR signature ([ File '/main.kt' <- com.example.klib.serialization.diagnostics/privateTopLevelFunction|privateTopLevelFunction(){}[0] ]):
+    fun privateTopLevelFunction(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun privateTopLevelFunction(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:57:1: error: Platform declaration clash: The following functions have the same IR signature ([ File '/main.kt' <- com.example.klib.serialization.diagnostics/privateTopLevelFunction|privateTopLevelFunction(){}[0] ]):
+    fun privateTopLevelFunction(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun privateTopLevelFunction(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:67:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/bar|bar(){}[0]):
+    fun bar(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+    fun bar(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:70:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/bar|bar(){}[0]):
+    fun bar(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+    fun bar(): Long defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:72:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/topLevelParametrized|topLevelParametrized@0:0(0:1){0§<kotlin.Any?>;1§<kotlin.Any?>}[0]):
+    fun <T, K> T.topLevelParametrized(s: K): T defined in com.example.klib.serialization.diagnostics in module <main>
+    fun <T, K> T.topLevelParametrized(s: K): T defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:75:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/topLevelInternalVararg|topLevelInternalVararg(kotlin.IntArray...){}[0]):
+    fun topLevelInternalVararg(vararg i: Int): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun topLevelInternalVararg(vararg i: Int): Int defined in com.example.klib.serialization.diagnostics in module <main>
+
+/main.kt:78:1: error: Platform declaration clash: The following functions have the same IR signature (com.example.klib.serialization.diagnostics/typealiasReciever|typealiasReciever@kotlin.collections.Map<kotlin.String,kotlin.Int>(){}[0]):
+    fun Map<String, Int>.typealiasReciever(): Int defined in com.example.klib.serialization.diagnostics in module <main>
+    fun Map<String, Int>.typealiasReciever(): Int defined in com.example.klib.serialization.diagnostics in module <main>

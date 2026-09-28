@@ -1,0 +1,7 @@
+depends = CoreFoundationBase darwin posix
+language = Objective-C
+package = platform.CoreAudioTypes
+modules = CoreAudioTypes
+apiNotesSwiftName = true
+
+compilerOpts = -framework CoreAudioTypes

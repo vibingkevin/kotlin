@@ -1,0 +1,2 @@
+KDocName(177,207): 'BoundedContainer.someExtension'
+  null

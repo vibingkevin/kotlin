@@ -1,0 +1,105 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.2'
+    }
+}
+apply plugin: 'com.android.application'
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+android {
+    namespace "org.jetbrains.kotlin.android.tests"
+    compileSdkVersion 26
+    buildToolsVersion "34.0.0"
+
+    defaultConfig {
+        applicationId "org.jetbrains.kotlin.android.tests"
+        minSdkVersion 26
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testApplicationId "org.jetbrains.kotlin.android.tests.gradle"
+        testInstrumentationRunner "org.jetbrains.kotlin.android.tests.KotlinBoxInstrumentation"
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    testOptions {
+        resultsDir = "build/test/results"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    flavorDimensions "box"
+
+    productFlavors {
+        common0 {
+            dimension "box"
+        }
+
+        common1 {
+            dimension "box"
+        }
+
+        common2 {
+            dimension "box"
+        }
+
+        common3 {
+            dimension "box"
+        }
+
+        common4 {
+            dimension "box"
+        }
+
+        reflect0 {
+            dimension "box"
+        }
+    }
+
+}
+
+task jarTestFolders() {
+    println "Jar folders..."
+    new File("${projectDir}/libs/").listFiles().each { File file ->
+        if (file.isDirectory()) {
+            println "Jar '${file.name}' folder..."
+            ant.jar(basedir: "libs/${file.name}/", destfile: "libs/" +  file.name  + ".jar")
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    compileTask -> compileTask.dependsOn jarTestFolders
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['kotlin-test.jar', 'kotlin-stdlib.jar'])
+
+    android.applicationVariants.all { variant ->
+        variant.productFlavors.each {
+            def configuration = configurations.getByName(it.name + 'Implementation').name
+            add(configuration, project.fileTree(dir: 'libs', include: [it.name + ".jar"]))
+
+            if (it.name.startsWith("reflect")) {
+                add(configuration, project.fileTree(dir: 'libs', include: ['kotlin-reflect.jar']))
+            }
+        }
+    }
+}

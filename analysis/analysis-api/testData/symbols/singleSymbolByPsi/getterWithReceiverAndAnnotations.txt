@@ -1,0 +1,76 @@
+KaPropertyGetterSymbol:
+  anchorPsi: KtPropertyAccessor
+  annotations: [
+    GetAnnotation()
+      psi: KtAnnotationEntry
+    ExplicitGetAnnotation()
+      psi: KtAnnotationEntry
+  ]
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInline: false
+  isNotDefault: true
+  isOverride: false
+  location: PROPERTY
+  modality: FINAL
+  origin: SOURCE
+  psi: KtPropertyAccessor
+  realPsi: KtPropertyAccessor
+  receiverParameter: KaReceiverParameterSymbol:
+    anchorPsi: KtTypeReference
+    annotations: [
+      ReceiverAnnotation()
+        psi: KtAnnotationEntry
+    ]
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isVal: true
+    location: LOCAL
+    modality: FINAL
+    name: <receiver>
+    origin: SOURCE
+    owningCallableSymbol: KaKotlinPropertySymbol(/x)
+    psi: KtTypeReference
+    realPsi: KtTypeReference
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: [
+        ReceiverTypeAnnotation()
+          psi: KtAnnotationEntry
+      ]
+      typeArguments: []
+      type: @R|ReceiverTypeAnnotation|()  kotlin/Long
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(getterWithReceiverAndAnnotations.kt)
+    getContainingJvmClassName: GetterWithReceiverAndAnnotationsKt
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Int
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(getterWithReceiverAndAnnotations.kt)
+  getContainingJvmClassName: GetterWithReceiverAndAnnotationsKt
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: getX
+  importableFqName: null

@@ -1,0 +1,7 @@
+/misplacedArgumentsInInnerOnly.kt:11:24: error: One type argument expected for 'inner class Y<B, Outer(A)> : Any'.
+
+/misplacedArgumentsInInnerOnly.kt:14:20: error: One type argument expected for 'inner class Y<B, Outer(A)> : Any'.
+
+/misplacedArgumentsInInnerOnly.kt:19:16: error: One type argument expected for 'inner class Y<B, Outer(A)> : Any'.
+
+/misplacedArgumentsInInnerOnly.kt:29:20: error: One type argument expected for 'inner class Y<B, Outer(A), Outer(C)> : Any'.

@@ -1,0 +1,4 @@
+ADDED test/MainKt.Companion
+ADDED test/TestPackage
+CHANGES in test/MainKt: CLASS_SIGNATURE, MEMBERS
+    [main]

@@ -1,0 +1,96 @@
+KtFile: 'typeParameterAsSuperCall.kt'
+  null
+
+KtPackageDirective(0,11): 'package bar'
+  null
+
+KtNameReferenceExpression(8,11): 'bar'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      bar
+    ]
+
+KtImportList(11,11): ''
+  null
+
+KtClass(13,69): 'class MyClass<T : Number> {'
+  null
+
+KtTypeParameterList(26,38): '<T : Number>'
+  null
+
+KtTypeParameter(27,37): 'T : Number'
+  null
+
+KtTypeReference(31,37): 'Number'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Number
+    ]
+
+KtUserType(31,37): 'Number'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Number
+    ]
+
+KtNameReferenceExpression(31,37): 'Number'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      kotlin/Number
+    ]
+
+KtClassBody(39,69): '{'
+  null
+
+KtClass(44,67): 'inner class Inner : T()'
+  null
+
+KtDeclarationModifierList(44,49): 'inner'
+  null
+
+KtSuperTypeList(64,67): 'T()'
+  null
+
+KtSuperTypeCallEntry(64,67): 'T()'
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = []
+    diagnostic = ERROR<OTHER_ERROR: Erroneous delegated constructor call>
+
+KtConstructorCalleeExpression(64,65): 'T'
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = []
+    diagnostic = ERROR<OTHER_ERROR: Erroneous delegated constructor call>
+
+KtTypeReference(64,65): 'T'
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = [
+      T
+    ]
+    diagnostic = ERROR<SUPERTYPE_NOT_A_CLASS_OR_INTERFACE: Supertype is not a class or interface.>
+
+KtUserType(64,65): 'T'
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = [
+      T
+    ]
+    diagnostic = ERROR<SUPERTYPE_NOT_A_CLASS_OR_INTERFACE: Supertype is not a class or interface.>
+
+KtNameReferenceExpression(64,65): 'T'
+  isImplicitReferenceToCompanion: false
+  contextSensitiveResolutionStatus: NotAvailable
+  lookupLocally: false
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = [
+      T
+    ]
+    diagnostic = ERROR<SUPERTYPE_NOT_A_CLASS_OR_INTERFACE: Supertype is not a class or interface.>
+
+KtValueArgumentList(65,67): '()'
+  null

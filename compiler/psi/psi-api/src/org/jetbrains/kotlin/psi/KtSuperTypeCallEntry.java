@@ -1,0 +1,90 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Represents a superclass constructor call in the super type list.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * class Foo : Bar()
+ * //          ^___^
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtSuperTypeCallEntry extends KtSuperTypeListEntry implements KtCallElement {
+    @KtImplementationDetail
+    public KtSuperTypeCallEntry(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @KtImplementationDetail
+    public KtSuperTypeCallEntry(@NotNull KotlinPlaceHolderStub<? extends KtSuperTypeListEntry> stub) {
+        super(stub, KtNodeTypes.SUPER_TYPE_CALL_ENTRY);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitSuperTypeCallEntry(this, data);
+    }
+
+    @NotNull
+    @Override
+    public KtConstructorCalleeExpression getCalleeExpression() {
+        return getRequiredStubOrPsiChild(KtNodeTypes.CONSTRUCTOR_CALLEE, KtConstructorCalleeExpression.class);
+    }
+
+    @Override
+    @Nullable
+    public KtValueArgumentList getValueArgumentList() {
+        return getStubOrPsiChild(KtNodeTypes.VALUE_ARGUMENT_LIST, KtValueArgumentList.class);
+    }
+
+    @Override
+    @NotNull
+    public List<? extends ValueArgument> getValueArguments() {
+        KtValueArgumentList list = getValueArgumentList();
+        return list != null ? list.getArguments() : Collections.<KtValueArgument>emptyList();
+    }
+
+    /** Always empty: a superclass constructor call cannot have trailing lambda arguments. */
+    @NotNull
+    @Override
+    public List<KtLambdaArgument> getLambdaArguments() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public KtTypeReference getTypeReference() {
+        return getCalleeExpression().getTypeReference();
+    }
+
+    @NotNull
+    @Override
+    public List<KtTypeProjection> getTypeArguments() {
+        KtTypeArgumentList typeArgumentList = getTypeArgumentList();
+        if (typeArgumentList == null) {
+            return Collections.emptyList();
+        }
+        return typeArgumentList.getArguments();
+    }
+
+    @Override
+    public KtTypeArgumentList getTypeArgumentList() {
+        KtUserType userType = getTypeAsUserType();
+        return userType != null ? userType.getTypeArgumentList() : null;
+    }
+}

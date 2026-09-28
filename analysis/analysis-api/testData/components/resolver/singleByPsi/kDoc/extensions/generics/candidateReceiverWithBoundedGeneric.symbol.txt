@@ -1,0 +1,5 @@
+KDocName(152,173): 'Derived.someExtension'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /someExtension(<extension receiver>: Base<DerivedBound>): kotlin.Unit
+    ]

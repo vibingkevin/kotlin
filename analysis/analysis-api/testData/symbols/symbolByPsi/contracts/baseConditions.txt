@@ -1,0 +1,785 @@
+KaAnonymousFunctionSymbol:
+  anchorPsi: KtFunctionLiteral
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  location: LOCAL
+  modality: FINAL
+  origin: SOURCE
+  psi: KtFunctionLiteral
+  realPsi: KtFunctionLiteral
+  receiverParameter: KaReceiverParameterSymbol:
+    anchorPsi: KtFunctionLiteral
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isVal: true
+    location: LOCAL
+    modality: FINAL
+    name: <receiver>
+    origin: SOURCE
+    owningCallableSymbol: KaAnonymousFunctionSymbol(<local>/<no name provided>)
+    psi: KtFunctionLiteral
+    realPsi: KtFunctionLiteral
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/contracts/ContractBuilder
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+    getContainingJvmClassName: null
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: null
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /decode
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: [
+    KaContractConditionalContractEffectDeclaration:
+      effect:
+        KaContractReturnsNotNullEffectDeclaration:
+      condition:
+        KaContractIsNullPredicateExpression:
+          argument:
+            KaContractExplicitParameterValue:
+              symbol:
+                KaValueParameterSymbol:
+                  anchorPsi: KtParameter
+                  annotations: []
+                  callableId: null
+                  contextParameters: []
+                  contextReceivers: []
+                  hasDeclaredDefaultValue: false
+                  hasDefaultValue: false
+                  isActual: false
+                  isCompanion: false
+                  isCrossinline: false
+                  isDelegated: false
+                  isExpect: false
+                  isExtension: false
+                  isExternal: false
+                  isImplicitLambdaParameter: false
+                  isNoinline: false
+                  isVal: true
+                  isVararg: false
+                  location: LOCAL
+                  modality: FINAL
+                  name: encoded
+                  origin: SOURCE
+                  primaryConstructorProperty: null
+                  psi: KtParameter
+                  realPsi: KtParameter
+                  receiverParameter: null
+                  returnType: KaUsualClassType:
+                    annotations: []
+                    typeArguments: []
+                    type: kotlin/String?
+                  typeParameters: []
+                  visibility: PUBLIC
+                  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+                  getContainingJvmClassName: BaseConditionsKt
+                  getContainingModule: KaSourceModule "Sources of main"
+                  deprecation: null
+                  importableFqName: null
+          isNegated: true
+  ]
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: decode
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/String?
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: encoded
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/String?
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+      getContainingJvmClassName: BaseConditionsKt
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: BaseConditionsKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: decode
+  importableFqName: decode
+
+KaAnonymousFunctionSymbol:
+  anchorPsi: KtFunctionLiteral
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  location: LOCAL
+  modality: FINAL
+  origin: SOURCE
+  psi: KtFunctionLiteral
+  realPsi: KtFunctionLiteral
+  receiverParameter: KaReceiverParameterSymbol:
+    anchorPsi: KtFunctionLiteral
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isVal: true
+    location: LOCAL
+    modality: FINAL
+    name: <receiver>
+    origin: SOURCE
+    owningCallableSymbol: KaAnonymousFunctionSymbol(<local>/<no name provided>)
+    psi: KtFunctionLiteral
+    realPsi: KtFunctionLiteral
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/contracts/ContractBuilder
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+    getContainingJvmClassName: null
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: null
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /decodeFake
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: [
+    KaContractConditionalContractEffectDeclaration:
+      effect:
+        KaContractReturnsNotNullEffectDeclaration:
+      condition:
+        KaContractIsNullPredicateExpression:
+          argument:
+            KaContractExplicitParameterValue:
+              symbol:
+                KaValueParameterSymbol:
+                  anchorPsi: KtParameter
+                  annotations: []
+                  callableId: null
+                  contextParameters: []
+                  contextReceivers: []
+                  hasDeclaredDefaultValue: false
+                  hasDefaultValue: false
+                  isActual: false
+                  isCompanion: false
+                  isCrossinline: false
+                  isDelegated: false
+                  isExpect: false
+                  isExtension: false
+                  isExternal: false
+                  isImplicitLambdaParameter: false
+                  isNoinline: false
+                  isVal: true
+                  isVararg: false
+                  location: LOCAL
+                  modality: FINAL
+                  name: encoded
+                  origin: SOURCE
+                  primaryConstructorProperty: null
+                  psi: KtParameter
+                  realPsi: KtParameter
+                  receiverParameter: null
+                  returnType: KaUsualClassType:
+                    annotations: []
+                    typeArguments: []
+                    type: kotlin/String?
+                  typeParameters: []
+                  visibility: PUBLIC
+                  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+                  getContainingJvmClassName: BaseConditionsKt
+                  getContainingModule: KaSourceModule "Sources of main"
+                  deprecation: null
+                  importableFqName: null
+          isNegated: false
+  ]
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: decodeFake
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/String?
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: encoded
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/String?
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+      getContainingJvmClassName: BaseConditionsKt
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: BaseConditionsKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: decodeFake
+  importableFqName: decodeFake
+
+KaAnonymousFunctionSymbol:
+  anchorPsi: KtFunctionLiteral
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  location: LOCAL
+  modality: FINAL
+  origin: SOURCE
+  psi: KtFunctionLiteral
+  realPsi: KtFunctionLiteral
+  receiverParameter: KaReceiverParameterSymbol:
+    anchorPsi: KtFunctionLiteral
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isVal: true
+    location: LOCAL
+    modality: FINAL
+    name: <receiver>
+    origin: SOURCE
+    owningCallableSymbol: KaAnonymousFunctionSymbol(<local>/<no name provided>)
+    psi: KtFunctionLiteral
+    realPsi: KtFunctionLiteral
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/contracts/ContractBuilder
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+    getContainingJvmClassName: null
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: null
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /decodeIfString
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: [
+    KaContractConditionalContractEffectDeclaration:
+      effect:
+        KaContractReturnsNotNullEffectDeclaration:
+      condition:
+        KaContractIsInstancePredicateExpression:
+          argument:
+            KaContractExplicitParameterValue:
+              symbol:
+                KaValueParameterSymbol:
+                  anchorPsi: KtParameter
+                  annotations: []
+                  callableId: null
+                  contextParameters: []
+                  contextReceivers: []
+                  hasDeclaredDefaultValue: false
+                  hasDefaultValue: false
+                  isActual: false
+                  isCompanion: false
+                  isCrossinline: false
+                  isDelegated: false
+                  isExpect: false
+                  isExtension: false
+                  isExternal: false
+                  isImplicitLambdaParameter: false
+                  isNoinline: false
+                  isVal: true
+                  isVararg: false
+                  location: LOCAL
+                  modality: FINAL
+                  name: encoded
+                  origin: SOURCE
+                  primaryConstructorProperty: null
+                  psi: KtParameter
+                  realPsi: KtParameter
+                  receiverParameter: null
+                  returnType: KaUsualClassType:
+                    annotations: []
+                    typeArguments: []
+                    type: kotlin/Any
+                  typeParameters: []
+                  visibility: PUBLIC
+                  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+                  getContainingJvmClassName: BaseConditionsKt
+                  getContainingModule: KaSourceModule "Sources of main"
+                  deprecation: null
+                  importableFqName: null
+          type:
+            KaUsualClassType:
+              annotations: []
+              typeArguments: []
+              type: kotlin/String
+          isNegated: false
+  ]
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: decodeIfString
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/String?
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: encoded
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/Any
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+      getContainingJvmClassName: BaseConditionsKt
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: BaseConditionsKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: decodeIfString
+  importableFqName: decodeIfString
+
+KaAnonymousFunctionSymbol:
+  anchorPsi: KtFunctionLiteral
+  annotations: []
+  callableId: null
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  location: LOCAL
+  modality: FINAL
+  origin: SOURCE
+  psi: KtFunctionLiteral
+  realPsi: KtFunctionLiteral
+  receiverParameter: KaReceiverParameterSymbol:
+    anchorPsi: KtFunctionLiteral
+    annotations: []
+    callableId: null
+    contextParameters: []
+    contextReceivers: []
+    isActual: false
+    isCompanion: false
+    isDelegated: false
+    isExpect: false
+    isExtension: false
+    isExternal: false
+    isVal: true
+    location: LOCAL
+    modality: FINAL
+    name: <receiver>
+    origin: SOURCE
+    owningCallableSymbol: KaAnonymousFunctionSymbol(<local>/<no name provided>)
+    psi: KtFunctionLiteral
+    realPsi: KtFunctionLiteral
+    receiverParameter: null
+    returnType: KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/contracts/ContractBuilder
+    typeParameters: []
+    visibility: PUBLIC
+    getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+    getContainingJvmClassName: null
+    getContainingModule: KaSourceModule "Sources of main"
+    deprecation: null
+    importableFqName: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/Unit
+  typeParameters: []
+  valueParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: null
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  javaMethodName: null
+  importableFqName: null
+
+KaNamedFunctionSymbol:
+  anchorPsi: KtNamedFunction
+  annotations: []
+  callableId: /decodeNotNumber
+  contextParameters: []
+  contextReceivers: []
+  contractEffects: [
+    KaContractConditionalContractEffectDeclaration:
+      effect:
+        KaContractReturnsNotNullEffectDeclaration:
+      condition:
+        KaContractIsInstancePredicateExpression:
+          argument:
+            KaContractExplicitParameterValue:
+              symbol:
+                KaValueParameterSymbol:
+                  anchorPsi: KtParameter
+                  annotations: []
+                  callableId: null
+                  contextParameters: []
+                  contextReceivers: []
+                  hasDeclaredDefaultValue: false
+                  hasDefaultValue: false
+                  isActual: false
+                  isCompanion: false
+                  isCrossinline: false
+                  isDelegated: false
+                  isExpect: false
+                  isExtension: false
+                  isExternal: false
+                  isImplicitLambdaParameter: false
+                  isNoinline: false
+                  isVal: true
+                  isVararg: false
+                  location: LOCAL
+                  modality: FINAL
+                  name: encoded
+                  origin: SOURCE
+                  primaryConstructorProperty: null
+                  psi: KtParameter
+                  realPsi: KtParameter
+                  receiverParameter: null
+                  returnType: KaUsualClassType:
+                    annotations: []
+                    typeArguments: []
+                    type: kotlin/Any
+                  typeParameters: []
+                  visibility: PUBLIC
+                  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+                  getContainingJvmClassName: BaseConditionsKt
+                  getContainingModule: KaSourceModule "Sources of main"
+                  deprecation: null
+                  importableFqName: null
+          type:
+            KaUsualClassType:
+              annotations: []
+              typeArguments: []
+              type: kotlin/Number
+          isNegated: true
+  ]
+  hasStableParameterNames: true
+  isActual: false
+  isBuiltinFunctionInvoke: false
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isInfix: false
+  isInline: false
+  isOperator: false
+  isOverride: false
+  isStatic: false
+  isSuspend: false
+  isTailRec: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: decodeNotNumber
+  origin: SOURCE
+  psi: KtNamedFunction
+  realPsi: KtNamedFunction
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: kotlin/String?
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: encoded
+      origin: SOURCE
+      primaryConstructorProperty: null
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/Any
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+      getContainingJvmClassName: BaseConditionsKt
+      getContainingModule: KaSourceModule "Sources of main"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(baseConditions.kt)
+  getContainingJvmClassName: BaseConditionsKt
+  canBeOperator: false
+  getContainingModule: KaSourceModule "Sources of main"
+  deprecation: null
+  returnValueStatus: Unspecified
+  javaMethodName: decodeNotNumber
+  importableFqName: decodeNotNumber

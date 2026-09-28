@@ -1,0 +1,150 @@
+class C {
+  constructor() /* primary */ {
+    super/*Any*/()
+    /* <init>() */
+
+  }
+
+  fun bar() {
+  }
+
+}
+
+suspend fun foo0() {
+}
+
+fun foo1() {
+}
+
+fun foo2(vararg xs: Int) {
+}
+
+fun foo3(): Int {
+  return 42
+}
+
+fun foo4(i: Int = 42) {
+}
+
+fun fooInt(x: Int) {
+}
+
+fun testLambda() {
+  useSuspend(fn = local suspend fun <anonymous>() {
+    foo1()
+  }
+)
+}
+
+fun testNestedNullableParam() {
+  useSuspendNestedNullable(fn = SuspendFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun() {
+      return foo1()
+    }
+  )
+)
+}
+
+fun testNoCoversion() {
+  useSuspend(fn = KSuspendFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun() {
+      return foo0()
+    }
+  )
+)
+}
+
+fun testNullableParam() {
+  useSuspendNullable(fn = SuspendFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun() {
+      return foo1()
+    }
+  )
+)
+}
+
+fun testSuspendPlain() {
+  useSuspend(fn = SuspendFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun() {
+      return foo1()
+    }
+  )
+)
+}
+
+fun testSuspendWithArgs() {
+  useSuspendInt(fn = SuspendFunction1<Int, Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun(p0: Int) {
+      return fooInt(x = p0)
+    }
+  )
+)
+}
+
+fun testWithBoundReceiver() {
+  useSuspend(fn = SuspendFunction0<Unit>(
+    /* bound = */ [C()],
+    /* invoke = */    local suspend fun(receiver: C) {
+      return receiver.bar()
+    }
+  )
+)
+}
+
+fun testWithCoercionToUnit() {
+  useSuspend(fn = SuspendFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun() {
+      return foo3() /*~> Unit */
+    }
+  )
+)
+}
+
+fun testWithDefaults() {
+  useSuspend(fn = SuspendFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun() {
+      return foo4()
+    }
+  )
+)
+}
+
+fun testWithVararg() {
+  useSuspend(fn = SuspendFunction0<Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun() {
+      return foo2()
+    }
+  )
+)
+}
+
+fun testWithVarargMapped() {
+  useSuspendInt(fn = SuspendFunction1<Int, Unit>(
+    /* bound = */ [],
+    /* invoke = */    local suspend fun(p0: Int) {
+      return foo2(xs = [p0])
+    }
+  )
+)
+}
+
+fun useSuspend(fn: SuspendFunction0<Unit>) {
+}
+
+fun useSuspendInt(fn: SuspendFunction1<Int, Unit>) {
+}
+
+fun useSuspendNestedNullable(fn: SuspendFunction0<Unit>?) {
+}
+
+fun useSuspendNullable(fn: SuspendFunction0<Unit>?) {
+}
+

@@ -1,0 +1,9 @@
+@file:kotlin.jvm.JvmName("DifferentFacadeName")
+
+fun foo() {}
+
+fun String.foo(): Int = 42
+
+val x: Int = 42
+
+val Int.y get() = this

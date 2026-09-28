@@ -1,0 +1,8 @@
+package one
+
+/* anchor (KtClass) --> */annotation class Anno/* anchor (KtPrimaryConstructor) --> */(/* anchor (KtParameter) --> */val s: String/* <-- */)/* <-- *//* <-- */
+
+/* anchor (KtClass) --> */@Anno(fun(): String {
+
+}())
+class TopLevelClass/* <-- */

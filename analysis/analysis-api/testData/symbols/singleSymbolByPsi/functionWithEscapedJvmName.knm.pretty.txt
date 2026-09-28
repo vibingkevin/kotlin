@@ -1,0 +1,2 @@
+@ERROR_ANNOTATION
+fun foo()

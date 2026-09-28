@@ -1,0 +1,19 @@
+package test
+
+inline fun foo(x: Function0<Unit>) {
+}
+
+fun String.id(s: String = <this>, vararg xs: Int): String {
+  return s
+}
+
+fun test() {
+  foo(x = Function0<Unit>(
+    /* bound = */ ["Fail"],
+    /* invoke = */    local fun(receiver: String) {
+      return id(/* <this> = receiver */) /*~> Unit */
+    }
+  )
+)
+}
+

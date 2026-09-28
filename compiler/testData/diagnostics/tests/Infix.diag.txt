@@ -1,0 +1,13 @@
+/Infix.kt:13:1: error: 'infix' modifier is inapplicable to this function.
+
+/Infix.kt:16:1: error: 'infix' modifier is inapplicable to this function.
+
+/Infix.kt:23:15: error: 'infix' modifier is required on 'fun toNonInfix(other: Example): Pair<Example, Example>'.
+
+/Infix.kt:30:7: error: 'infix' modifier is required on 'fun Example.toExtNonInfix(other: Example): Pair<Example, Example>'.
+
+/Infix.kt:34:7: error: 'infix' modifier is required on 'fun Example.toExtNonInfixWithExtraParams(other: Example, blah: Int = ...): Pair<Example, Example>'.
+
+/Infix.kt:37:7: error: 'infix' modifier is required on 'fun Example.toExtNonInfixDefaultValues(other: Example? = ..., blah: Int = ...): Pair<Example, Example?>'.
+
+/Infix.kt:39:7: error: 'infix' modifier is required on 'fun Example.withLambda(f: () -> Unit): Pair<Example, () -> Unit>'.

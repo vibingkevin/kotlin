@@ -1,0 +1,50 @@
+@_implementationOnly import KotlinBridges_main
+import KotlinRuntime
+import KotlinRuntimeSupport
+
+public final class Outer: KotlinRuntime.KotlinBase {
+    public final class Inner: KotlinRuntime.KotlinBase {
+        public final class InnerInner: KotlinRuntime.KotlinBase {
+            public init(
+                outer__: main.Outer.Inner
+            ) {
+                let __kt = Outer_Inner_InnerInner_init_allocate()
+                super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+                { Outer_Inner_InnerInner_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer_main_Outer_Inner__(__kt, outer__.__externalRCRef()); return () }()
+            }
+            package override init(
+                __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+                options: KotlinRuntime.KotlinBaseConstructionOptions
+            ) {
+                super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+            }
+        }
+        public init(
+            outer__: main.Outer
+        ) {
+            let __kt = Outer_Inner_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { Outer_Inner_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer_main_Outer__(__kt, outer__.__externalRCRef()); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+        public func foo() -> Swift.Int32 {
+            return Outer_Inner_foo(self.__externalRCRef())
+        }
+    }
+    public init() {
+        let __kt = __root___Outer_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { __root___Outer_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}

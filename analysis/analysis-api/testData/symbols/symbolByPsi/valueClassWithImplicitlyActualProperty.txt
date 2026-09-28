@@ -1,0 +1,213 @@
+KaConstructorSymbol:
+  anchorPsi: KtPrimaryConstructor
+  annotations: []
+  callableId: null
+  containingClassId: A
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: true
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isPrimary: true
+  location: CLASS
+  modality: FINAL
+  origin: SOURCE
+  psi: KtPrimaryConstructor
+  realPsi: KtPrimaryConstructor
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: A
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: name
+      origin: SOURCE
+      primaryConstructorProperty: KaKotlinPropertySymbol(/A.name)
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/String
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(main.kt)
+      getContainingJvmClassName: A
+      getContainingModule: KaSourceModule "Sources of jvm"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(main.kt)
+  getContainingJvmClassName: A
+  getContainingModule: KaSourceModule "Sources of jvm"
+  deprecation: null
+  javaMethodName: null
+  importableFqName: A
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: A
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: true
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: true
+  isInner: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: A
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(main.kt)
+  getContainingModule: KaSourceModule "Sources of jvm"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: A
+
+KaConstructorSymbol:
+  anchorPsi: KtPrimaryConstructor
+  annotations: []
+  callableId: null
+  containingClassId: B
+  contextParameters: []
+  contextReceivers: []
+  hasStableParameterNames: true
+  isActual: true
+  isCompanion: false
+  isExpect: false
+  isExtension: false
+  isExternal: false
+  isPrimary: true
+  location: CLASS
+  modality: FINAL
+  origin: SOURCE
+  psi: KtPrimaryConstructor
+  realPsi: KtPrimaryConstructor
+  receiverParameter: null
+  returnType: KaUsualClassType:
+    annotations: []
+    typeArguments: []
+    type: B
+  typeParameters: []
+  valueParameters: [
+    KaValueParameterSymbol:
+      anchorPsi: KtParameter
+      annotations: []
+      callableId: null
+      contextParameters: []
+      contextReceivers: []
+      hasDeclaredDefaultValue: false
+      hasDefaultValue: false
+      isActual: false
+      isCompanion: false
+      isCrossinline: false
+      isDelegated: false
+      isExpect: false
+      isExtension: false
+      isExternal: false
+      isImplicitLambdaParameter: false
+      isNoinline: false
+      isVal: true
+      isVararg: false
+      location: LOCAL
+      modality: FINAL
+      name: s
+      origin: SOURCE
+      primaryConstructorProperty: KaKotlinPropertySymbol(/B.s)
+      psi: KtParameter
+      realPsi: KtParameter
+      receiverParameter: null
+      returnType: KaUsualClassType:
+        annotations: []
+        typeArguments: []
+        type: kotlin/String
+      typeParameters: []
+      visibility: PUBLIC
+      getContainingFileSymbol: KaFileSymbol(main.kt)
+      getContainingJvmClassName: B
+      getContainingModule: KaSourceModule "Sources of jvm"
+      deprecation: null
+      importableFqName: null
+  ]
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(main.kt)
+  getContainingJvmClassName: B
+  getContainingModule: KaSourceModule "Sources of jvm"
+  deprecation: null
+  javaMethodName: null
+  importableFqName: B
+
+KaNamedClassSymbol:
+  anchorPsi: KtClass
+  annotations: []
+  classId: B
+  classKind: CLASS
+  companionObject: null
+  contextReceivers: []
+  isActual: true
+  isData: false
+  isExpect: false
+  isExternal: false
+  isFun: false
+  isInline: true
+  isInner: false
+  location: TOP_LEVEL
+  modality: FINAL
+  name: B
+  origin: SOURCE
+  psi: KtClass
+  realPsi: KtClass
+  superTypes: [
+    KaUsualClassType:
+      annotations: []
+      typeArguments: []
+      type: kotlin/Any
+  ]
+  typeParameters: []
+  visibility: PUBLIC
+  getContainingFileSymbol: KaFileSymbol(main.kt)
+  getContainingModule: KaSourceModule "Sources of jvm"
+  applicableAnnotationTargets: null
+  deprecation: null
+  importableFqName: B

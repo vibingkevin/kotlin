@@ -1,0 +1,19 @@
+// RUN_PIPELINE_TILL: BACKEND
+// IGNORE_FIR_DIAGNOSTICS
+
+fun test() {
+    js(<!JSCODE_NO_JAVASCRIPT_PRODUCED!>""<!>)
+    js(<!JSCODE_NO_JAVASCRIPT_PRODUCED!>" "<!>)
+    js(<!JSCODE_NO_JAVASCRIPT_PRODUCED!>"""
+               """<!>)
+
+    val empty = ""
+    js(<!JSCODE_ARGUMENT_NON_CONST_EXPRESSION, JSCODE_CAN_NOT_VERIFY_JAVASCRIPT!>empty<!>)
+
+    val whitespace = "  "
+    js(<!JSCODE_ARGUMENT_NON_CONST_EXPRESSION, JSCODE_CAN_NOT_VERIFY_JAVASCRIPT!>whitespace<!>)
+
+    val multiline = """
+    """
+    js(<!JSCODE_ARGUMENT_NON_CONST_EXPRESSION, JSCODE_CAN_NOT_VERIFY_JAVASCRIPT!>multiline<!>)
+}

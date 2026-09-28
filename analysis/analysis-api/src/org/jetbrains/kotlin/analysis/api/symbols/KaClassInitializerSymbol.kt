@@ -1,0 +1,29 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.analysis.api.symbols
+
+import org.jetbrains.kotlin.analysis.api.KaImplementationDetail
+import org.jetbrains.kotlin.analysis.api.lifetime.withValidityAssertion
+import org.jetbrains.kotlin.analysis.api.symbols.pointers.KaSymbolPointer
+
+/**
+ * [KaClassInitializerSymbol] represents an [anonymous initializer declaration](https://kotlinlang.org/docs/reference/grammar.html#anonymousInitializer)
+ * in a class body.
+ */
+@SubclassOptInRequired(KaImplementationDetail::class)
+public abstract class KaClassInitializerSymbol : KaDeclarationSymbol {
+    abstract override fun createPointer(): KaSymbolPointer<KaClassInitializerSymbol>
+
+    //region Implementation details
+    final override val modality: KaSymbolModality get() = withValidityAssertion { KaSymbolModality.FINAL }
+    final override val visibility: KaSymbolVisibility get() = withValidityAssertion { KaSymbolVisibility.LOCAL }
+    final override val isActual: Boolean get() = withValidityAssertion { false }
+    final override val isExpect: Boolean get() = withValidityAssertion { false }
+    final override val isExternal: Boolean get() = withValidityAssertion { false }
+    final override val location: KaSymbolLocation get() = withValidityAssertion { KaSymbolLocation.CLASS }
+
+    //endregion
+}

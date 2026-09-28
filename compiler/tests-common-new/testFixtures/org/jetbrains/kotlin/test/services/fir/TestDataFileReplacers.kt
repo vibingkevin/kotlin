@@ -1,0 +1,75 @@
+/*
+ * Copyright 2010-2023 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.test.services.fir
+
+import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LANGUAGE_FEATURE_TOGGLED_IDENTICAL
+import org.jetbrains.kotlin.test.directives.LanguageSettingsDirectives.LANGUAGE_FEATURE_TOGGLED
+import org.jetbrains.kotlin.test.services.MetaTestConfigurator
+import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.services.moduleStructure
+import org.jetbrains.kotlin.test.utils.isCustomTestData
+import org.jetbrains.kotlin.test.utils.isLLFirSpecializedTestData
+import org.jetbrains.kotlin.test.utils.latestLVTestDataFile
+import org.jetbrains.kotlin.test.utils.lfDisabledTestDataFile
+import java.io.File
+
+abstract class TestDataFileReplacer(testServices: TestServices) : MetaTestConfigurator(testServices) {
+    override fun transformTestDataPath(testDataFileName: String): String {
+        val originalFile = File(testDataFileName)
+
+        // If the original file is already not just `.kt`, then it was processed by another replacer
+        if (originalFile.isCustomTestData) return testDataFileName
+        // configured with `forTestsMatching`, it'll be executed after `LLFirMetaTestConfigurator`, which is configured generally.
+        if (originalFile.isLLFirSpecializedTestData) return testDataFileName
+
+        if (!shouldReplaceFile(originalFile)) return testDataFileName
+
+        val newFile = originalFile.newFile
+        if (!newFile.exists()) {
+            originalFile.copyTo(newFile)
+        }
+        return newFile.absolutePath
+    }
+
+    protected abstract fun shouldReplaceFile(originalFile: File): Boolean
+
+    protected abstract val File.newFile: File
+}
+
+class LatestLanguageVersionMetaConfigurator(testServices: TestServices) : TestDataFileReplacer(testServices) {
+    override fun shouldReplaceFile(originalFile: File): Boolean {
+        return originalFile.useLines { lines ->
+            lines.any { it == "// ${FirDiagnosticsDirectives.LATEST_LV_DIFFERENCE.name}" }
+        }
+    }
+
+    override val File.newFile: File
+        get() = this.latestLVTestDataFile
+}
+
+class LanguageFeatureDisabledMetaConfigurator(testServices: TestServices) : TestDataFileReplacer(testServices) {
+    override fun shouldReplaceFile(originalFile: File): Boolean {
+        var lfTestedFound = false
+        var lfDisabledIdenticalFound = false
+        originalFile.useLines { lines ->
+            lines.forEach {
+                lfTestedFound = lfTestedFound || it.startsWith("// $LANGUAGE_FEATURE_TOGGLED")
+                lfDisabledIdenticalFound = it.startsWith("// $LANGUAGE_FEATURE_TOGGLED_IDENTICAL")
+                if (lfDisabledIdenticalFound) return@useLines
+            }
+        }
+        return lfTestedFound && !lfDisabledIdenticalFound
+    }
+
+    override val File.newFile: File
+        get() = this.lfDisabledTestDataFile
+
+    override fun shouldSkipTest(): Boolean {
+        return LANGUAGE_FEATURE_TOGGLED !in testServices.moduleStructure.allDirectives
+    }
+
+}

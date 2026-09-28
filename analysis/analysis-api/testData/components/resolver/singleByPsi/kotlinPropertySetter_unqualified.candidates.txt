@@ -1,0 +1,46 @@
+KtNameReferenceExpression(50,51): 'i'
+  KaApplicableCallCandidate:
+    candidate = KaSimpleVariableAccessCall:
+      contextArguments = []
+      dispatchReceiver = KaImplicitReceiverValue:
+        symbol = KaReceiverParameterSymbol:
+          anchorPsi: KtTypeReference
+          annotations: []
+          callableId: null
+          contextParameters: []
+          contextReceivers: []
+          isActual: false
+          isCompanion: false
+          isDelegated: false
+          isExpect: false
+          isExtension: false
+          isExternal: false
+          isVal: true
+          location: LOCAL
+          modality: FINAL
+          name: <receiver>
+          origin: SOURCE
+          owningCallableSymbol: KaNamedFunctionSymbol(/foo)
+          psi: KtTypeReference
+          realPsi: KtTypeReference
+          receiverParameter: null
+          returnType: KaUsualClassType:
+            annotations: []
+            typeArguments: []
+            type: A
+          typeParameters: []
+          visibility: PUBLIC
+        type = A
+      extensionReceiver = null
+      isContextSensitive = false
+      kind = Write:
+        value = 1
+      signature = KaVariableSignature:
+        name = i
+        receiverType = null
+        returnType = kotlin.Int
+        symbol = var i: kotlin.Int
+        contextParameters = []
+        callableId = /A.i
+      typeArgumentsMapping = {}
+    isInBestCandidates = true

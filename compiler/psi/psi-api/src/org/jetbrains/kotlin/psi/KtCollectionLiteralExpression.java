@@ -1,0 +1,95 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi;
+
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.util.PsiTreeUtil;
+import kotlin.SubclassOptInRequired;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.kotlin.KtNodeTypes;
+import org.jetbrains.kotlin.lexer.KtTokens;
+import org.jetbrains.kotlin.psi.stubs.KotlinCollectionLiteralExpressionStub;
+import org.jetbrains.kotlin.resolution.KtResolvableCall;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.jetbrains.kotlin.psi.psiUtil.KtPsiUtilKt.getTrailingCommaByClosingElement;
+
+/**
+ * Represents a collection literal expression.
+ *
+ * <h3>Example:</h3>
+ * <pre>{@code
+ * annotation class AnnoWithArray(val arr: IntArray)
+ *
+ * @AnnoWithArray([1, 2, 3])
+ * //             ^_______^
+ * fun foo() {}
+ * }</pre>
+ */
+@SubclassOptInRequired(markerClass = KtImplementationDetail.class)
+public class KtCollectionLiteralExpression extends KtElementImplStub<KotlinCollectionLiteralExpressionStub>
+        implements KtReferenceExpression, KtResolvableCall {
+    @KtImplementationDetail
+    public KtCollectionLiteralExpression(@NotNull KotlinCollectionLiteralExpressionStub stub) {
+        super(stub, KtNodeTypes.COLLECTION_LITERAL_EXPRESSION);
+    }
+
+    @KtImplementationDetail
+    public KtCollectionLiteralExpression(@NotNull ASTNode node) {
+        super(node);
+    }
+
+    @Override
+    public <R, D> R accept(@NotNull KtVisitor<R, D> visitor, D data) {
+        return visitor.visitCollectionLiteralExpression(this, data);
+    }
+
+    /** Returns the opening bracket {@code [}, or {@code null} if it is absent in incomplete code. */
+    @Nullable
+    public PsiElement getLeftBracket() {
+        ASTNode astNode = getNode().findChildByType(KtTokens.LBRACKET);
+        return astNode != null ? astNode.getPsi() : null;
+    }
+
+    /** Returns the closing bracket {@code ]}, or {@code null} if it is absent in incomplete code. */
+    @Nullable
+    public PsiElement getRightBracket() {
+        ASTNode astNode = getNode().findChildByType(KtTokens.RBRACKET);
+        return astNode != null ? astNode.getPsi() : null;
+    }
+
+    /** Returns the trailing comma after the last element, or {@code null} if there is none. */
+    @Nullable
+    public PsiElement getTrailingComma() {
+        PsiElement rightBracket = getRightBracket();
+        return getTrailingCommaByClosingElement(rightBracket);
+    }
+
+    /**
+     * @return a list of inner expressions. If no inner expressions are present, an empty list is returned.
+     */
+    public @NotNull List<KtExpression> getInnerExpressions() {
+        KotlinCollectionLiteralExpressionStub stub = getStub();
+        if (stub != null) {
+            int expressionsCount = stub.getInnerExpressionCount();
+            if (expressionsCount == 0) {
+                return Collections.emptyList();
+            }
+
+            KtExpression[] expressions = getExpressionsFromStub();
+            if (expressions.length == expressionsCount) {
+                return Arrays.asList(expressions);
+            }
+        }
+
+        return PsiTreeUtil.getChildrenOfTypeAsList(this, KtExpression.class);
+    }
+}

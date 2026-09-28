@@ -1,0 +1,2 @@
+<constructor>(): {test.MyAlias=} test.MyClass
+test/MyAlias

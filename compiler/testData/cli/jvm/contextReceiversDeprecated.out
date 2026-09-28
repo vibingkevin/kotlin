@@ -1,0 +1,2 @@
+warning: [REMOVED_CLI_ARG] The argument '-Xcontext-receivers' was removed in Kotlin $ABI_VERSION$. It has no effect.
+OK

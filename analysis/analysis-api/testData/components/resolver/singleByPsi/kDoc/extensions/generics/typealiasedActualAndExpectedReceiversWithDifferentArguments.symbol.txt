@@ -1,0 +1,2 @@
+KDocName(102,110): 'AInt.foo'
+  null

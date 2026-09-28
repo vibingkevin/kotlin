@@ -1,0 +1,41 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi
+
+import com.intellij.lang.ASTNode
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub
+
+/**
+ * Represents the list of contract effects in a contract block.
+ *
+ * ### Example:
+ *
+ * ```kotlin
+ * fun baz(num: Int?, block: () -> Unit): Int contract [
+ *        callsInPlace(block, InvocationKind.EXACTLY_ONCE),
+ *        returns() implies (num != null)
+ *    ] {
+ * // ^________________________________________________^
+ * // The entire block from '[' to ']'
+ *     println("Hello")
+ * }
+ * ```
+ */
+@OptIn(KtImplementationDetail::class)
+class KtContractEffectList : KtElementImplStub<KotlinPlaceHolderStub<KtContractEffectList>> {
+    @KtImplementationDetail
+    constructor(node: ASTNode) : super(node)
+
+    @KtImplementationDetail
+    constructor(stub: KotlinPlaceHolderStub<KtContractEffectList>) : super(stub, KtNodeTypes.CONTRACT_EFFECT_LIST)
+}
+
+/**
+ * Returns the individual contract effects declared in this list, in source order.
+ */
+fun KtContractEffectList.getContractEffects(): List<KtContractEffect> =
+    getStubOrPsiChildren(KtNodeTypes.CONTRACT_EFFECT, KtContractEffect.EMPTY_ARRAY).asList()

@@ -1,0 +1,203 @@
+digraph safeCalls_kt {
+    graph [nodesep=3]
+    node [shape=box penwidth=2]
+    edge [penwidth=2]
+
+    subgraph cluster_0 {
+        color=red
+        0 [label="Enter file safeCalls.kt" style="filled" fillcolor=red];
+        1 [label="Exit file safeCalls.kt" style="filled" fillcolor=red];
+    }
+    0 -> {1} [color=green];
+
+    subgraph cluster_1 {
+        color=red
+        2 [label="Enter class A" style="filled" fillcolor=red];
+        3 [label="Exit class A" style="filled" fillcolor=red];
+    }
+    2 -> {3} [color=green];
+
+    subgraph cluster_2 {
+        color=red
+        4 [label="Enter function foo" style="filled" fillcolor=red];
+        5 [label="Exit function foo" style="filled" fillcolor=red];
+    }
+    4 -> {5};
+
+    subgraph cluster_3 {
+        color=red
+        6 [label="Enter function bar" style="filled" fillcolor=red];
+        7 [label="Exit function bar" style="filled" fillcolor=red];
+    }
+    6 -> {7};
+
+    subgraph cluster_4 {
+        color=red
+        8 [label="Enter static <static of A>" style="filled" fillcolor=red];
+        9 [label="Exit static <static of A>" style="filled" fillcolor=red];
+    }
+    8 -> {9} [color=green];
+
+    subgraph cluster_5 {
+        color=red
+        10 [label="Enter class B" style="filled" fillcolor=red];
+        11 [label="Exit class B" style="filled" fillcolor=red];
+    }
+    10 -> {11} [color=green];
+
+    subgraph cluster_6 {
+        color=red
+        12 [label="Enter static <static of B>" style="filled" fillcolor=red];
+        13 [label="Exit static <static of B>" style="filled" fillcolor=red];
+    }
+    12 -> {13} [color=green];
+
+    subgraph cluster_7 {
+        color=red
+        14 [label="Enter function test_1" style="filled" fillcolor=red];
+        subgraph cluster_8 {
+            color=blue
+            15 [label="Enter block"];
+            16 [label="Access variable R|<local>/x|"];
+            17 [label="Enter safe call"];
+            subgraph cluster_9 {
+                color=blue
+                18 [label="Function call arguments enter"];
+                19 [label="Function call arguments exit"];
+            }
+            20 [label="Function call enter: $subj$.R|/A.foo|()"];
+            21 [label="Function call exit: $subj$.R|/A.foo|()" style="filled" fillcolor=yellow];
+            22 [label="Enter safe call"];
+            subgraph cluster_10 {
+                color=blue
+                23 [label="Function call arguments enter"];
+                24 [label="Const: String()"];
+                25 [label="Function call arguments exit"];
+            }
+            26 [label="Function call enter: $subj$.R|/A.bar|(...)"];
+            27 [label="Function call exit: $subj$.R|/A.bar|(...)" style="filled" fillcolor=yellow];
+            28 [label="Exit safe call"];
+            29 [label="Exit safe call"];
+            30 [label="Exit block"];
+        }
+        31 [label="Exit function test_1" style="filled" fillcolor=red];
+    }
+    14 -> {15};
+    15 -> {16};
+    16 -> {17 28};
+    17 -> {18};
+    18 -> {19};
+    19 -> {20};
+    20 -> {21};
+    21 -> {22 28};
+    22 -> {23};
+    23 -> {24};
+    24 -> {25};
+    25 -> {26};
+    26 -> {27};
+    27 -> {29};
+    28 -> {29};
+    29 -> {30};
+    30 -> {31};
+
+    subgraph cluster_11 {
+        color=red
+        32 [label="Enter function test_2" style="filled" fillcolor=red];
+        subgraph cluster_12 {
+            color=blue
+            33 [label="Enter block"];
+            34 [label="Access variable R|<local>/x|"];
+            35 [label="Enter safe call"];
+            36 [label="Access variable R|/B.foo|"];
+            37 [label="Enter safe call"];
+            38 [label="Access variable R|/B.bar|"];
+            39 [label="Exit safe call"];
+            40 [label="Exit safe call"];
+            41 [label="Exit block"];
+        }
+        42 [label="Exit function test_2" style="filled" fillcolor=red];
+    }
+    32 -> {33};
+    33 -> {34};
+    34 -> {35 39};
+    35 -> {36};
+    36 -> {37 39};
+    37 -> {38};
+    38 -> {40};
+    39 -> {40};
+    40 -> {41};
+    41 -> {42};
+
+    subgraph cluster_13 {
+        color=red
+        43 [label="Enter function test_3" style="filled" fillcolor=red];
+        subgraph cluster_14 {
+            color=blue
+            44 [label="Enter block"];
+            subgraph cluster_15 {
+                color=blue
+                45 [label="Enter when"];
+                subgraph cluster_16 {
+                    color=blue
+                    46 [label="Enter when branch condition "];
+                    47 [label="Access variable R|<local>/x|"];
+                    48 [label="Enter safe call"];
+                    subgraph cluster_17 {
+                        color=blue
+                        49 [label="Function call arguments enter"];
+                        50 [label="Access variable R|<local>/y|"];
+                        51 [label="Type operator: (R|<local>/y| as R|kotlin/String|)"];
+                        52 [label="Function call arguments exit"];
+                    }
+                    53 [label="Function call enter: $subj$.R|/A.bar|(...)"];
+                    54 [label="Function call exit: $subj$.R|/A.bar|(...)" style="filled" fillcolor=yellow];
+                    55 [label="Exit safe call"];
+                    56 [label="Const: Null(null)"];
+                    57 [label="Equality operator !=" style="filled" fillcolor=yellow];
+                    58 [label="Exit when branch condition"];
+                }
+                59 [label="Synthetic else branch"];
+                60 [label="Enter when branch result"];
+                subgraph cluster_18 {
+                    color=blue
+                    61 [label="Enter block"];
+                    62 [label="Access variable R|<local>/y|"];
+                    63 [label="Smart cast: R|<local>/y|"];
+                    64 [label="Access variable R|kotlin/String.length|"];
+                    65 [label="Exit block"];
+                }
+                66 [label="Exit when branch result"];
+                67 [label="Exit when"];
+            }
+            68 [label="Exit block"];
+        }
+        69 [label="Exit function test_3" style="filled" fillcolor=red];
+    }
+    43 -> {44};
+    44 -> {45};
+    45 -> {46};
+    46 -> {47};
+    47 -> {48 55};
+    48 -> {49};
+    49 -> {50};
+    50 -> {51};
+    51 -> {52};
+    52 -> {53};
+    53 -> {54};
+    54 -> {55};
+    55 -> {56};
+    56 -> {57};
+    57 -> {58};
+    58 -> {59 60};
+    59 -> {67};
+    60 -> {61};
+    61 -> {62};
+    62 -> {63};
+    63 -> {64};
+    64 -> {65};
+    65 -> {66};
+    66 -> {67};
+    67 -> {68};
+    68 -> {69};
+
+}

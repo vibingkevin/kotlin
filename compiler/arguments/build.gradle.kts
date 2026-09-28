@@ -1,0 +1,177 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+
+plugins {
+    id("common-configuration")
+    id("com.autonomousapps.dependency-analysis")
+    id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.kotlin.plugin.serialization")
+    `jvm-test-suite`
+    id("test-inputs-check")
+}
+
+description = "Contains a unified representation of Kotlin compiler arguments for current and old Kotlin releases."
+
+sourceSets {
+    "main" {
+        projectDefault()
+    }
+
+    "test" {
+        projectDefault()
+    }
+}
+
+publish {
+    artifactId = "kotlin-compiler-arguments-description"
+}
+standardPublicJars()
+
+dependencies {
+    api(kotlinStdlib())
+
+    implementation(libs.kotlinx.serialization.json)
+
+    compileOnly(project(":compiler:arguments.common"))
+    embedded(project(":compiler:arguments.common")) {
+        isTransitive = false
+    }
+    compileOnly(project(":generators"))
+    embedded(project(":generators")) {
+        isTransitive = false
+    }
+
+    testImplementation(kotlinTest("junit5"))
+    testImplementation(project(":compiler:config.jvm"))
+
+    testCompileOnly(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+
+    testImplementation(project(":compiler:cli-base"))
+    testImplementation(libs.junit.jupiter.params)
+}
+
+projectTests {
+    testTask()
+}
+
+val generateJson = tasks.register<JavaExec>("generateJson") {
+    classpath(sourceSets.named("main").flatMap { it.kotlin.classesDirectory })
+    classpath(sourceSets.named("main").map { it.compileClasspath })
+    mainClass.set("org.jetbrains.kotlin.arguments.serialization.json.JsonSerializerKt")
+
+    val outputJsonInResources = sourceSets.named("main").map {
+        // The first one is the default one
+        it.resources.srcDirs.last().resolve("kotlin-compiler-arguments.json")
+    }
+    outputs.file(outputJsonInResources)
+    argumentProviders.add {
+        listOf(outputJsonInResources.get().path)
+    }
+
+    systemProperties["teamcity"] = kotlinBuildProperties.isTeamcityBuild.get()
+}
+
+tasks.named("processResources") {
+    dependsOn(generateJson)
+}
+tasks.named("sourcesJar") {
+    dependsOn(generateJson)
+}
+
+val stableReleaseSsotDecl = configurations.dependencyScope("stableReleaseCompilerArguments")
+val stableReleaseSsotResolv = configurations.resolvable("stableReleaseArgumentsClasspath") {
+    extendsFrom(stableReleaseSsotDecl.get())
+}
+
+dependencies.add(stableReleaseSsotDecl.name, libs.kotlin.compiler.arguments.release) {
+    isTransitive = false
+}
+
+val relocatedStableReleaseSsotTask = tasks.register<ShadowJar>("relocateStableReleaseSsotJar") {
+    relocate("org.jetbrains.kotlin.arguments.description", "org.jetbrains.kotlin.arguments.stable.description")
+    relocate("org.jetbrains.kotlin.arguments.dsl.types", "org.jetbrains.kotlin.arguments.stable.dsl.types")
+    relocate("org.jetbrains.kotlin.arguments.dsl.base", "org.jetbrains.kotlin.arguments.stable.dsl.base")
+    relocate("org.jetbrains.kotlin.arguments.dsl", "org.jetbrains.kotlin.arguments.stable.dsl")
+    relocate("org.jetbrains.kotlin.config", "org.jetbrains.kotlin.stable.config")
+    configurations.add(stableReleaseSsotResolv)
+    archiveFileName.value("stable-arguments-relocated.jar")
+    enableKotlinModuleRemapping.set(true)
+}
+
+val stableReleaseCompilerDecl = configurations.dependencyScope("stableReleaseCompiler")
+val stableReleaseCompilerResolv = configurations.resolvable("stableReleaseCompilerClasspath") {
+    extendsFrom(stableReleaseCompilerDecl.get())
+}
+
+dependencies.add(stableReleaseCompilerDecl.name, libs.kotlin.compiler.release) {
+    isTransitive = false
+}
+
+// Required to have the stable view of LanguageFeatures class used in DSL
+val relocatedStableReleaseCompilerTask = tasks.register<ShadowJar>("relocateStableReleaseCompilerJar") {
+    relocate("org.jetbrains.kotlin.config", "org.jetbrains.kotlin.stable.config")
+    include("**/kotlin/config/**")
+    configurations.add(stableReleaseCompilerResolv)
+    archiveFileName.value("stable-compiler-relocated.jar")
+    enableKotlinModuleRemapping.set(true)
+}
+
+val relocatedStableRelease = objects.fileCollection().from(relocatedStableReleaseSsotTask, relocatedStableReleaseCompilerTask)
+
+testing {
+    suites {
+        register<JvmTestSuite>("stableReleaseTests") {
+            dependencies {
+                implementation(project())
+                implementation("org.jetbrains.kotlin:kotlin-test")
+                runtimeOnly(project(":compiler:arguments.common"))
+                implementation(relocatedStableRelease)
+                implementation(platform(libs.junit.bom))
+                implementation(libs.junit.jupiter.params)
+                implementation(libs.schema.kenerator.core)
+                implementation(libs.schema.kenerator.serialization)
+                implementation(libs.schema.kenerator.jsonschema)
+            }
+
+            targets {
+                all {
+                    testTask.configure {
+                        javaLauncher.value(getToolchainLauncherFor(JdkMajorVersion.JDK_11_0))
+                    }
+                }
+            }
+
+            targets {
+                all {
+                    tasks.named("check") {
+                        dependsOn(testTask)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// schema-kenerator-* dependency is only compatible with JDK 11+
+tasks.named<KotlinJvmCompile>("compileStableReleaseTestsKotlin") {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+}
+
+tasks.named<JavaCompile>("compileStableReleaseTestsJava") {
+    sourceCompatibility = "11"
+    targetCompatibility = "11"
+}
+
+kotlin.target.compilations.getByName("stableReleaseTests").associateWith(
+    kotlin.target.compilations.getByName("main")
+)
+
+sourceSets.configureEach {
+    if (name == "stableReleaseTests") {
+        java.srcDirs("stableReleaseTests")
+        resources.srcDir("stableReleaseResources")
+    }
+}

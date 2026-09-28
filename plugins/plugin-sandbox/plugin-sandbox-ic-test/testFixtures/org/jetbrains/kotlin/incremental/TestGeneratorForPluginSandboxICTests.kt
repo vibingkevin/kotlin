@@ -1,0 +1,50 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.incremental
+
+import org.jetbrains.kotlin.generators.dsl.junit5.generateTestGroupSuiteWithJUnit5
+
+fun main(args: Array<String>) {
+    generateTestGroupSuiteWithJUnit5(args) {
+        testGroup(
+            "plugins/plugin-sandbox/plugin-sandbox-ic-test/tests-gen",
+            "plugins/plugin-sandbox/plugin-sandbox-ic-test/testData/jvmAndKlib"
+        ) {
+            testClass<AbstractIncrementalJvmWithPluginCompilerRunnerTest> {
+                model("pureKotlin", extension = null, recursive = false)
+            }
+            testClass<AbstractIncrementalJsKlibWithPluginCompilerRunnerTest> {
+                model("pureKotlin", extension = null, recursive = false)
+            }
+        }
+
+        testGroup("plugins/plugin-sandbox/plugin-sandbox-ic-test/tests-gen", "plugins/plugin-sandbox/plugin-sandbox-ic-test/testData/js") {
+            testClass<AbstractIncrementalCodegenJsWithPluginSandboxPerModuleTest> {
+                model("pureKotlin", recursive = false, pattern = "^([^_](.+))$")
+            }
+            testClass<AbstractIncrementalCodegenJsEs6WithPluginSandboxPerModuleTest> {
+                model("pureKotlin", recursive = false, pattern = "^([^_](.+))$")
+            }
+            testClass<AbstractIncrementalCodegenJsWithPluginSandboxPerFileTest> {
+                model("pureKotlin", recursive = false, pattern = "^([^_](.+))$")
+            }
+            testClass<AbstractIncrementalCodegenJsEs6WithPluginSandboxPerFileTest> {
+                model("pureKotlin", recursive = false, pattern = "^([^_](.+))$")
+            }
+        }
+        testGroup("plugins/plugin-sandbox/plugin-sandbox-ic-test/tests-gen", "plugins/plugin-sandbox/plugin-sandbox-ic-test/testData/js") {
+            testClass<AbstractIncrementalWasmWithPluginSandboxTest> {
+                model("pureKotlin", recursive = false, pattern = "^([^_](.+))$")
+            }
+            testClass<AbstractIncrementalWasmMultiModuleWithPluginSandboxTest> {
+                model("pureKotlin", recursive = false, pattern = "^([^_](.+))$")
+            }
+            testClass<AbstractIncrementalWasmSingleModuleWithPluginSandboxTest> {
+                model("pureKotlin", recursive = false, pattern = "^([^_](.+))$")
+            }
+        }
+    }
+}

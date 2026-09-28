@@ -1,0 +1,8 @@
+KT element: KtNamedFunction
+KT element text:
+public inline fun <reified T> emptyArray(): kotlin.Array<T> { /* compiled code */ }
+FIR element: FirNamedFunctionImpl
+FIR source kind: KtRealSourceElementKind
+
+FIR element rendered:
+public final inline [ResolvedTo(BODY_RESOLVE)] fun <reified [ResolvedTo(BODY_RESOLVE)] T> emptyArray(): R|kotlin/Array<T>|

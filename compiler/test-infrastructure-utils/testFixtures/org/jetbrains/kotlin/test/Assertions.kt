@@ -1,0 +1,106 @@
+/*
+ * Copyright 2010-2020 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.test
+
+import java.io.File
+import java.nio.file.Path
+import kotlin.time.Duration
+
+val isTeamCityBuild: Boolean = System.getenv("TEAMCITY_VERSION") != null
+
+abstract class Assertions {
+    fun assertEqualsToFile(expectedFile: File, actual: String, sanitizer: (String) -> String = { it }) {
+        assertEqualsToFile(expectedFile, actual, sanitizer) { "Actual data differs from file content" }
+    }
+
+    abstract fun doesEqualToFile(expectedFile: File, actual: String, sanitizer: (String) -> String = { it }): Boolean
+
+    fun assertEqualsToFile(expectedFile: Path, actual: String, sanitizer: (String) -> String = { it }) {
+        assertEqualsToFile(expectedFile.toFile(), actual, sanitizer)
+    }
+
+    abstract fun assertEqualsToFile(
+        expectedFile: File,
+        actual: String,
+        sanitizer: (String) -> String = { it },
+        message: (() -> String)
+    )
+
+    fun assertFileDoesntExist(file: File, errorMessage: () -> String) {
+        if (file.exists()) {
+            if (!isTeamCityBuild) {
+                file.delete()
+            }
+            fail(errorMessage)
+        }
+    }
+
+    abstract fun assertEquals(expected: Any?, actual: Any?, message: (() -> String)? = null)
+    abstract fun assertNotEquals(expected: Any?, actual: Any?, message: (() -> String)? = null)
+    abstract fun assertTrue(value: Boolean, message: (() -> String)? = null)
+    abstract fun assertFalse(value: Boolean, message: (() -> String)? = null)
+    abstract fun assertNotNull(value: Any?, message: (() -> String)? = null)
+
+    /**
+     * Asserts that all the elements from [expected] are contained in [actual] and vice versa.
+     * The order doesn't matter.
+     */
+    abstract fun <T> assertSameElements(expected: Collection<T>, actual: Collection<T>, message: (() -> String)? = null)
+
+    /**
+     * Asserts that all [expected] elements are contained in [collection].
+     */
+    fun <T> assertContainsElements(collection: Collection<T>, vararg expected: T) {
+        assertContainsElements(collection, expected.toList())
+    }
+
+    /**
+     * Asserts that all [expected] elements are contained in [collection].
+     */
+    fun <T> assertContainsElements(collection: Collection<T>, expected: Collection<T>) {
+        val copy = ArrayList(collection)
+        copy.retainAll(expected)
+        assertSameElements(copy, expected) { renderCollectionToString(collection) }
+    }
+
+    fun renderCollectionToString(collection: Iterable<*>): String {
+        if (!collection.iterator().hasNext()) {
+            return "<empty>"
+        }
+
+        return collection.joinToString("\n")
+    }
+
+    abstract fun failAll(exceptions: List<Throwable>)
+    abstract fun assertAll(conditions: List<() -> Unit>)
+
+    /**
+     * This method is used to unfold an exception in case the exception represents
+     * a group of failed exceptions thrown by [assertAll].
+     */
+    open fun unfoldException(e: Throwable): List<Throwable> = listOf(e)
+
+    fun assertAll(vararg conditions: () -> Unit) {
+        assertAll(conditions.toList())
+    }
+
+    abstract fun fail(message: () -> String): Nothing
+
+    // The default implementation exists only for compatibility with IDEA
+    open fun assumeFalse(value: Boolean, message: () -> String) {
+        assertFalse(value, message)
+    }
+
+    /**
+     * Asserts that the given [action] does not take longer than the given [timeout].
+     *
+     * The action is executed in a new thread so that its elapsed time can be tracked and monitored. If the action takes longer, the thread
+     * is aborted preemptively.
+     *
+     * Not supported in JUnit 4.
+     */
+    abstract fun assertTimeoutPreemptively(timeout: Duration, message: () -> String, action: () -> Unit)
+}

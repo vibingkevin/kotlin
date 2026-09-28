@@ -1,0 +1,29 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.ir.backend.js.wasm
+
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.ir.IrDiagnosticReporter
+import org.jetbrains.kotlin.backend.common.checkers.CommonKlibDiagnosticContext
+import org.jetbrains.kotlin.ir.backend.js.wasm.declarations.WasmKlibExportsChecker
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
+
+object WasmKlibCheckers {
+
+    fun makeChecker(
+        diagnosticReporter: IrDiagnosticReporter,
+        configuration: CompilerConfiguration,
+    ): IrVisitorVoid {
+        return object : IrVisitorVoid() {
+            private val diagnosticContext = CommonKlibDiagnosticContext(configuration)
+
+            override fun visitModuleFragment(declaration: IrModuleFragment) {
+                WasmKlibExportsChecker.check(declaration.collectAllExportNames(), this.diagnosticContext, diagnosticReporter)
+            }
+        }
+    }
+}

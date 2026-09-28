@@ -1,0 +1,19 @@
+KtCallExpression(90,96): 'peek()'
+  KaSimpleCallResolutionSuccess:
+    call = KaSimpleFunctionCall:
+      contextArgumentMapping = {}
+      contextArguments = []
+      dispatchReceiver = KaExplicitReceiverValue:
+        expression = foo()
+        isSafeNavigation = false
+        type = F
+      extensionReceiver = null
+      signature = KaFunctionSignature:
+        receiverType = null
+        returnType = F
+        symbol = /F.peek(<dispatch receiver>: F): F
+        valueParameters = []
+        contextParameters = []
+        callableId = /F.peek
+      typeArgumentsMapping = {}
+      valueArgumentMapping = {}

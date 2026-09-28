@@ -1,0 +1,62 @@
+FILE: kt82684withArrayOf.kt
+    public final annotation class ExpectInt : R|kotlin/Annotation| {
+        public constructor(x: R|kotlin/Int| = R|kotlin/arrayOf<CS errors: kotlin/arrayOf>#|<<ERROR TYPE REF: Cannot infer argument for type parameter T>>()): R|ExpectInt| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val x: R|kotlin/Int| = R|<local>/x|
+            public get(): R|kotlin/Int|
+
+    }
+    public final annotation class ExpectString : R|kotlin/Annotation| {
+        public constructor(x: R|kotlin/String| = R|kotlin/arrayOf<CS errors: kotlin/arrayOf>#|<<ERROR TYPE REF: Cannot infer argument for type parameter T>>()): R|ExpectString| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val x: R|kotlin/String| = R|<local>/x|
+            public get(): R|kotlin/String|
+
+    }
+    public final enum class E : R|kotlin/Enum<E>| {
+        private constructor(): R|E| {
+            super<R|kotlin/Enum<E>|>()
+        }
+
+        public final static enum entry ENTRY: R|E|
+        public final static fun values(): R|kotlin/Array<E>| {
+        }
+
+        public final static fun valueOf(value: R|kotlin/String|): R|E| {
+        }
+
+        public final static val entries: R|kotlin/enums/EnumEntries<E>|
+            public static get(): R|kotlin/enums/EnumEntries<E>|
+
+    }
+    public final annotation class ExpectEnum : R|kotlin/Annotation| {
+        public constructor(x: R|E| = R|kotlin/arrayOf<CS errors: kotlin/arrayOf>#|<<ERROR TYPE REF: Cannot infer argument for type parameter T>>()): R|ExpectEnum| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val x: R|E| = R|<local>/x|
+            public get(): R|E|
+
+    }
+    public final annotation class ExpectAnno : R|kotlin/Annotation| {
+        public constructor(x: R|ExpectInt| = R|kotlin/arrayOf<CS errors: kotlin/arrayOf>#|<<ERROR TYPE REF: Cannot infer argument for type parameter T>>()): R|ExpectAnno| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val x: R|ExpectInt| = R|<local>/x|
+            public get(): R|ExpectInt|
+
+    }
+    public final annotation class ExpectClass : R|kotlin/Annotation| {
+        public constructor(x: R|kotlin/reflect/KClass<kotlin/Int>| = R|kotlin/arrayOf<CS errors: kotlin/arrayOf>#|<<ERROR TYPE REF: Cannot infer argument for type parameter T>>()): R|ExpectClass| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val x: R|kotlin/reflect/KClass<kotlin/Int>| = R|<local>/x|
+            public get(): R|kotlin/reflect/KClass<kotlin/Int>|
+
+    }

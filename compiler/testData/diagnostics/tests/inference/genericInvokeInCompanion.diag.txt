@@ -1,0 +1,47 @@
+/genericInvokeInCompanion.kt:13:17: error: Cannot infer type for type parameter 'T'. Specify it explicitly.
+
+/genericInvokeInCompanion.kt:14:5: error: Type arguments for outer class are redundant when nested class is referenced.
+
+/genericInvokeInCompanion.kt:14:22: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:15:5: error: Type arguments for outer class are redundant when nested class is referenced.
+
+/genericInvokeInCompanion.kt:15:32: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:17:7: error: Cannot infer type for type parameter 'T'. Specify it explicitly.
+
+/genericInvokeInCompanion.kt:18:12: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:19:22: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:22:5: error: Type arguments for outer class are redundant when nested class is referenced.
+
+/genericInvokeInCompanion.kt:22:22: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:23:5: error: Type arguments for outer class are redundant when nested class is referenced.
+
+/genericInvokeInCompanion.kt:23:32: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:26:12: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:27:22: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:29:5: error: Cannot infer type for type parameter 'T'. Specify it explicitly.
+
+/genericInvokeInCompanion.kt:31:6: error: One type argument expected for 'fun <T> invoke(name: String): C<T>'.
+
+/genericInvokeInCompanion.kt:33:23: error: One type argument expected for 'fun <T> invoke(name: String): C<T>'.
+
+/genericInvokeInCompanion.kt:34:5: error: Type arguments for outer class are redundant when nested class is referenced.
+
+/genericInvokeInCompanion.kt:34:22: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:35:5: error: Type arguments for outer class are redundant when nested class is referenced.
+
+/genericInvokeInCompanion.kt:35:32: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:37:13: error: One type argument expected for 'fun <T> invoke(name: String): C<T>'.
+
+/genericInvokeInCompanion.kt:38:12: error: Unresolved reference 'invoke'.
+
+/genericInvokeInCompanion.kt:39:22: error: Unresolved reference 'invoke'.

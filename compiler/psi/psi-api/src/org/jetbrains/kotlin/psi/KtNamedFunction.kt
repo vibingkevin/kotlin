@@ -1,0 +1,240 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+package org.jetbrains.kotlin.psi
+
+import com.intellij.lang.ASTNode
+import com.intellij.navigation.ItemPresentation
+import com.intellij.navigation.ItemPresentationProviders
+import com.intellij.psi.PsiElement
+import com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.psiUtil.isContractPresentPsiCheck
+import org.jetbrains.kotlin.psi.psiUtil.isKtFile
+import org.jetbrains.kotlin.psi.psiUtil.isLegacyContractPresentPsiCheck
+import org.jetbrains.kotlin.psi.stubs.KotlinFunctionStub
+import org.jetbrains.kotlin.psi.typeRefHelpers.getTypeReference
+
+/**
+ * Represents a named function declaration.
+ *
+ * ### Example:
+ *
+ * ```kotlin
+ *    fun greet(name: String): String {
+ *        return "Hello, $name"
+ *    }
+ * // ^_______________________________^
+ * // The entire function
+ * ```
+ *
+ * Note: this class is not intended to be extended and is marked `open` solely for backward compatibility.
+ */
+@SubclassOptInRequired(KtImplementationDetail::class)
+open class KtNamedFunction : KtTypeParameterListOwnerStub<KotlinFunctionStub>, KtFunction, KtDeclarationWithInitializer {
+    @KtImplementationDetail
+    constructor(node: ASTNode) : super(node)
+
+    @KtImplementationDetail
+    constructor(stub: KotlinFunctionStub) : super(stub, /* nodeType = */ KtNodeTypes.FUN)
+
+    override fun <R, D> accept(visitor: KtVisitor<R, D>, data: D): R =
+        visitor.visitNamedFunction(this, data)
+
+    /**
+     * Returns `true` if the type parameter list appears before the function name (`fun <T> foo()`), as opposed to a `where` clause or type
+     * parameters written after the name.
+     */
+    open fun hasTypeParameterListBeforeFunctionName(): Boolean {
+        greenStub?.let {
+            return it.hasTypeParameterListBeforeFunctionName
+        }
+
+        val typeParameterList = typeParameterList ?: return false
+        val nameIdentifier = nameIdentifier ?: return true
+        return nameIdentifier.textOffset > typeParameterList.textOffset
+    }
+
+    override fun hasBlockBody(): Boolean {
+        greenStub?.let {
+            return it.hasNoExpressionBody
+        }
+        return equalsToken == null
+    }
+
+    /**
+     * The `fun` keyword, or `null` if it is absent (the parser produces a keyword-less function for a bare `{...}` at the top level or in a
+     * class body).
+     */
+    @get:IfNotParsed
+    open val funKeyword: PsiElement?
+        get() = findChildByType(KtTokens.FUN_KEYWORD)
+
+    override fun getEqualsToken(): PsiElement? =
+        findChildByType(KtTokens.EQ)
+
+    override fun getInitializer(): KtExpression? =
+        PsiTreeUtil.getNextSiblingOfType(/* sibling = */ equalsToken, /* aClass = */ KtExpression::class.java)
+
+    override fun hasInitializer(): Boolean =
+        initializer != null
+
+    override fun getPresentation(): ItemPresentation? =
+        ItemPresentationProviders.getItemPresentation(/* element = */ this)
+
+    override fun getValueParameterList(): KtParameterList? =
+        getStubOrPsiChild(KtNodeTypes.VALUE_PARAMETER_LIST, KtParameterList::class.java)
+
+    override fun getValueParameters(): List<KtParameter> =
+        valueParameterList?.parameters.orEmpty()
+
+    override fun getBodyExpression(): KtExpression? {
+        val stub = greenStub
+        if (stub != null) {
+            if (!stub.hasBody) {
+                return null
+            }
+
+            expressionFromStub?.let { return it }
+        }
+
+        return findChildByClass(KtExpression::class.java)
+    }
+
+    override fun getBodyBlockExpression(): KtBlockExpression? {
+        val stub = greenStub
+        if (stub != null) {
+            if (!(stub.hasNoExpressionBody && stub.hasBody)) {
+                return null
+            }
+        }
+
+        return findChildByClass(KtExpression::class.java) as? KtBlockExpression
+    }
+
+    override fun hasBody(): Boolean {
+        greenStub?.let {
+            return it.hasBody
+        }
+        return bodyExpression != null
+    }
+
+    override fun hasDeclaredReturnType(): Boolean =
+        typeReference != null
+
+    override fun getReceiverTypeReference(): KtTypeReference? {
+        val stub = greenStub ?: return receiverTypeRefByTree
+        if (!stub.isExtension) {
+            return null
+        }
+        return typeReferences().firstOrNull()
+    }
+
+    private val receiverTypeRefByTree: KtTypeReference?
+        get() {
+            var child = firstChild
+            while (child != null) {
+                val tt = child.node.elementType
+                if (tt == KtTokens.LPAR || tt == KtTokens.COLON) break
+                if (child is KtTypeReference) {
+                    return child
+                }
+                child = child.nextSibling
+            }
+
+            return null
+        }
+
+    override fun getTypeReference(): KtTypeReference? {
+        val stub = greenStub ?: return getTypeReference(declaration = this)
+
+        val typeReferences = typeReferences()
+        val returnTypeIndex = if (stub.isExtension) 1 else 0
+        return if (returnTypeIndex < typeReferences.size) typeReferences[returnTypeIndex] else null
+    }
+
+    private fun typeReferences(): Array<out KtTypeReference> =
+        getStubOrPsiChildren(KtNodeTypes.TYPE_REFERENCE, KtTypeReference.EMPTY_ARRAY)
+
+    @Deprecated(
+        message = "Use setFunctionTypeReference(typeRef) instead",
+        replaceWith = ReplaceWith("this.setFunctionTypeReference(typeRef)", "org.jetbrains.kotlin.idea.base.psi.setFunctionTypeReference"),
+    )
+    @OptIn(KtNonPublicApi::class)
+    override fun setTypeReference(typeRef: KtTypeReference?): KtTypeReference? =
+        KtPsiMutationService.getInstance().setFunctionTypeReference(this, typeRef)
+
+    override fun getColon(): PsiElement? =
+        findChildByType(KtTokens.COLON)
+
+    override fun isLocal(): Boolean {
+        val parent = parent
+        return when {
+            parent == null -> {
+                // Probably incomplete code, default to non-local
+                false
+            }
+            isKtFile(parent) -> false
+            parent is KtClassBody -> false
+            parent.parent is KtScript -> false
+            else -> true
+        }
+    }
+
+    /**
+     * `true` if this is an anonymous function (a local function without a name, `fun() { ... }`).
+     */
+    open val isAnonymous: Boolean
+        get() = name == null && isLocal
+
+    /**
+     * `true` if this function is declared directly at the top level of a file.
+     */
+    open val isTopLevel: Boolean
+        get() {
+            greenStub?.let {
+                return it.isTopLevel
+            }
+            return isKtFile(parent)
+        }
+
+    /**
+     * Always returns `false`: changes inside a function never affect the out-of-code-block modification count.
+     *
+     * Kept for compatibility with potential plugins.
+     */
+    @Suppress("unused") // keep for compatibility with potential plugins
+    open fun shouldChangeModificationCount(place: PsiElement?): Boolean =
+        // Suppress Java check for out-of-block
+        false
+
+    override fun getContractDescription(): KtContractEffectList? =
+        getStubOrPsiChild(KtNodeTypes.CONTRACT_EFFECT_LIST, KtContractEffectList::class.java)
+
+    @OptIn(KtImplementationDetail::class)
+    override fun mayHaveContract(): Boolean {
+        greenStub?.let {
+            return it.mayHaveContract
+        }
+        return isLegacyContractPresentPsiCheck()
+    }
+
+    /**
+     * Returns whether this function may declare a contract, taking into account whether contracts are allowed on member functions via
+     * [isAllowedOnMembers]. As with [mayHaveContract], `false` is definitive but `true` is not a guarantee.
+     */
+    open fun mayHaveContract(isAllowedOnMembers: Boolean): Boolean {
+        greenStub?.let {
+            return it.mayHaveContract
+        }
+        return isContractPresentPsiCheck(isAllowedOnMembers)
+    }
+
+    companion object {
+        /** A shared empty array, which can be reused to avoid unnecessary allocations. */
+        @JvmField
+        val EMPTY_ARRAY: Array<KtNamedFunction> = emptyArray()
+    }
+}

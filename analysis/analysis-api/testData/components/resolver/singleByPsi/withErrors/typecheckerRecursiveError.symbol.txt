@@ -1,0 +1,4 @@
+KtCallExpression(15,25): 'function()'
+  KaSimpleSymbolResolutionError:
+    candidateSymbols = []
+    diagnostic = ERROR<UNRESOLVED_REFERENCE: Unresolved reference 'function'.>

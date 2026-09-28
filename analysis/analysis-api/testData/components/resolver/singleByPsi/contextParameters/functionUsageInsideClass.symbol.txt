@@ -1,0 +1,5 @@
+KtCallExpression(181,192): 'funMember()'
+  KaSimpleSymbolResolutionSuccess:
+    symbols = [
+      /Base.funMember(<dispatch receiver>: Base): kotlin.Unit
+    ]

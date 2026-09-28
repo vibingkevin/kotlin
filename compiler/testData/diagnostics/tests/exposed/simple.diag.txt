@@ -1,0 +1,25 @@
+/simple.kt:7:24: error: 'public' sub-interface exposes its 'private-in-file' supertype 'My'.
+
+/simple.kt:8:13: error: 'public' generic exposes its 'private-in-file' parameter bound type 'Base'.
+
+/simple.kt:11:25: error: 'public' generic exposes its 'private-in-file' parameter bound type 'My'.
+
+/simple.kt:11:29: error: 'public' function exposes its 'private-in-file' parameter type 'My'.
+
+/simple.kt:11:41: error: 'public' subclass exposes its 'private-in-file' supertype 'Base'.
+
+/simple.kt:13:17: error: 'public' function exposes its 'private-in-file' parameter type 'My'.
+
+/simple.kt:13:26: error: 'public' function exposes its 'private-in-file' parameter type 'My'.
+
+/simple.kt:15:9: error: 'public' property exposes its 'private-in-file' type 'Base'.
+
+/simple.kt:17:9: error: 'public' member exposes its 'private-in-file' receiver type 'My'.
+
+/simple.kt:20:9: error: 'public' function exposes its 'private-in-file' return type 'My'.
+
+/simple.kt:20:13: error: 'public' function exposes its 'private-in-file' parameter type 'My'.
+
+/simple.kt:22:9: error: 'public' member exposes its 'private-in-file' receiver type 'My'.
+
+/simple.kt:22:12: error: 'public' function exposes its 'private-in-file' return type 'My'.

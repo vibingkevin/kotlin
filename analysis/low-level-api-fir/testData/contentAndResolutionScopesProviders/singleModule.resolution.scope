@@ -1,0 +1,6 @@
+Resulting Resolution Scope:
+Module MAIN:
+    - a.kt
+    - b.kt
+    + c.kt
+    + d.kt

@@ -1,0 +1,131 @@
+
+// FILE: test.kt
+
+fun box() {
+    A().test()
+}
+
+class A {
+    fun test() {
+        //Breakpoint!
+        foo()
+        prop
+        prop = 2
+    }
+
+    companion object {
+        private fun foo() {
+            val a = 1
+        }
+
+        private var prop: Int = 2
+            get() {
+                return 1
+            }
+            set(i: Int) {
+                field = i
+            }
+    }
+}
+
+// EXPECTATIONS JVM_IR
+// test.kt:5 box
+// test.kt:21 <clinit>
+// test.kt:16 <init>
+// test.kt:21 <clinit>
+// test.kt:21 <clinit>
+// test.kt:5 box
+// test.kt:8 <init>
+// test.kt:5 box
+// test.kt:11 test
+// test.kt:18 foo
+// test.kt:19 foo
+// test.kt:12 test
+// test.kt:23 getProp
+// test.kt:12 test
+// test.kt:13 test
+// test.kt:26 setProp
+// test.kt:27 setProp
+// test.kt:14 test
+// test.kt:6 box
+
+// EXPECTATIONS NATIVE
+// test.kt:5 box
+// test.kt:8 <init>
+// test.kt:29 <init>
+// test.kt:5 box
+// test.kt:9 test
+// test.kt:11 test
+// test.kt:16 <get-$companion>
+// test.kt:1 <get-$companion>
+// test.kt:28 <get-$companion>
+// test.kt:11 test
+// test.kt:17 foo
+// test.kt:18 foo
+// test.kt:19 foo
+// test.kt:11 test
+// test.kt:12 test
+// test.kt:16 <get-$companion>
+// test.kt:1 <get-$companion>
+// test.kt:28 <get-$companion>
+// test.kt:12 test
+// test.kt:22 <get-prop>
+// test.kt:23 <get-prop>
+// test.kt:24 <get-prop>
+// test.kt:12 test
+// test.kt:13 test
+// test.kt:16 <get-$companion>
+// test.kt:1 <get-$companion>
+// test.kt:28 <get-$companion>
+// test.kt:13 test
+// test.kt:25 <set-prop>
+// test.kt:26 <set-prop>
+// test.kt:27 <set-prop>
+// test.kt:14 test
+// test.kt:6 box
+
+// EXPECTATIONS JS_IR
+// test.kt:5 box
+// test.kt:8 <init>
+// test.kt:21 <init>
+// test.kt:16 <init>
+// test.kt:8 <init>
+// test.kt:5 box
+// test.kt:11 test
+// test.kt:11 test
+// test.kt:18 foo
+// test.kt:19 foo
+// test.kt:12 test
+// test.kt:12 test
+// test.kt:23 <get-prop>
+// test.kt:13 test
+// test.kt:14 test
+// test.kt:6 box
+
+// EXPECTATIONS WASM
+// test.kt:5 $box (4)
+// test.kt:8 $A.<init> (0)
+// test.kt:21 $A$static_init (32)
+// test.kt:21 $A$Companion.<init> (32)
+// test.kt:28 $A$Companion.<init> (5)
+// test.kt:21 $A$static_init (32)
+// test.kt:8 $A.<init> (0)
+// test.kt:21 $A$static_init (32)
+// test.kt:29 $A.<init> (1)
+// test.kt:5 $box (8)
+// test.kt:11 $A.test (8)
+// test.kt:21 $A$static_init (32)
+// test.kt:11 $A.test (8)
+// test.kt:18 $A$Companion.foo (20)
+// test.kt:19 $A$Companion.foo (9)
+// test.kt:11 $A.test (8)
+// test.kt:21 $A$static_init (32)
+// test.kt:12 $A.test (8)
+// test.kt:23 $A$Companion.<get-prop> (23, 16)
+// test.kt:12 $A.test (8)
+// test.kt:21 $A$static_init (32)
+// test.kt:13 $A.test (15, 8)
+// test.kt:26 $A$Companion.<set-prop> (16, 24, 16)
+// test.kt:27 $A$Companion.<set-prop> (13)
+// test.kt:14 $A.test (5)
+// test.kt:6 $box (1)

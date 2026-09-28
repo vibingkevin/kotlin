@@ -1,0 +1,66 @@
+/*
+ * Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.samWithReceiver
+
+import org.jetbrains.kotlin.compiler.plugin.*
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.CompilerConfigurationKey
+import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
+import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverConfigurationKeys.SAM_WITH_RECEIVER_ANNOTATION
+import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverConfigurationKeys.SAM_WITH_RECEIVER_PRESET
+import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverPluginNames.ANNOTATION_OPTION_NAME
+import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverPluginNames.PLUGIN_ID
+import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverPluginNames.PRESET_OPTION_NAME
+import org.jetbrains.kotlin.samWithReceiver.SamWithReceiverPluginNames.SUPPORTED_PRESETS
+import org.jetbrains.kotlin.samWithReceiver.k2.FirSamWithReceiverExtensionRegistrar
+
+object SamWithReceiverConfigurationKeys {
+    val SAM_WITH_RECEIVER_ANNOTATION: CompilerConfigurationKey<List<String>> =
+        CompilerConfigurationKey.create("SAM_WITH_RECEIVER_ANNOTATION")
+
+    val SAM_WITH_RECEIVER_PRESET: CompilerConfigurationKey<List<String>> =
+        CompilerConfigurationKey.create("SAM_WITH_RECEIVER_PRESET")
+}
+
+class SamWithReceiverCommandLineProcessor : CommandLineProcessor {
+    companion object {
+        val ANNOTATION_OPTION = CliOption(
+            ANNOTATION_OPTION_NAME, "<fqname>", "Annotation qualified names",
+            required = false, allowMultipleOccurrences = true
+        )
+
+        val PRESET_OPTION = CliOption(
+            PRESET_OPTION_NAME, "<name>", "Preset name (${SUPPORTED_PRESETS.keys.joinToString()})",
+            required = false, allowMultipleOccurrences = true
+        )
+    }
+
+    override val pluginId = PLUGIN_ID
+    override val pluginOptions = listOf(ANNOTATION_OPTION)
+
+    override fun processOption(option: AbstractCliOption, value: String, configuration: CompilerConfiguration) = when (option) {
+        ANNOTATION_OPTION -> configuration.appendList(SAM_WITH_RECEIVER_ANNOTATION, value)
+        PRESET_OPTION -> configuration.appendList(SAM_WITH_RECEIVER_PRESET, value)
+        else -> throw CliOptionProcessingException("Unknown option: ${option.optionName}")
+    }
+}
+
+class SamWithReceiverComponentRegistrar : CompilerPluginRegistrar() {
+    override fun ExtensionStorage.registerExtensions(configuration: CompilerConfiguration) {
+        val annotations = configuration.get(SAM_WITH_RECEIVER_ANNOTATION)?.toMutableList() ?: mutableListOf()
+        configuration.get(SAM_WITH_RECEIVER_PRESET)?.forEach { preset ->
+            SUPPORTED_PRESETS[preset]?.let { annotations += it }
+        }
+        if (annotations.isEmpty()) return
+
+        FirExtensionRegistrar.registerExtension(FirSamWithReceiverExtensionRegistrar(annotations))
+    }
+
+    override val pluginId: String get() = PLUGIN_ID
+
+    override val supportsK2: Boolean
+        get() = true
+}

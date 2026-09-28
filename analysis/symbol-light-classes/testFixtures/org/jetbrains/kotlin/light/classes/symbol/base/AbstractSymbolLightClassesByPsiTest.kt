@@ -1,0 +1,77 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.light.classes.symbol.base
+
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiEnumConstantInitializer
+import com.intellij.psi.search.GlobalSearchScope
+import org.jetbrains.kotlin.analysis.test.framework.projectStructure.KtTestModule
+import org.jetbrains.kotlin.analysis.test.framework.test.configurators.AnalysisApiTestConfigurator
+import org.jetbrains.kotlin.asJava.LightClassTestCommon
+import org.jetbrains.kotlin.asJava.finder.JavaElementFinder
+import org.jetbrains.kotlin.asJava.renderClass
+import org.jetbrains.kotlin.light.classes.symbol.base.service.getLightClassesFromFile
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.isValidJavaFqName
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
+import org.junit.jupiter.api.Assertions
+import java.nio.file.Path
+
+abstract class AbstractSymbolLightClassesByPsiTest(
+    configurator: AnalysisApiTestConfigurator,
+    override val isTestAgainstCompiledCode: Boolean,
+) : AbstractSymbolLightClassesTestBase(configurator) {
+    override val additionalDirectives: List<DirectivesContainer>
+        get() = super.additionalDirectives + listOf(SymbolLightClassesParentingCheckDirectives)
+
+    override fun getRenderResult(
+        ktFile: KtFile,
+        ktFiles: List<KtFile>,
+        testDataFile: Path,
+        module: KtTestModule,
+        project: Project,
+    ): String {
+        val finder = JavaElementFinder.getInstance(project)
+        val lightClasses = ktFiles.flatMap { getLightClassesFromFile(it) }
+        if (lightClasses.isEmpty()) {
+            // ROOT package exists
+            Assertions.assertNotNull(finder.findPackage(""), "ROOT package not found")
+            return LightClassTestCommon.NOT_GENERATED_DIRECTIVE
+        }
+        val scope = GlobalSearchScope.allScope(project)
+        for (lc in lightClasses) {
+            val path = lc.containingFile.virtualFile.path
+            val containingKtFile = ktFiles.find { it.virtualFilePath == path }
+            Assertions.assertNotNull(containingKtFile)
+            val packageFqName = containingKtFile?.packageDirective?.fqName ?: FqName.ROOT
+            Assertions.assertNotNull(finder.findPackage(packageFqName.asString()), "package $packageFqName not found")
+
+            // [JavaElementFinder#findClass] finds facade classes and regular classes, not ones in a script.
+            if (containingKtFile!!.isScript()) continue
+            // Skip enum entries
+            if (lc is PsiEnumConstantInitializer) continue
+
+            val fqName = lc.qualifiedName ?: continue
+            // [JavaElementFinder#findClass] declines to create a light class for invalid fqName.
+            if (!isValidJavaFqName(fqName)) continue
+
+            val lcViaFinder = finder.findClass(lc.qualifiedName!!, scope)
+            Assertions.assertEquals(lc, lcViaFinder)
+        }
+
+        return lightClasses.sortedBy {
+            it.qualifiedName ?: it.name.toString()
+        }.joinToString("\n\n") {
+            it.renderClass()
+        }
+    }
+
+    override fun supplementaryLightClasses(ktFiles: List<KtFile>): Collection<PsiClass> {
+        return ktFiles.flatMap { getLightClassesFromFile(it) }
+    }
+}

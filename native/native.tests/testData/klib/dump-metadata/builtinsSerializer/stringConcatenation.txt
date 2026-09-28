@@ -1,0 +1,30 @@
+library {
+  // module name: <main>
+
+  library fragment {
+    // package name: <root>
+
+    // class name: Obj
+    // class name: Foo
+
+    public final object Obj : kotlin/Any {
+
+      private constructor()
+
+      public final const val O: kotlin/String /* = "O" */
+        public final get
+
+      public final val concat: kotlin/String /* = ... */
+        public final get
+    }
+
+    @kotlin/Deprecated(message = "O/{id}")
+    public final class Foo : kotlin/Any {
+
+      public constructor()
+    }
+
+    package {
+    }
+  }
+}

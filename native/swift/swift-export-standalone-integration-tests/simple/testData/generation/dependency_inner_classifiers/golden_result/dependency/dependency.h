@@ -1,0 +1,16 @@
+#include <Foundation/Foundation.h>
+#include <stdint.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+_Bool dependency_internal_functional_type_callee_SwiftU2EVoid__TypesOfArguments__Swift_UnsafeMutableRawPointer_anyU20dependency__ExportedKotlinPackages_datetime_DateTimeFormatBuilder_WithDate__(void * pointerToClosure, void * _1);
+
+void * datetime_LocalDate_Companion_Format__TypesOfArguments__U28anyU20dependency__ExportedKotlinPackages_datetime_DateTimeFormatBuilder_WithDateU29202D_U20Swift_Void__(void * self, void * block);
+
+void * datetime_LocalDate_Companion_get();
+
+void * datetime_LocalDate_init_allocate();
+
+_Bool datetime_LocalDate_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(void * __kt);
+
+NS_ASSUME_NONNULL_END

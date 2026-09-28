@@ -1,0 +1,1128 @@
+@_exported import ExportedKotlinPackages
+@_implementationOnly import KotlinBridges_main
+import KotlinRuntime
+import KotlinRuntimeSupport
+
+public enum SealedBarable_SealedType: KotlinRuntimeSupport.SealedType {
+    case someBarable(main._SealedFoeble_SomeBarable_SealedType)
+    public var value: main._SealedFoeble_SealedBarable {
+        get {
+            switch self {
+            case let .someBarable(type): type.value
+            }
+        }
+    }
+}
+public enum SealedBazzable_SealedType: KotlinRuntimeSupport.SealedType {
+    case someBazzable(main.SomeBazzable_SealedType)
+    public var value: main.SealedBazzable {
+        get {
+            switch self {
+            case let .someBazzable(type): type.value
+            }
+        }
+    }
+}
+public enum SealedFoeble_SealedType: KotlinRuntimeSupport.SealedType {
+    case sealedBazzable(main.SealedBazzable_SealedType)
+    case sealedBarable(main.SealedBarable_SealedType)
+    case someFoeble(main._SealedFoeble_SomeFoeble_SealedType)
+    public var value: main.SealedFoeble {
+        get {
+            switch self {
+            case let .sealedBazzable(type): type.value
+            case let .sealedBarable(type): type.value
+            case let .someFoeble(type): type.value
+            }
+        }
+    }
+}
+public protocol Barable: KotlinRuntime.KotlinBase, main.Foeble, main._Barable {
+    var baz: any main.Foeble {
+        get
+    }
+    func bar(
+        arg: any main.Foeble
+    ) -> any main.Barable
+}
+public protocol Bazzable: KotlinRuntime.KotlinBase, main._Bazzable {
+}
+public protocol ContainerProtocol: KotlinRuntime.KotlinBase, main._ContainerProtocol {
+}
+public protocol Foeble: KotlinRuntime.KotlinBase, main._Foeble {
+    var baz: any main.Foeble {
+        get
+    }
+    func bar(
+        arg: any main.Foeble
+    ) -> any main.Foeble
+}
+public protocol SealedBazzable: KotlinRuntime.KotlinBase, main.SealedFoeble, main._SealedBazzable {
+    func sealedType() -> main.SealedBazzable_SealedType
+    @_disfavoredOverload
+    func sealedType() -> main.SealedFoeble_SealedType
+}
+public protocol SealedFoeble: KotlinRuntime.KotlinBase, main._SealedFoeble {
+    func sealedType() -> main.SealedFoeble_SealedType
+}
+public protocol SiblingProtocol: KotlinRuntime.KotlinBase, main._SiblingProtocol {
+}
+@objc(_main_Barable)
+public protocol _Barable: main._Foeble {
+}
+@objc(_main_Bazzable)
+public protocol _Bazzable {
+}
+@objc(_main_ContainerProtocol)
+public protocol _ContainerProtocol {
+}
+public protocol _ContainerProtocol_NestedProtocol: KotlinRuntime.KotlinBase, main.__ContainerProtocol_NestedProtocol {
+}
+public protocol _ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol: KotlinRuntime.KotlinBase, main.__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol {
+}
+@objc(_main_Foeble)
+public protocol _Foeble {
+}
+@objc(_main_SealedBazzable)
+public protocol _SealedBazzable: main._SealedFoeble {
+}
+@objc(_main_SealedFoeble)
+public protocol _SealedFoeble {
+}
+public protocol _SealedFoeble_SealedBarable: KotlinRuntime.KotlinBase, main.SealedFoeble, main.__SealedFoeble_SealedBarable {
+    func sealedType() -> main.SealedBarable_SealedType
+    @_disfavoredOverload
+    func sealedType() -> main.SealedFoeble_SealedType
+}
+@objc(_main_SiblingProtocol)
+public protocol _SiblingProtocol {
+}
+public protocol __Barable: KotlinRuntimeSupport._KotlinBridgeable, main.__Foeble {
+}
+public protocol __Bazzable: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public protocol __ContainerProtocol: KotlinRuntimeSupport._KotlinBridgeable {
+}
+@objc(_main__ContainerProtocol_NestedProtocol)
+public protocol __ContainerProtocol_NestedProtocol {
+}
+@objc(_main__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol)
+public protocol __ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol {
+}
+public protocol __Foeble: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public protocol __SealedBazzable: KotlinRuntimeSupport._KotlinBridgeable, main.__SealedFoeble {
+}
+public protocol __SealedFoeble: KotlinRuntimeSupport._KotlinBridgeable {
+}
+@objc(_main__SealedFoeble_SealedBarable)
+public protocol __SealedFoeble_SealedBarable: main._SealedFoeble {
+}
+public protocol __SiblingProtocol: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public protocol ___ContainerProtocol_NestedProtocol: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public protocol ___ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol: KotlinRuntimeSupport._KotlinBridgeable {
+}
+public protocol ___SealedFoeble_SealedBarable: KotlinRuntimeSupport._KotlinBridgeable, main.__SealedFoeble {
+}
+public final class Bar: KotlinRuntime.KotlinBase, main.Barable, main.__Barable, main.Foeble, main.__Foeble, main.Bazzable, main.__Bazzable {
+    public var baz: main.Bar {
+        get {
+            return main.Bar.__createClassWrapper(externalRCRef: Bar_baz_get(self.__externalRCRef()))
+        }
+    }
+    public init() {
+        let __kt = __root___Bar_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { __root___Bar_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+    public func bar(
+        arg: any main.Foeble
+    ) -> main.Bar {
+        return main.Bar.__createClassWrapper(externalRCRef: Bar_bar__TypesOfArguments__anyU20main_Foeble__(self.__externalRCRef(), arg.__externalRCRef()))
+    }
+}
+public final class Foo: KotlinRuntime.KotlinBase, main.Foeble, main.__Foeble {
+    public var baz: any main.Foeble {
+        get {
+            return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: Foo_baz_get(self.__externalRCRef()), conformsTo: main.Foeble.Type.self) as! any main.Foeble
+        }
+    }
+    public init() {
+        let __kt = __root___Foo_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { __root___Foo_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+    public func bar(
+        arg: any main.Foeble
+    ) -> main.Foo {
+        return main.Foo.__createClassWrapper(externalRCRef: Foo_bar__TypesOfArguments__anyU20main_Foeble__(self.__externalRCRef(), arg.__externalRCRef()))
+    }
+}
+public final class MyObject: KotlinRuntime.KotlinBase {
+    public static var shared: main.MyObject {
+        get {
+            return main.MyObject.__createClassWrapper(externalRCRef: __root___MyObject_get())
+        }
+    }
+    private init() {
+        fatalError()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public final class SomeBazzable: KotlinRuntime.KotlinBase, main.SealedBazzable, main.__SealedBazzable {
+    public static var shared: main.SomeBazzable {
+        get {
+            return main.SomeBazzable.__createClassWrapper(externalRCRef: __root___SomeBazzable_get())
+        }
+    }
+    private init() {
+        fatalError()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+    public func sealedType() -> main.SealedBazzable_SealedType {
+        .someBazzable(.init(self))
+    }
+}
+open class _ContainerProtocol_NestedClass: KotlinRuntime.KotlinBase {
+    public init() {
+         let __kt: Swift.UnsafeMutableRawPointer!
+         if Self.self == main._ContainerProtocol_NestedClass.self {
+             __kt = ContainerProtocol_NestedClass_init_allocate()
+         } else {
+             __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+         }
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { ContainerProtocol_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+open class _ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedClass: KotlinRuntime.KotlinBase {
+    public init() {
+         let __kt: Swift.UnsafeMutableRawPointer!
+         if Self.self == main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedClass.self {
+             __kt = packagewithprotocols_ContainerProtocol_NestedClass_init_allocate()
+         } else {
+             __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+         }
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { packagewithprotocols_ContainerProtocol_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public final class _ExportedKotlinPackages_packagewithprotocols_SiblingProtocol_NestedClass: KotlinRuntime.KotlinBase {
+    public final class NestedClass: KotlinRuntime.KotlinBase {
+        public init() {
+            let __kt = packagewithprotocols_SiblingProtocol_NestedClass_NestedClass_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { packagewithprotocols_SiblingProtocol_NestedClass_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    public init() {
+        let __kt = packagewithprotocols_SiblingProtocol_NestedClass_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { packagewithprotocols_SiblingProtocol_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public final class _SealedFoeble_SomeBarable: KotlinRuntime.KotlinBase, main._SealedFoeble_SealedBarable, main.___SealedFoeble_SealedBarable {
+    public static var shared: main._SealedFoeble_SomeBarable {
+        get {
+            return main._SealedFoeble_SomeBarable.__createClassWrapper(externalRCRef: SealedFoeble_SomeBarable_get())
+        }
+    }
+    private init() {
+        fatalError()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+    public func sealedType() -> main.SealedBarable_SealedType {
+        .someBarable(.init(self))
+    }
+}
+public final class _SealedFoeble_SomeFoeble: KotlinRuntime.KotlinBase, main.SealedFoeble, main.__SealedFoeble {
+    public static var shared: main._SealedFoeble_SomeFoeble {
+        get {
+            return main._SealedFoeble_SomeFoeble.__createClassWrapper(externalRCRef: SealedFoeble_SomeFoeble_get())
+        }
+    }
+    private init() {
+        fatalError()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+    public func sealedType() -> main.SealedFoeble_SealedType {
+        .someFoeble(.init(self))
+    }
+}
+public final class _SiblingProtocol_NestedClass: KotlinRuntime.KotlinBase {
+    public final class NestedClass: KotlinRuntime.KotlinBase {
+        public init() {
+            let __kt = SiblingProtocol_NestedClass_NestedClass_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { SiblingProtocol_NestedClass_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    public init() {
+        let __kt = SiblingProtocol_NestedClass_init_allocate()
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { SiblingProtocol_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+open class __ContainerProtocol_NestedProtocol_NestedClass: KotlinRuntime.KotlinBase {
+    public init() {
+         let __kt: Swift.UnsafeMutableRawPointer!
+         if Self.self == main.__ContainerProtocol_NestedProtocol_NestedClass.self {
+             __kt = ContainerProtocol_NestedProtocol_NestedClass_init_allocate()
+         } else {
+             __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+         }
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { ContainerProtocol_NestedProtocol_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+open class __ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol_NestedClass: KotlinRuntime.KotlinBase {
+    public init() {
+         let __kt: Swift.UnsafeMutableRawPointer!
+         if Self.self == main.__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol_NestedClass.self {
+             __kt = packagewithprotocols_ContainerProtocol_NestedProtocol_NestedClass_init_allocate()
+         } else {
+             __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+         }
+        super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+        { packagewithprotocols_ContainerProtocol_NestedProtocol_NestedClass_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+    }
+    package override init(
+        __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+        options: KotlinRuntime.KotlinBaseConstructionOptions
+    ) {
+        super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+    }
+}
+public struct SomeBazzable_SealedType: KotlinRuntimeSupport.SealedType {
+    public let value: main.SomeBazzable
+    init(
+        _ value: main.SomeBazzable
+    ) {
+        self.value = value
+    }
+}
+public struct _SealedFoeble_SomeBarable_SealedType: KotlinRuntimeSupport.SealedType {
+    public let value: main._SealedFoeble_SomeBarable
+    init(
+        _ value: main._SealedFoeble_SomeBarable
+    ) {
+        self.value = value
+    }
+}
+public struct _SealedFoeble_SomeFoeble_SealedType: KotlinRuntimeSupport.SealedType {
+    public let value: main._SealedFoeble_SomeFoeble
+    init(
+        _ value: main._SealedFoeble_SomeFoeble
+    ) {
+        self.value = value
+    }
+}
+public var list: [any main.Foeble] {
+    get {
+        return __root___list_get() as! Swift.Array<any main.Foeble>
+    }
+    set {
+        return { __root___list_set__TypesOfArguments__Swift_Array_anyU20main_Foeble___(newValue); return () }()
+    }
+}
+public var normal: any main.Foeble {
+    get {
+        return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: __root___normal_get(), conformsTo: main.Foeble.Type.self) as! any main.Foeble
+    }
+    set {
+        return { __root___normal_set__TypesOfArguments__anyU20main_Foeble__(newValue.__externalRCRef()); return () }()
+    }
+}
+public var nullable: (any main.Foeble)? {
+    get {
+        return { switch __root___nullable_get() { case nil: .none; case let res?: KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: res, conformsTo: main.Foeble.Type.self) as! any main.Foeble; } }()
+    }
+    set {
+        return { __root___nullable_set__TypesOfArguments__Swift_Optional_anyU20main_Foeble___(newValue.map { it in it.__externalRCRef() } ?? nil); return () }()
+    }
+}
+public func foo(
+    _ receiver: any main.ContainerProtocol
+) -> Swift.Void {
+    return { __root___foo__TypesOfArgumentsE__anyU20main_ContainerProtocol__(receiver.__externalRCRef()); return () }()
+}
+public func foo(
+    _ receiver: main.__ContainerProtocol_NestedProtocol_NestedClass
+) -> Swift.Void {
+    return { __root___foo__TypesOfArgumentsE__main___ContainerProtocol_NestedProtocol_NestedClass__(receiver.__externalRCRef()); return () }()
+}
+public func foo(
+    _ receiver: main._SiblingProtocol_NestedClass
+) -> Swift.Void {
+    return { __root___foo__TypesOfArgumentsE__main__SiblingProtocol_NestedClass__(receiver.__externalRCRef()); return () }()
+}
+public func foo(
+    _ receiver: any main._ContainerProtocol_NestedProtocol
+) -> Swift.Void {
+    return { __root___foo__TypesOfArgumentsE__anyU20main__ContainerProtocol_NestedProtocol__(receiver.__externalRCRef()); return () }()
+}
+public func list(
+    value: [any main.Foeble]
+) -> [any main.Foeble] {
+    return __root___list__TypesOfArguments__Swift_Array_anyU20main_Foeble___(value) as! Swift.Array<any main.Foeble>
+}
+public func normal(
+    value: any main.Foeble
+) -> any main.Foeble {
+    return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: __root___normal__TypesOfArguments__anyU20main_Foeble__(value.__externalRCRef()), conformsTo: main.Foeble.Type.self) as! any main.Foeble
+}
+public func nullable(
+    value: (any main.Foeble)?
+) -> (any main.Foeble)? {
+    return { switch __root___nullable__TypesOfArguments__Swift_Optional_anyU20main_Foeble___(value.map { it in it.__externalRCRef() } ?? nil) { case nil: .none; case let res?: KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: res, conformsTo: main.Foeble.Type.self) as! any main.Foeble; } }()
+}
+@_documentation(visibility: internal)
+extension main.Barable where Self : main.__Barable {
+    public var baz: any main.Foeble {
+        get {
+            return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: Barable_baz_get(self.__externalRCRef()), conformsTo: main.Foeble.Type.self) as! any main.Foeble
+        }
+    }
+    public func bar(
+        arg: any main.Foeble
+    ) -> any main.Barable {
+        return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: Barable_bar__TypesOfArguments__anyU20main_Foeble__(self.__externalRCRef(), arg.__externalRCRef()), conformsTo: main.Barable.Type.self) as! any main.Barable
+    }
+}
+extension main.Barable {
+}
+@_documentation(visibility: internal)
+extension ExportedKotlinPackages.repeating_conformances.Barable where Self : ExportedKotlinPackages.repeating_conformances.__Barable {
+}
+extension ExportedKotlinPackages.repeating_conformances.Barable {
+}
+@_documentation(visibility: internal)
+extension main.Bazzable where Self : main.__Bazzable {
+}
+extension main.Bazzable {
+}
+extension main.ContainerProtocol {
+    public func foo() -> Swift.Void {
+        let receiver = self
+        return main.foo(receiver)
+    }
+}
+@_documentation(visibility: internal)
+extension main.ContainerProtocol where Self : main.__ContainerProtocol {
+}
+extension main.ContainerProtocol {
+    public typealias NestedClass = main._ContainerProtocol_NestedClass
+    public typealias NestedProtocol = main._ContainerProtocol_NestedProtocol
+}
+@_documentation(visibility: internal)
+extension ExportedKotlinPackages.packagewithprotocols.ContainerProtocol where Self : ExportedKotlinPackages.packagewithprotocols.__ContainerProtocol {
+}
+extension ExportedKotlinPackages.packagewithprotocols.ContainerProtocol {
+    public typealias NestedClass = main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedClass
+    public typealias NestedProtocol = main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol
+}
+@_documentation(visibility: internal)
+extension main.Foeble where Self : main.__Foeble {
+    public var baz: any main.Foeble {
+        get {
+            return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: Foeble_baz_get(self.__externalRCRef()), conformsTo: main.Foeble.Type.self) as! any main.Foeble
+        }
+    }
+    public func bar(
+        arg: any main.Foeble
+    ) -> any main.Foeble {
+        return KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: Foeble_bar__TypesOfArguments__anyU20main_Foeble__(self.__externalRCRef(), arg.__externalRCRef()), conformsTo: main.Foeble.Type.self) as! any main.Foeble
+    }
+}
+extension main.Foeble {
+}
+@_documentation(visibility: internal)
+extension ExportedKotlinPackages.repeating_conformances.Foeble where Self : ExportedKotlinPackages.repeating_conformances.__Foeble {
+}
+extension ExportedKotlinPackages.repeating_conformances.Foeble {
+}
+@_documentation(visibility: internal)
+extension main.SealedBazzable where Self : main.__SealedBazzable {
+    public func sealedType() -> main.SealedBazzable_SealedType {
+        switch self {
+        case let value as main.SomeBazzable: .someBazzable(.init(value))
+        default: fatalError("missing sealedType for \(self)")
+        }
+    }
+}
+extension main.SealedBazzable {
+    @_disfavoredOverload
+    public func sealedType() -> main.SealedFoeble_SealedType {
+        .sealedBazzable(sealedType())
+    }
+}
+@_documentation(visibility: internal)
+extension main.SealedFoeble where Self : main.__SealedFoeble {
+    public func sealedType() -> main.SealedFoeble_SealedType {
+        switch self {
+        case let value as main.SealedBazzable: .sealedBazzable(value.sealedType())
+        case let value as main._SealedFoeble_SealedBarable: .sealedBarable(value.sealedType())
+        case let value as main._SealedFoeble_SomeFoeble: .someFoeble(.init(value))
+        default: fatalError("missing sealedType for \(self)")
+        }
+    }
+}
+extension main.SealedFoeble {
+    public typealias SealedBarable = main._SealedFoeble_SealedBarable
+    public typealias SealedBarable_SealedType = main.SealedBarable_SealedType
+    public typealias SomeBarable = main._SealedFoeble_SomeBarable
+    public typealias SomeFoeble = main._SealedFoeble_SomeFoeble
+    public typealias _SealedFoeble_SomeBarable_SealedType = main._SealedFoeble_SomeBarable_SealedType
+    public typealias _SealedFoeble_SomeFoeble_SealedType = main._SealedFoeble_SomeFoeble_SealedType
+}
+@_documentation(visibility: internal)
+extension main.SiblingProtocol where Self : main.__SiblingProtocol {
+}
+extension main.SiblingProtocol {
+    public typealias NestedClass = main._SiblingProtocol_NestedClass
+}
+@_documentation(visibility: internal)
+extension ExportedKotlinPackages.packagewithprotocols.SiblingProtocol where Self : ExportedKotlinPackages.packagewithprotocols.__SiblingProtocol {
+}
+extension ExportedKotlinPackages.packagewithprotocols.SiblingProtocol {
+    public typealias NestedClass = main._ExportedKotlinPackages_packagewithprotocols_SiblingProtocol_NestedClass
+}
+extension main._ContainerProtocol_NestedProtocol {
+    public func foo() -> Swift.Void {
+        let receiver = self
+        return main.foo(receiver)
+    }
+}
+@_documentation(visibility: internal)
+extension main._ContainerProtocol_NestedProtocol where Self : main.___ContainerProtocol_NestedProtocol {
+}
+extension main._ContainerProtocol_NestedProtocol {
+    public typealias NestedClass = main.__ContainerProtocol_NestedProtocol_NestedClass
+}
+@_documentation(visibility: internal)
+extension main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol where Self : main.___ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol {
+}
+extension main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol {
+    public typealias NestedClass = main.__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol_NestedClass
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.ContainerProtocol, main.__ContainerProtocol where Wrapped : main._ContainerProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.SiblingProtocol, main.__SiblingProtocol where Wrapped : main._SiblingProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.Foeble, main.__Foeble where Wrapped : main._Foeble {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.Barable, main.__Barable where Wrapped : main._Barable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.Bazzable, main.__Bazzable where Wrapped : main._Bazzable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.SealedFoeble, main.__SealedFoeble where Wrapped : main._SealedFoeble {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main.SealedBazzable, main.__SealedBazzable where Wrapped : main._SealedBazzable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: ExportedKotlinPackages.packagewithprotocols.ContainerProtocol, ExportedKotlinPackages.packagewithprotocols.__ContainerProtocol where Wrapped : ExportedKotlinPackages.packagewithprotocols._ContainerProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: ExportedKotlinPackages.packagewithprotocols.SiblingProtocol, ExportedKotlinPackages.packagewithprotocols.__SiblingProtocol where Wrapped : ExportedKotlinPackages.packagewithprotocols._SiblingProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: ExportedKotlinPackages.repeating_conformances.Foeble, ExportedKotlinPackages.repeating_conformances.__Foeble where Wrapped : ExportedKotlinPackages.repeating_conformances._Foeble {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: ExportedKotlinPackages.repeating_conformances.Barable, ExportedKotlinPackages.repeating_conformances.__Barable where Wrapped : ExportedKotlinPackages.repeating_conformances._Barable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main._ContainerProtocol_NestedProtocol, main.___ContainerProtocol_NestedProtocol where Wrapped : main.__ContainerProtocol_NestedProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main._SealedFoeble_SealedBarable, main.___SealedFoeble_SealedBarable where Wrapped : main.__SealedFoeble_SealedBarable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistential: main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol, main.___ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol where Wrapped : main.__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._ContainerProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._SiblingProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._Foeble {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._Barable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._Bazzable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._SealedFoeble {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main._SealedBazzable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: ExportedKotlinPackages.packagewithprotocols._ContainerProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: ExportedKotlinPackages.packagewithprotocols._SiblingProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: ExportedKotlinPackages.repeating_conformances._Foeble {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: ExportedKotlinPackages.repeating_conformances._Barable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main.__ContainerProtocol_NestedProtocol {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main.__SealedFoeble_SealedBarable {
+}
+@_documentation(visibility: internal)
+extension KotlinRuntimeSupport._KotlinExistentialPenBox: main.__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol {
+}
+@_documentation(visibility: internal)
+extension main._SealedFoeble_SealedBarable where Self : main.___SealedFoeble_SealedBarable {
+    public func sealedType() -> main.SealedBarable_SealedType {
+        switch self {
+        case let value as main._SealedFoeble_SomeBarable: .someBarable(.init(value))
+        default: fatalError("missing sealedType for \(self)")
+        }
+    }
+}
+extension main._SealedFoeble_SealedBarable {
+    @_disfavoredOverload
+    public func sealedType() -> main.SealedFoeble_SealedType {
+        .sealedBarable(sealedType())
+    }
+}
+extension main._SiblingProtocol_NestedClass {
+    public func foo() -> Swift.Void {
+        let receiver = self
+        return main.foo(receiver)
+    }
+}
+extension main.__ContainerProtocol_NestedProtocol_NestedClass {
+    public func foo() -> Swift.Void {
+        let receiver = self
+        return main.foo(receiver)
+    }
+}
+extension ExportedKotlinPackages.packagewithprotocols {
+    public enum ENUM_WITH_INTERFACE_INHERITANCE: KotlinRuntimeSupport._KotlinBridgeable, Swift.CaseIterable, Swift.LosslessStringConvertible, Swift.RawRepresentable {
+        public var description: Swift.String {
+            get {
+                switch self {
+                default: fatalError()
+                }
+            }
+        }
+        public var rawValue: Swift.Int32 {
+            get {
+                switch self {
+                default: fatalError()
+                }
+            }
+        }
+        public init?(
+            _ description: Swift.String
+        ) {
+            switch description {
+
+            default: return nil
+            }
+        }
+        public init?(
+            rawValue: Swift.Int32
+        ) {
+            guard 0..<0 ~= rawValue else { return nil }
+            self = ENUM_WITH_INTERFACE_INHERITANCE.allCases[Int(rawValue)]
+        }
+        public init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer!,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            switch packagewithprotocols_ENUM_WITH_INTERFACE_INHERITANCE_ordinal(__externalRCRefUnsafe) {
+            default: fatalError()
+            }
+        }
+        public func __externalRCRef() -> Swift.UnsafeMutableRawPointer! {
+            return switch self {
+            default: fatalError()
+            }
+        }
+    }
+    public protocol ContainerProtocol: KotlinRuntime.KotlinBase, ExportedKotlinPackages.packagewithprotocols._ContainerProtocol {
+    }
+    public protocol SiblingProtocol: KotlinRuntime.KotlinBase, ExportedKotlinPackages.packagewithprotocols._SiblingProtocol {
+    }
+    @objc(_ExportedKotlinPackages_packagewithprotocols_ContainerProtocol)
+    public protocol _ContainerProtocol {
+    }
+    @objc(_ExportedKotlinPackages_packagewithprotocols_SiblingProtocol)
+    public protocol _SiblingProtocol {
+    }
+    public protocol __ContainerProtocol: KotlinRuntimeSupport._KotlinBridgeable {
+    }
+    public protocol __SiblingProtocol: KotlinRuntimeSupport._KotlinBridgeable {
+    }
+    public final class INHERITANCE_COUPLE: main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedClass, ExportedKotlinPackages.packagewithprotocols.ContainerProtocol, ExportedKotlinPackages.packagewithprotocols.__ContainerProtocol {
+        public override init() {
+            let __kt = packagewithprotocols_INHERITANCE_COUPLE_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { packagewithprotocols_INHERITANCE_COUPLE_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    public final class INHERITANCE_SINGLE_PROTO: main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedClass {
+        public override init() {
+            let __kt = packagewithprotocols_INHERITANCE_SINGLE_PROTO_init_allocate()
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { packagewithprotocols_INHERITANCE_SINGLE_PROTO_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    public final class OBJECT_WITH_INTERFACE_INHERITANCE: KotlinRuntime.KotlinBase, ExportedKotlinPackages.packagewithprotocols.ContainerProtocol, ExportedKotlinPackages.packagewithprotocols.__ContainerProtocol {
+        public static var shared: ExportedKotlinPackages.packagewithprotocols.OBJECT_WITH_INTERFACE_INHERITANCE {
+            get {
+                return ExportedKotlinPackages.packagewithprotocols.OBJECT_WITH_INTERFACE_INHERITANCE.__createClassWrapper(externalRCRef: packagewithprotocols_OBJECT_WITH_INTERFACE_INHERITANCE_get())
+            }
+        }
+        private init() {
+            fatalError()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    public static func foo(
+        _ receiver: any ExportedKotlinPackages.packagewithprotocols.ContainerProtocol
+    ) -> Swift.Void {
+        return { packagewithprotocols_foo__TypesOfArgumentsE__anyU20ExportedKotlinPackages_packagewithprotocols_ContainerProtocol__(receiver.__externalRCRef()); return () }()
+    }
+    public static func foo(
+        _ receiver: main.__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol_NestedClass
+    ) -> Swift.Void {
+        return { packagewithprotocols_foo__TypesOfArgumentsE__main___ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol_NestedClass__(receiver.__externalRCRef()); return () }()
+    }
+    public static func foo(
+        _ receiver: main._ExportedKotlinPackages_packagewithprotocols_SiblingProtocol_NestedClass
+    ) -> Swift.Void {
+        return { packagewithprotocols_foo__TypesOfArgumentsE__main__ExportedKotlinPackages_packagewithprotocols_SiblingProtocol_NestedClass__(receiver.__externalRCRef()); return () }()
+    }
+    public static func foo(
+        _ receiver: any main._ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol
+    ) -> Swift.Void {
+        return { packagewithprotocols_foo__TypesOfArgumentsE__anyU20main__ExportedKotlinPackages_packagewithprotocols_ContainerProtocol_NestedProtocol__(receiver.__externalRCRef()); return () }()
+    }
+}
+extension ExportedKotlinPackages.repeating_conformances {
+    public protocol Barable: KotlinRuntime.KotlinBase, ExportedKotlinPackages.repeating_conformances.Foeble, ExportedKotlinPackages.repeating_conformances._Barable {
+    }
+    public protocol Foeble: KotlinRuntime.KotlinBase, ExportedKotlinPackages.repeating_conformances._Foeble {
+    }
+    @objc(_ExportedKotlinPackages_repeating_conformances_Barable)
+    public protocol _Barable: ExportedKotlinPackages.repeating_conformances._Foeble {
+    }
+    @objc(_ExportedKotlinPackages_repeating_conformances_Foeble)
+    public protocol _Foeble {
+    }
+    public protocol __Barable: KotlinRuntimeSupport._KotlinBridgeable, ExportedKotlinPackages.repeating_conformances.__Foeble {
+    }
+    public protocol __Foeble: KotlinRuntimeSupport._KotlinBridgeable {
+    }
+    open class Child1: ExportedKotlinPackages.repeating_conformances.Parent1 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Child1.self {
+                 __kt = repeating_conformances_Child1_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Child1_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Child2: ExportedKotlinPackages.repeating_conformances.Parent2 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Child2.self {
+                 __kt = repeating_conformances_Child2_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Child2_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Child3: ExportedKotlinPackages.repeating_conformances.Parent3 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Child3.self {
+                 __kt = repeating_conformances_Child3_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Child3_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Child4: ExportedKotlinPackages.repeating_conformances.Parent4 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Child4.self {
+                 __kt = repeating_conformances_Child4_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Child4_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Child5: ExportedKotlinPackages.repeating_conformances.Parent5 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Child5.self {
+                 __kt = repeating_conformances_Child5_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Child5_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class GrandChild1: ExportedKotlinPackages.repeating_conformances.Child1 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.GrandChild1.self {
+                 __kt = repeating_conformances_GrandChild1_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_GrandChild1_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class GrandChild2: ExportedKotlinPackages.repeating_conformances.Child2 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.GrandChild2.self {
+                 __kt = repeating_conformances_GrandChild2_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_GrandChild2_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class GrandChild3: ExportedKotlinPackages.repeating_conformances.Child3 {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.GrandChild3.self {
+                 __kt = repeating_conformances_GrandChild3_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_GrandChild3_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class GrandChild4: ExportedKotlinPackages.repeating_conformances.Child4, ExportedKotlinPackages.repeating_conformances.Barable, ExportedKotlinPackages.repeating_conformances.__Barable {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.GrandChild4.self {
+                 __kt = repeating_conformances_GrandChild4_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_GrandChild4_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class GrandChild5: ExportedKotlinPackages.repeating_conformances.Child5, ExportedKotlinPackages.repeating_conformances.Barable, ExportedKotlinPackages.repeating_conformances.__Barable, ExportedKotlinPackages.repeating_conformances.Foeble, ExportedKotlinPackages.repeating_conformances.__Foeble {
+        public override init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.GrandChild5.self {
+                 __kt = repeating_conformances_GrandChild5_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_GrandChild5_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Parent1: KotlinRuntime.KotlinBase, ExportedKotlinPackages.repeating_conformances.Foeble, ExportedKotlinPackages.repeating_conformances.__Foeble {
+        public init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Parent1.self {
+                 __kt = repeating_conformances_Parent1_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Parent1_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Parent2: KotlinRuntime.KotlinBase, ExportedKotlinPackages.repeating_conformances.Foeble, ExportedKotlinPackages.repeating_conformances.__Foeble {
+        public init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Parent2.self {
+                 __kt = repeating_conformances_Parent2_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Parent2_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Parent3: KotlinRuntime.KotlinBase, ExportedKotlinPackages.repeating_conformances.Barable, ExportedKotlinPackages.repeating_conformances.__Barable {
+        public init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Parent3.self {
+                 __kt = repeating_conformances_Parent3_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Parent3_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Parent4: KotlinRuntime.KotlinBase, ExportedKotlinPackages.repeating_conformances.Foeble, ExportedKotlinPackages.repeating_conformances.__Foeble {
+        public init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Parent4.self {
+                 __kt = repeating_conformances_Parent4_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Parent4_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+    open class Parent5: KotlinRuntime.KotlinBase {
+        public init() {
+             let __kt: Swift.UnsafeMutableRawPointer!
+             if Self.self == ExportedKotlinPackages.repeating_conformances.Parent5.self {
+                 __kt = repeating_conformances_Parent5_init_allocate()
+             } else {
+                 __kt = _kotlinAllocInstanceForSwiftSubclass(Self.self)
+             }
+            super.init(__externalRCRefUnsafe: __kt, options: .asBoundBridge);
+            { repeating_conformances_Parent5_init_initialize__TypesOfArguments__Swift_UnsafeMutableRawPointer__(__kt); return () }()
+        }
+        package override init(
+            __externalRCRefUnsafe: Swift.UnsafeMutableRawPointer?,
+            options: KotlinRuntime.KotlinBaseConstructionOptions
+        ) {
+            super.init(__externalRCRefUnsafe: __externalRCRefUnsafe, options: options);
+        }
+    }
+}
+@_cdecl("Barable_bar__TypesOfArguments__anyU20main_Foeble____reverse_swift")
+package func Barable_bar__TypesOfArguments__anyU20main_Foeble____reverse_swift(_ `self`: Swift.UnsafeMutableRawPointer, _ arg: Swift.UnsafeMutableRawPointer) -> Swift.UnsafeMutableRawPointer {
+    let _self = KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: `self`, conformsTo: main.Barable.Type.self) as! any main.Barable
+    let _result: any main.Barable = _self.bar(arg: KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: arg, conformsTo: main.Foeble.Type.self) as! any main.Foeble)
+    return _result.__externalRCRef()
+}
+
+@_cdecl("Barable_baz_get__reverse_swift")
+package func Barable_baz_get__reverse_swift(_ `self`: Swift.UnsafeMutableRawPointer) -> Swift.UnsafeMutableRawPointer {
+    let _self = KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: `self`, conformsTo: main.Barable.Type.self) as! any main.Barable
+    let _result: any main.Foeble = _self.baz
+    return _result.__externalRCRef()
+}
+
+@_cdecl("Foeble_bar__TypesOfArguments__anyU20main_Foeble____reverse_swift")
+package func Foeble_bar__TypesOfArguments__anyU20main_Foeble____reverse_swift(_ `self`: Swift.UnsafeMutableRawPointer, _ arg: Swift.UnsafeMutableRawPointer) -> Swift.UnsafeMutableRawPointer {
+    let _self = KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: `self`, conformsTo: main.Foeble.Type.self) as! any main.Foeble
+    let _result: any main.Foeble = _self.bar(arg: KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: arg, conformsTo: main.Foeble.Type.self) as! any main.Foeble)
+    return _result.__externalRCRef()
+}
+
+@_cdecl("Foeble_baz_get__reverse_swift")
+package func Foeble_baz_get__reverse_swift(_ `self`: Swift.UnsafeMutableRawPointer) -> Swift.UnsafeMutableRawPointer {
+    let _self = KotlinRuntime.KotlinBase.__createProtocolWrapper(externalRCRef: `self`, conformsTo: main.Foeble.Type.self) as! any main.Foeble
+    let _result: any main.Foeble = _self.baz
+    return _result.__externalRCRef()
+}

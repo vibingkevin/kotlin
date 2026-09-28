@@ -1,0 +1,50 @@
+/*
+ * Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+package org.jetbrains.kotlin.psi
+
+import com.intellij.lang.ASTNode
+import org.jetbrains.kotlin.KtNodeTypes
+import org.jetbrains.kotlin.psi.stubs.KotlinPlaceHolderStub
+
+/**
+ * Represents an intersection type combining two types with {@code &}.
+ *
+ * ### Example:
+ *
+ * ```kotlin
+ * fun <T> foo(x: T & Any) {
+ * //             ^_____^
+ * }
+ * ```
+ */
+@OptIn(KtImplementationDetail::class)
+class KtIntersectionType : KtElementImplStub<KotlinPlaceHolderStub<KtIntersectionType>>, KtTypeElement {
+    @KtImplementationDetail
+    constructor(node: ASTNode) : super(node)
+
+    @KtImplementationDetail
+    constructor(stub: KotlinPlaceHolderStub<KtIntersectionType>) : super(stub, KtNodeTypes.INTERSECTION_TYPE)
+
+    /** Always empty: an intersection type has no type arguments (its operands are [getLeftTypeRef] and [getRightTypeRef]). */
+    override fun getTypeArgumentsAsTypes(): List<KtTypeReference> = emptyList()
+
+    /**
+     * Returns the left operand type of the intersection (the part before `&`), or `null` if it is absent in incomplete code.
+     */
+    fun getLeftTypeRef(): KtTypeReference? = typeReferences().getOrNull(0)
+
+    /**
+     * Returns the right operand type of the intersection (the part after `&`), or `null` if it is absent in incomplete code.
+     */
+    fun getRightTypeRef(): KtTypeReference? = typeReferences().getOrNull(1)
+
+    private fun typeReferences(): Array<out KtTypeReference> =
+        getStubOrPsiChildren(KtNodeTypes.TYPE_REFERENCE, KtTypeReference.EMPTY_ARRAY)
+
+    override fun <R, D> accept(visitor: KtVisitor<R, D>, data: D): R {
+        return visitor.visitIntersectionType(this, data)
+    }
+}

@@ -1,0 +1,60 @@
+/*
+ * Copyright 2010-2025 JetBrains s.r.o. and Kotlin Programming Language contributors.
+ * Use of this source code is governed by the Apache 2.0 license that can be found in the license/LICENSE.txt file.
+ */
+
+@file:OptIn(ExperimentalArgumentApi::class)
+
+package org.jetbrains.kotlin.arguments.dsl
+
+import org.jetbrains.kotlin.arguments.dsl.base.ExperimentalArgumentApi
+import org.jetbrains.kotlin.arguments.dsl.base.KotlinReleaseVersion
+import org.jetbrains.kotlin.arguments.dsl.base.asReleaseDependent
+import org.jetbrains.kotlin.arguments.dsl.types.*
+
+val BooleanType.Companion.defaultFalse: BooleanType
+    get() = BooleanType(
+        isNullable = false.asReleaseDependent(),
+        defaultValue = false.asReleaseDependent()
+    )
+
+val BooleanType.Companion.defaultTrue: BooleanType
+    get() = BooleanType(
+        isNullable = false.asReleaseDependent(),
+        defaultValue = true.asReleaseDependent()
+    )
+
+val BooleanType.Companion.defaultNull: BooleanType
+    get() = BooleanType(
+        isNullable = true.asReleaseDependent(),
+        defaultValue = null.asReleaseDependent()
+    )
+
+val StringType.Companion.defaultNull: StringType
+    get() = StringType()
+
+val StringArrayType.Companion.defaultNull: StringArrayType
+    get() = StringArrayType()
+
+val IntType.Companion.defaultOne: IntType
+    get() = IntType(
+        defaultValue = 1.asReleaseDependent(),
+    )
+
+val PathType.Companion.defaultNull: PathType
+    get() = PathType()
+
+val StringListType.Companion.defaultEmpty: StringListType
+    get() = StringListType()
+
+val SearchPathType.Companion.defaultNull: SearchPathType
+    get() = SearchPathType()
+
+val PathListType.Companion.defaultEmpty: PathListType
+    get() = PathListType()
+
+val KotlinReleaseVersion.previous: KotlinReleaseVersion?
+    get() = KotlinReleaseVersion.entries.getOrNull(ordinal - 1)
+
+val KotlinReleaseVersion.next: KotlinReleaseVersion?
+    get() = KotlinReleaseVersion.entries.getOrNull(ordinal + 1)
