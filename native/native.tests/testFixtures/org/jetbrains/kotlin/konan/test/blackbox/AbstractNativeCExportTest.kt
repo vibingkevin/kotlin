@@ -7,7 +7,6 @@ package org.jetbrains.kotlin.konan.test.blackbox
 
 import com.intellij.testFramework.TestDataFile
 import org.jetbrains.kotlin.konan.target.Family
-import org.jetbrains.kotlin.konan.target.HostManager
 import org.jetbrains.kotlin.konan.test.blackbox.support.*
 import org.jetbrains.kotlin.konan.test.blackbox.support.PackageName
 import org.jetbrains.kotlin.konan.test.blackbox.support.TestCase
@@ -51,12 +50,16 @@ abstract class AbstractNativeCExportTest() : AbstractNativeSimpleTest() {
         checkTestPrerequisites()
 
         // https://youtrack.jetbrains.com/issue/KT-69303
-        if (testDir == "native/native.tests/testData/CExport/InterfaceV1/concurrentTerminate/" && HostManager.hostIsMac) {
-            Assumptions.abort<Nothing>("concurrentTerminate flaks on Mac, see KT-69303")
+        if (testDir == "native/native.tests/testData/CExport/InterfaceV1/concurrentTerminate/" &&
+            targets.testTarget.family.isAppleFamily
+        ) {
+            Assumptions.abort<Nothing>("concurrentTerminate is muted for Apple targets, see KT-69303")
         }
 
         // https://youtrack.jetbrains.com/issue/KT-69663
-        if (testDir == "native/native.tests/testData/CExport/InterfaceV1/unhandledExceptionThroughBridge/" && HostManager.hostIsMingw) {
+        if (testDir == "native/native.tests/testData/CExport/InterfaceV1/unhandledExceptionThroughBridge/" &&
+            targets.testTarget.family == Family.MINGW
+        ) {
             Assumptions.abort<Nothing>("unhandledExceptionThroughBridge flaks on Windows, see KT-69663")
         }
 

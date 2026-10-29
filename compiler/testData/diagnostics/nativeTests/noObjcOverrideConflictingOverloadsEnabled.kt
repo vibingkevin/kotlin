@@ -2,6 +2,7 @@
 // LANGUAGE: +ObjCSignatureOverrideAnnotation
 // API_VERSION: 2.0
 // WITH_PLATFORM_LIBS
+// REQUIRES_APPLE_TARGET
 
 import kotlinx.cinterop.*
 import platform.darwin.*

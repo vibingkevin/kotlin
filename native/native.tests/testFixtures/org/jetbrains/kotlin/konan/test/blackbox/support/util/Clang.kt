@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.konan.test.blackbox.support.util
 import org.jetbrains.kotlin.cli.common.ExitCode
 import org.jetbrains.kotlin.konan.target.ClangArgs
 import org.jetbrains.kotlin.konan.target.Family
+import org.jetbrains.kotlin.konan.target.GccConfigurables
 import org.jetbrains.kotlin.konan.target.MingwConfigurables
 import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeSimpleTest
 import org.jetbrains.kotlin.konan.test.blackbox.support.LoggedData
@@ -130,6 +131,12 @@ fun compileWithClang(
         if (configurables.target.family.isAppleFamily && clangDistribution == ClangDistribution.Llvm && clangMode == ClangMode.CXX) {
             // Prevent KT-70603 by removing llvm-dev C++ stdlib from the search path
             addAll(listOf("-stdlib++-isystem", "${configurables.absoluteTargetSysRoot}/usr/include/c++/v1"))
+        }
+        // ClangArgs still pass --gcc-toolchain for linux, so clang would pick GNU ld.bfd from that
+        // package. Those binaries are linux ELF and cannot run on Darwin. KN itself links with the
+        // host-target linker (ld.lld on macOS/Linux). Match that when producing an executable.
+        if (configurables is GccConfigurables && "-c" !in additionalClangFlags) {
+            add("-fuse-ld=${configurables.absoluteLinker}")
         }
         addAll(additionalClangFlags)
         add("-o")

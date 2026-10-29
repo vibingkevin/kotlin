@@ -1,5 +1,6 @@
 // RUN_PIPELINE_TILL: FRONTEND
 // WITH_PLATFORM_LIBS
+// REQUIRES_APPLE_TARGET
 import kotlinx.cinterop.*
 import platform.darwin.*
 import platform.Foundation.*

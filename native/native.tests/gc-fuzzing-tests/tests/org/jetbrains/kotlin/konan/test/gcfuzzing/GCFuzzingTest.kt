@@ -6,7 +6,9 @@
 package org.jetbrains.kotlin.konan.test.gcfuzzing
 
 import org.jetbrains.kotlin.konan.test.blackbox.AbstractNativeSimpleTest
+import org.jetbrains.kotlin.konan.test.blackbox.support.settings.KotlinNativeTargets
 import org.jetbrains.kotlin.konan.test.gcfuzzing.fuzzer.*
+import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.util.stream.Stream
@@ -19,6 +21,9 @@ class GCFuzzingTest : AbstractNativeSimpleTest() {
 
     @TestFactory
     fun simple(): Stream<DynamicTest> {
+        // GC fuzzing builds an ObjC framework, including when replaying a single program.
+        Assumptions.assumeTrue(testRunSettings.get<KotlinNativeTargets>().testTarget.family.isAppleFamily)
+
         val executeSingleId = System.getProperty("gcfuzzing.single.id")
         if (executeSingleId != null) {
             val id = ProgramId.fromString(executeSingleId) ?: fail("Invalid program ID \"$executeSingleId\"")

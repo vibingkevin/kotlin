@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.test.klib.CustomKlibCompilerFirstStageFacade
 import org.jetbrains.kotlin.test.model.BinaryArtifacts
 import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.services.TestServices
+import org.jetbrains.kotlin.test.services.configuration.nativeEnvironmentConfigurator
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
@@ -55,6 +56,7 @@ class CustomNativeCompilerFirstStageFacade(testServices: TestServices) : CustomK
                 listOfNotNull(
                     CommonCompilerArguments::disableDefaultScriptingPlugin.cliArgument,
                     K2NativeCompilerArguments::produce.cliArgument, "library",
+                    K2NativeCompilerArguments::target.cliArgument, testServices.nativeEnvironmentConfigurator.getNativeTarget(module).name,
                     K2NativeCompilerArguments::moduleName.cliArgument, module.name,
                     K2NativeCompilerArguments::outputName.cliArgument, outputKlibFile.path,
                     K2NativeCompilerArguments::kotlinHome.cliArgument, customNativeCompilerSettings.nativeHome.absolutePath,

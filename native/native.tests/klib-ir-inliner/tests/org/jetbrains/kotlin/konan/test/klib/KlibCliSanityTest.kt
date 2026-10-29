@@ -373,7 +373,7 @@ class KlibCliSanityTest : AbstractNativeSimpleTest() {
     @Test
     fun `Compiler rejects libraries from the distribution and C-interop libraries as exported libs`() {
         // Frameworks can be built only on Apple.
-        assumeTrue(testRunSettings.get<KotlinNativeTargets>().hostTarget.family.isAppleFamily)
+        assumeTrue(testRunSettings.get<KotlinNativeTargets>().testTarget.family.isAppleFamily)
         doTestCompilerRejectsLibrariesFromDistributionAndCInteropLibraries(testedCliParameter = K2NativeCompilerArguments::exportedLibraries) { cliArgs ->
             val frameworkDir = buildDir.resolve("frameworkDir").also { it.deleteRecursively() }
             val compilation = ObjCFrameworkCompilation(

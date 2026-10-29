@@ -35,6 +35,7 @@ private enum class TestProperty(shortName: String) {
     CUSTOM_KLIBS("customKlibs"),
     CUSTOM_KOTLIN_NATIVE_HOME("customNativeHome"),
     TEST_TARGET("target"),
+    DOCKER_IMAGE("dockerImage"),
     TEST_MODE("mode"),
     TEST_KIND("testKind"),
     FORCE_STANDALONE("forceStandalone"), // This is not passed directly into the test infra but transformed into TEST_KIND.
@@ -76,6 +77,10 @@ private open class NativeArgsProvider @Inject constructor(
     @get:Input
     @get:Optional
     protected val testTarget = providers.testProperty(TEST_TARGET)
+
+    @get:Input
+    @get:Optional
+    protected val dockerImage = providers.testProperty(DOCKER_IMAGE)
 
     @get:Input
     @get:Optional
@@ -271,6 +276,7 @@ private open class NativeArgsProvider @Inject constructor(
             "-D${USE_PROVISIONED_XCODE.fullName}=$useProvisionedXcode",
             customCompilerDist.orNull?.let { "-D${CUSTOM_KOTLIN_NATIVE_HOME.fullName}=${it.asFile.absolutePath}" },
             testTarget.orNull?.let { "-D${TEST_TARGET.fullName}=$it" },
+            dockerImage.orNull?.let { "-D${DOCKER_IMAGE.fullName}=$it" },
             testMode.orNull?.let { "-D${TEST_MODE.fullName}=$it" },
             compileOnly.orNull?.let { "-D${COMPILE_ONLY.fullName}=$it" },
             optimizationMode.orNull?.let { "-D${OPTIMIZATION_MODE.fullName}=$it" },

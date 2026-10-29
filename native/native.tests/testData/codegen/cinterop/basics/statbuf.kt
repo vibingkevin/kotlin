@@ -3,7 +3,6 @@
  * that can be found in the LICENSE file.
  */
 // TARGET_BACKEND: NATIVE
-// IGNORE_NATIVE: target=linux_arm64
 // MODULE: cinterop
 // FILE: sysstat.def
 headers = sys/stat.h

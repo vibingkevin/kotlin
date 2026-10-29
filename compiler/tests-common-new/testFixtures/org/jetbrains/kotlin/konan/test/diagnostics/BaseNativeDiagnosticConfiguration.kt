@@ -13,11 +13,16 @@ import org.jetbrains.kotlin.test.configuration.DEFAULT_UNUSED_DIAGNOSTICS
 import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.DiagnosticsDirectives.DIAGNOSTICS
 import org.jetbrains.kotlin.test.directives.JvmEnvironmentConfigurationDirectives
+import org.jetbrains.kotlin.test.directives.NativeEnvironmentConfigurationDirectives.REQUIRES_APPLE_TARGET
 import org.jetbrains.kotlin.test.frontend.fir.handlers.*
 import org.jetbrains.kotlin.test.model.FrontendFacade
 import org.jetbrains.kotlin.test.model.ResultingArtifact
+import org.jetbrains.kotlin.test.services.MetaTestConfigurator
+import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.configuration.CommonEnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.configuration.NativeFirstStageEnvironmentConfigurator
+import org.jetbrains.kotlin.test.services.configuration.nativeEnvironmentConfigurator
+import org.jetbrains.kotlin.test.services.moduleStructure
 import org.jetbrains.kotlin.test.services.sourceProviders.AdditionalDiagnosticsSourceFilesProvider
 import org.jetbrains.kotlin.test.services.sourceProviders.CoroutineHelpersSourceFilesProvider
 
@@ -36,6 +41,7 @@ fun <R : ResultingArtifact.FrontendOutput<R>> TestConfigurationBuilder.baseNativ
         ::CommonEnvironmentConfigurator,
         ::NativeFirstStageEnvironmentConfigurator,
     )
+    useMetaTestConfigurators(::NativeAppleTargetTestSkipper)
 
     useAdditionalSourceProviders(
         ::AdditionalDiagnosticsSourceFilesProvider,
@@ -43,6 +49,13 @@ fun <R : ResultingArtifact.FrontendOutput<R>> TestConfigurationBuilder.baseNativ
     )
 
     facadeStep(frontendFacade)
+}
+
+private class NativeAppleTargetTestSkipper(testServices: TestServices) : MetaTestConfigurator(testServices) {
+    override fun shouldSkipTest(): Boolean = testServices.moduleStructure.modules.any { module ->
+        REQUIRES_APPLE_TARGET in module.directives &&
+                !testServices.nativeEnvironmentConfigurator.getNativeTarget(module).family.isAppleFamily
+    }
 }
 
 fun TestConfigurationBuilder.baseFirNativeDiagnosticTestConfiguration() {

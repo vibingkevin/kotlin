@@ -1,7 +1,9 @@
 import org.gradle.api.publish.internal.PublicationInternal
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinUsages
 import org.jetbrains.kotlin.gradle.targets.js.KotlinJsCompilerAttribute
+import org.jetbrains.kotlin.konan.target.HostManager
 import plugins.KotlinBuildPublishingPlugin.Companion.ADHOC_COMPONENT_NAME
 import plugins.configureKotlinPomAttributes
 
@@ -30,10 +32,14 @@ val coreJsIrRuntimeForTests = configurations.create("coreJsIrRuntimeForTests") {
     }
 }
 
+val nativeTestTarget = providers.gradleProperty("kotlin.internal.native.test.target")
+    .orElse(providers.gradleProperty("kn.target"))
+    .orElse(providers.provider { HostManager.hostOrNull?.name })
+
 val coreNativeRuntimeForTests = configurations.create("coreNativeRuntimeForTests") {
     attributes {
         attribute(KotlinPlatformType.attribute, KotlinPlatformType.native)
-        hostKonanTargetAttribute()
+        nativeTestTarget.orNull?.let { attribute(KotlinNativeTarget.konanTargetAttribute, it) }
         attribute(Usage.USAGE_ATTRIBUTE, objects.named(KotlinUsages.KOTLIN_API))
         attribute(KotlinPlatformType.attribute, KotlinPlatformType.native)
     }
@@ -42,7 +48,7 @@ val coreNativeRuntimeForTests = configurations.create("coreNativeRuntimeForTests
 val jsonNativeRuntimeForTests = configurations.create("jsonNativeRuntimeForTests") {
     attributes {
         attribute(KotlinPlatformType.attribute, KotlinPlatformType.native)
-        hostKonanTargetAttribute()
+        nativeTestTarget.orNull?.let { attribute(KotlinNativeTarget.konanTargetAttribute, it) }
         attribute(Usage.USAGE_ATTRIBUTE, objects.named(KotlinUsages.KOTLIN_API))
         attribute(KotlinPlatformType.attribute, KotlinPlatformType.native)
     }
@@ -98,6 +104,7 @@ dependencies {
     // Implicit dependencies on CORE and JSON native artifacts to run native tests on CI
     listOf(
         "linuxx64",
+        "linuxarm64",
         "macosarm64",
         "macosx64",
         "iossimulatorarm64",

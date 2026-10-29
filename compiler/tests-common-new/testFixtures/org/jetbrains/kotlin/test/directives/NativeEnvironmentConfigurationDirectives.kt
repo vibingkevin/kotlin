@@ -18,4 +18,6 @@ object NativeEnvironmentConfigurationDirectives : SimpleDirectivesContainer() {
 
     /** See also [WITH_PLATFORM_LIBS], [org.jetbrains.kotlin.test.services.configuration.NativeEnvironmentConfigurator.getNativeTarget]. */
     val WITH_FIXED_TARGET by stringDirective("Run tests with the fixed Kotlin/Native target.")
+
+    val REQUIRES_APPLE_TARGET by directive("Run diagnostics requiring Apple platform APIs only for Apple targets.")
 }

@@ -1,6 +1,7 @@
 // RUN_PIPELINE_TILL: FRONTEND
 // LANGUAGE: -ObjCSignatureOverrideAnnotation
 // WITH_PLATFORM_LIBS
+// REQUIRES_APPLE_TARGET
 
 import kotlinx.cinterop.*
 import platform.darwin.*
