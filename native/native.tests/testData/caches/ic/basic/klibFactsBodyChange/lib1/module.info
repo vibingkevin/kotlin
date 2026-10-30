@@ -1,0 +1,11 @@
+STEP 0:
+    modifications:
+        U : Provider.kt -> Provider.kt
+        U : LocalCaller.kt -> LocalCaller.kt
+    added cache: Provider.kt, LocalCaller.kt
+
+STEP 1:
+    modifications:
+        U : Provider.1.kt -> Provider.kt
+    modified cache: Provider.kt
+    unchanged cache: LocalCaller.kt

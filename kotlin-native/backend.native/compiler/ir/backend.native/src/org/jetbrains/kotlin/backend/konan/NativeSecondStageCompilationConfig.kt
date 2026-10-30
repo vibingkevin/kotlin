@@ -8,6 +8,7 @@ package org.jetbrains.kotlin.backend.konan
 import com.google.common.base.StandardSystemProperty
 import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.backend.common.linkage.partial.partialLinkageConfig
+import org.jetbrains.kotlin.backend.konan.facts.KlibFactsGenerator
 import org.jetbrains.kotlin.backend.konan.ir.BridgesPolicy
 import org.jetbrains.kotlin.backend.konan.objcexport.ObjCEntryPoints
 import org.jetbrains.kotlin.backend.konan.objcexport.readObjCEntryPoints
@@ -27,6 +28,7 @@ import org.jetbrains.kotlin.konan.file.File
 import org.jetbrains.kotlin.konan.library.isExplicitlySpecifiedByUserInCLIArgument
 import org.jetbrains.kotlin.konan.target.*
 import org.jetbrains.kotlin.library.KotlinLibrary
+import org.jetbrains.kotlin.library.isNativeStdlib
 import org.jetbrains.kotlin.native.resolve.KonanLibrariesResolveSupport
 import org.jetbrains.kotlin.utils.KotlinNativePaths
 import java.nio.file.Files
@@ -636,6 +638,15 @@ class NativeSecondStageCompilationConfig(
 
     internal val libraryToCache: PartialCacheInfo?
         get() = cacheSupport.libraryToCache
+
+    // Optimized builds can bake non-inline bodies into consumers.
+    internal val useKlibFacts: Boolean get() = !optimizationsEnabled && !inlineForPerformance
+
+    internal val klibDefinedFacts by lazy {
+        libraryToCache?.takeIf { useKlibFacts && producePerFileCache && !it.klib.isNativeStdlib }?.let {
+            KlibFactsGenerator.from(this).generateFactsFrom(it.klib).definedFacts
+        }
+    }
 
     internal val producePerFileCache
         get() = configuration.makePerFileCache

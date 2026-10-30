@@ -1,0 +1,9 @@
+STEP 0:
+    dependencies: lib1
+    modifications:
+        U : Consumer.kt -> Consumer.kt
+    added cache: Consumer.kt
+
+STEP 1:
+    dependencies: lib1
+    modified cache: Consumer.kt

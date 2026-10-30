@@ -1,0 +1,12 @@
+STEP 0:
+    modifications:
+        U : Upstream.kt -> Upstream.kt
+        U : Middle.kt -> Middle.kt
+        U : Leaf.kt -> Leaf.kt
+    added cache: Upstream.kt, Middle.kt, Leaf.kt
+
+STEP 1:
+    modifications:
+        U : Upstream.1.kt -> Upstream.kt
+        U : Middle.1.kt -> Middle.kt
+    modified cache: Upstream.kt, Middle.kt, Leaf.kt

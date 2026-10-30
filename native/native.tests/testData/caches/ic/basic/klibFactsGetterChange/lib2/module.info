@@ -1,0 +1,9 @@
+STEP 0:
+    dependencies: lib1
+    modifications:
+        U : Reader.kt -> Reader.kt
+    added cache: Reader.kt
+
+STEP 1:
+    dependencies: lib1
+    modified cache: Reader.kt

@@ -1,0 +1,14 @@
+STEP 0:
+    modifications:
+        U : Box.kt -> Box.kt
+    added cache: Box.kt
+
+STEP 1:
+    modifications:
+        U : Box.1.kt -> Box.kt
+    modified cache: Box.kt
+
+STEP 2:
+    modifications:
+        U : Box.2.kt -> Box.kt
+    modified cache: Box.kt

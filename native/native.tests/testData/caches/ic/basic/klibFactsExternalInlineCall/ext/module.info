@@ -1,0 +1,7 @@
+STEP 0:
+    modifications:
+        U : External.kt -> External.kt
+    added cache: External.kt
+
+STEP 1:
+    unchanged cache: External.kt

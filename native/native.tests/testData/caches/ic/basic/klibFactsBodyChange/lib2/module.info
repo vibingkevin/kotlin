@@ -1,0 +1,9 @@
+STEP 0:
+    dependencies: lib1
+    modifications:
+        U : Caller.kt -> Caller.kt
+    added cache: Caller.kt
+
+STEP 1:
+    dependencies: lib1
+    unchanged cache: Caller.kt

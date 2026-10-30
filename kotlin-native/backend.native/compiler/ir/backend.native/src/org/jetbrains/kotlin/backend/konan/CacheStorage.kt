@@ -6,6 +6,8 @@
 package org.jetbrains.kotlin.backend.konan
 
 import org.jetbrains.kotlin.backend.common.serialization.FingerprintHash
+import org.jetbrains.kotlin.backend.konan.facts.KlibFileFacts
+import org.jetbrains.kotlin.backend.konan.serialization.CacheDeserializationStrategy
 import org.jetbrains.kotlin.backend.konan.serialization.CacheMetadata
 import org.jetbrains.kotlin.backend.konan.serialization.CacheMetadataSerializer
 import org.jetbrains.kotlin.backend.konan.serialization.ClassFieldsSerializer
@@ -66,6 +68,7 @@ internal class CacheStorage(private val generationState: NativeGenerationState) 
         }
         saveInlineFunctionBodies()
         saveCacheBitcodeDependencies()
+        saveKlibFacts()
         saveClassFields()
         saveEagerInitializedProperties()
         saveTrivialGetters()
@@ -80,6 +83,15 @@ internal class CacheStorage(private val generationState: NativeGenerationState) 
     private fun saveCacheBitcodeDependencies() {
         outputFiles.bitcodeDependenciesFile!!.writeLines(
                 DependenciesSerializer.serialize(generationState.dependenciesTracker.immediateBitcodeDependencies))
+    }
+
+    private fun saveKlibFacts() {
+        val strategy = generationState.cacheDeserializationStrategy as? CacheDeserializationStrategy.SingleFile
+                ?: return
+        val facts = generationState.config.klibDefinedFacts?.get(strategy.filePath) ?: return
+        KlibFileFacts.write(
+                outputFiles.bitcodeDependenciesFile!!.javaFile().toPath().resolveSibling(KlibFileFacts.FILE_NAME),
+                facts)
     }
 
     private fun saveInlineFunctionBodies() {

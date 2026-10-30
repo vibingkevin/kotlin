@@ -1,0 +1,12 @@
+STEP 0:
+    dependencies: ext
+    modifications:
+        U : Inline.kt -> Inline.kt
+        U : Caller.kt -> Caller.kt
+    added cache: Inline.kt, Caller.kt
+
+STEP 1:
+    dependencies: ext
+    modifications:
+        U : Inline.1.kt -> Inline.kt
+    modified cache: Inline.kt, Caller.kt

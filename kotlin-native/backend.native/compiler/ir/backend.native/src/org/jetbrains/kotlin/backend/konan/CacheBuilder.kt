@@ -9,6 +9,8 @@ import org.jetbrains.kotlin.analyzer.CompilationErrorException
 import org.jetbrains.kotlin.backend.common.serialization.FingerprintHash
 import org.jetbrains.kotlin.backend.common.serialization.SerializedIrFileFingerprint
 import org.jetbrains.kotlin.backend.common.serialization.SerializedKlibFingerprint
+import org.jetbrains.kotlin.backend.konan.facts.KlibFactsGenerator
+import org.jetbrains.kotlin.backend.konan.facts.KlibFileFacts
 import org.jetbrains.kotlin.backend.konan.util.compilerFingerprint
 import org.jetbrains.kotlin.backend.konan.util.reportCompilationErrorAndThrow
 import org.jetbrains.kotlin.cli.reportLog
@@ -216,6 +218,8 @@ class CacheBuilder(
         val libraryFilesWithFqNames = mutableMapOf<KotlinLibrary, List<FileWithFqName>>()
 
         val changedFiles = mutableListOf<LibraryFile>()
+        val unchangedFacts = mutableSetOf<LibraryFile>()
+        val factsGenerator = KlibFactsGenerator.from(config)
         val removedFiles = mutableListOf<LibraryFile>()
         val addedFiles = mutableListOf<LibraryFile>()
         val reversedPerFileDependencies = mutableMapOf<LibraryFile, MutableList<LibraryFile>>()
@@ -237,6 +241,7 @@ class CacheBuilder(
                     .associate { CacheSupport.cacheFileId(it.value.fqName, it.value.filePath) to it.index }
                     .toMutableMap()
 
+            val currentFacts by lazy { factsGenerator.generateFactsFrom(library).definedFacts }
             for (cachedFile in cachedFiles) {
                 val libraryFile = LibraryFile(library, cachedFile)
                 val fileIndex = actualFiles[cachedFile]
@@ -253,8 +258,15 @@ class CacheBuilder(
                     // to a linkage error otherwise); there is nothing to propagate through such an edge.
                     val [knownDependencies, removedDependencies] = cache.getFileDependencies(cachedFile)
                             .partition { it.libName in uniqueNameToLibrary }
-                    if (previousContentHash != actualContentHash || removedDependencies.isNotEmpty())
+                    if (previousContentHash != actualContentHash || removedDependencies.isNotEmpty()) {
                         changedFiles.add(libraryFile)
+                        if (config.useKlibFacts && removedDependencies.isEmpty()) {
+                            val oldFacts = KlibFileFacts.read(
+                                    Paths.get(cache.path, cachedFile, "bin", KlibFileFacts.FILE_NAME))
+                            if (oldFacts != null && oldFacts == currentFacts[actualFilesWithFqNames[fileIndex].filePath])
+                                unchangedFacts += libraryFile
+                        }
+                    }
 
                     for (dependency in knownDependencies) {
                         val dependentLibrary = uniqueNameToLibrary[dependency.libName]!!
@@ -300,9 +312,12 @@ class CacheBuilder(
         removedFiles.forEach {
             if (it !in dirtyFiles) dfs(it)
         }
-        changedFiles.forEach {
+        // A dependency-induced miss can change generated layouts or expanded inline bodies even if this file's own KLIB facts did not change.
+        // Only omit unchanged-fact roots; a miss arriving through another root still traverses the original graph.
+        changedFiles.filterNot { it in unchangedFacts }.forEach {
             if (it !in dirtyFiles) dfs(it)
         }
+        dirtyFiles.addAll(changedFiles)
         dirtyFiles.addAll(addedFiles)
 
         removedFiles.forEach {
