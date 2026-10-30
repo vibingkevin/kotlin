@@ -1,0 +1,11 @@
+STEP 0:
+    arguments: -opt-in=kotlin.native.SymbolNameIsInternal
+    modifications:
+        U : External.kt -> External.kt
+    added cache: External.kt
+
+STEP 1:
+    arguments: -opt-in=kotlin.native.SymbolNameIsInternal
+    modifications:
+        U : External.1.kt -> External.kt
+    modified cache: External.kt

@@ -1,9 +1,9 @@
 STEP 0:
-    dependencies: lib
+    dependencies: lib, lib2
     modifications:
         U : main.kt -> main.kt
 
 STEP 1:
-    dependencies: lib
+    dependencies: lib, lib2
     modifications:
         U : main.1.kt -> main.kt
