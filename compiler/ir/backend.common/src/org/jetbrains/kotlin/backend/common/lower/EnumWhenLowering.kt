@@ -185,7 +185,9 @@ data class LoweredEnumEntryDescription(val ordinal: Int, val getterId: Int)
 
 fun enumEntriesMap(enumClass: IrClass): Map<Name, LoweredEnumEntryDescription> {
     require(enumClass.isEnumClass) { "Expected enum class but was: ${enumClass.render()}" }
-    return enumClass::enumEntriesMap.getOrSetIfNull {
+    // Parallel codegen calls this for the same deserialized enum from several backend threads.
+    return synchronized(enumClass) {
+        enumClass::enumEntriesMap.getOrSetIfNull {
         data class NameWithOrdinal(val name: Name, val ordinal: Int)
         enumClass.declarations.asSequence()
             .filterIsInstance<IrEnumEntry>()
@@ -194,5 +196,6 @@ fun enumEntriesMap(enumClass: IrClass): Map<Name, LoweredEnumEntryDescription> {
             .withIndex()
             .associate { it.value.name to LoweredEnumEntryDescription(it.value.ordinal, it.index) }
             .toMap()
+        }
     }
 }
