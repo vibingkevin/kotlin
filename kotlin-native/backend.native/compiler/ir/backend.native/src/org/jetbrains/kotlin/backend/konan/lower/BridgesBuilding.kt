@@ -100,8 +100,11 @@ internal class BridgesSupport(val irBuiltIns: IrBuiltIns, val symbols: BackendNa
             "Function ${irFunction.render()} doesn't need a bridge to call overridden function ${overriddenFunction.overriddenFunction.render()}"
         }
 
-        val functionBridges = irFunction::bridges.getOrSetIfNull { mutableMapOf() }
-        return functionBridges.getOrPut(directions) { createBridge(irFunction, directions) }
+        // Several backend threads build vtables that bridge the same shared function.
+        return synchronized(irFunction) {
+            val functionBridges = irFunction::bridges.getOrSetIfNull { mutableMapOf() }
+            functionBridges.getOrPut(directions) { createBridge(irFunction, directions) }
+        }
     }
 
     private fun BridgeDirection.type() =
