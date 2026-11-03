@@ -27,7 +27,8 @@ import org.jetbrains.kotlin.utils.addToStdlib.getOrSetIfNull
 
 private var IrClass.objectClassInstanceFunction: IrSimpleFunction? by irAttribute(copyByDefault = false)
 
-internal fun NativeLoweringContext.getObjectClassInstanceFunction(clazz: IrClass) = clazz::objectClassInstanceFunction.getOrSetIfNull {
+internal fun NativeLoweringContext.getObjectClassInstanceFunction(clazz: IrClass) = synchronized(clazz) {
+    clazz::objectClassInstanceFunction.getOrSetIfNull {
     when {
         clazz.isUnit() -> symbols.theUnitInstance.owner
         clazz.isCompanion -> {
@@ -61,6 +62,7 @@ internal fun NativeLoweringContext.getObjectClassInstanceFunction(clazz: IrClass
             }
             property.getter!!
         }
+    }
     }
 }
 
