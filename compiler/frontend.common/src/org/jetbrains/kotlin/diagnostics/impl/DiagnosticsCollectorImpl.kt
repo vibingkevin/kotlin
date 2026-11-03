@@ -21,12 +21,16 @@ class DiagnosticsCollectorImpl : BaseDiagnosticsCollector() {
     override val diagnosticsByFile: Map<KtSourceFile?, List<KtDiagnostic>>
         field = mutableMapOf<KtSourceFile?, MutableList<KtDiagnostic>>()
 
+    @Volatile
     override var hasErrors = false
         private set
 
+    @Volatile
     override var hasWarningsForWError = false
         private set
 
+    // Parallel Native backend jobs share this collector, including its lists and severity flags.
+    @Synchronized
     override fun report(diagnostic: KtDiagnostic?, context: DiagnosticContext) {
         if (diagnostic != null && !context.isDiagnosticSuppressed(diagnostic)) {
 
