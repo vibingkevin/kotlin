@@ -191,6 +191,7 @@ abstract class AbstractNativeIncrementalCompilationTest : AbstractNativeSimpleTe
                         "-Xic-cache-dir=${icCacheDir.absolutePath}",
                         "-Xdump-built-caches-to=${dumpBuiltCachesToPath.absolutePath}",
                         "-Xenable-incremental-compilation",
+                        "-Xbackend-threads=4",
                         "-verbose",
                     ) + mainStep.cliArguments
                 ),

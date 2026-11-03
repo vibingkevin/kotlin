@@ -44,6 +44,60 @@ class CacheBatchTest : AbstractNativeSimpleTest() {
     @Test
     fun parallelCleanBatchSupportsIncrementalRebuilds() = doTest(backendThreads = 4)
 
+    @Test
+    fun parallelCodegenWithCollidingAbiTypes() {
+        assumeTrue(HostManager.host.family == Family.OSX || HostManager.host.family == Family.LINUX)
+        assumeFalse(testRunSettings.get<ForcedNoopTestRunner>().value)
+
+        // Aa and BB have the same String hash. These public classes also collide as IR types.
+        // Exercise cold caches, concurrent per-file rebuilds, and subsequent cache reuse.
+        val names = (0 until 512).map { index ->
+            (0 until 9).joinToString("") { bit -> if (index and (1 shl bit) == 0) "Aa" else "BB" }
+        }
+        assertEquals(1, names.map { it.hashCode() }.toSet().size)
+        val sources = List(4) { buildDir.resolve("types$it.kt") }
+        val library = buildDir.resolve("library.klib")
+        val main = buildDir.resolve("main.klib")
+        val executable = buildDir.resolve("main.kexe")
+        val cacheDir = buildDir.resolve("cache").apply { mkdirs() }
+        val rebuiltCaches = buildDir.resolve("rebuilt.txt")
+
+        fun compileLibrary(version: Int) {
+            sources.forEachIndexed { fileIndex, source ->
+                val indices = names.indices.filter { it % sources.size == fileIndex }
+                source.writeText(buildString {
+                    indices.forEach { index ->
+                        appendLine("class ${names[index]}(val value: Int)")
+                        appendLine("fun consume$index(value: ${names[index]}) = value.value + $version")
+                    }
+                    appendLine("fun sum$fileIndex() = " + indices.joinToString(" + ") { "consume$it(${names[it]}(1))" })
+                })
+            }
+            compileKlib(*sources.map { it.path }.toTypedArray(), "-o", library.path)
+        }
+
+        compileLibrary(0)
+        val mainSource = buildDir.resolve("main.kt").apply {
+            writeText("fun main() = println(" + sources.indices.joinToString(" + ") { "sum$it()" } + ")")
+        }
+        compileKlib(mainSource.path, "-l", library.path, "-o", main.path)
+
+        fun link(): String = compile(
+            "-g", "-verbose", "-Xenable-incremental-compilation", "-Xic-cache-dir=${cacheDir.path}",
+            "-Xdump-built-caches-to=${rebuiltCaches.path}", "-Xbackend-threads=4",
+            "-Xinclude=${main.path}", "-l", library.path, "-o", executable.path,
+        )
+
+        link()
+        verifyOutput(executable, "512")
+        compileLibrary(1)
+        link()
+        verifyOutput(executable, "1024")
+        link()
+        assertTrue(rebuiltCaches.readText().isBlank())
+        verifyOutput(executable, "1024")
+    }
+
     private fun doTest(backendThreads: Int) {
         assumeTrue(HostManager.host.family == Family.OSX || HostManager.host.family == Family.LINUX)
         assumeFalse(testRunSettings.get<ForcedNoopTestRunner>().value)
