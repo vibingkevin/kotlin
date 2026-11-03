@@ -265,13 +265,32 @@ internal fun <C : NativeBackendPhaseContext> PhaseEngine<C>.runBackend(backendCo
                             fragment.performanceManager?.initializeCurrentThread()
                             runAfterLowerings(fragment, generationState)
                         } catch (t: Throwable) {
-                            thrownFromThread.set(t)
+                            thrownFromThread.compareAndSet(null, t)
                         }
                     }
                 }
-                executor.invokeAll(tasks.toList())
-                executor.shutdown()
-                executor.awaitTermination(1, TimeUnit.DAYS)
+                // invokeAll throws InterruptedException without waiting for tasks that already entered codegen.
+                // Those tasks can still rename per-file caches. Wait for them before the caller deletes the cache.
+                var interrupted = Thread.currentThread().isInterrupted
+                try {
+                    try {
+                        executor.invokeAll(tasks.toList())
+                    } catch (e: InterruptedException) {
+                        interrupted = true
+                        throw e
+                    }
+                } finally {
+                    executor.shutdownNow()
+                    while (!executor.isTerminated) {
+                        try {
+                            executor.awaitTermination(1, TimeUnit.DAYS)
+                        } catch (_: InterruptedException) {
+                            interrupted = true
+                        }
+                    }
+                    generationStates.forEach { it.dispose() }
+                    if (interrupted) Thread.currentThread().interrupt()
+                }
                 thrownFromThread.get()?.let { throw it }
             }
         }
