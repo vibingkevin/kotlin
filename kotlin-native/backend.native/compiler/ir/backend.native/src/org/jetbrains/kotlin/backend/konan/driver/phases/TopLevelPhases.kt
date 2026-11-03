@@ -269,9 +269,23 @@ internal fun <C : NativeBackendPhaseContext> PhaseEngine<C>.runBackend(backendCo
                         }
                     }
                 }
-                executor.invokeAll(tasks.toList())
-                executor.shutdown()
-                executor.awaitTermination(1, TimeUnit.DAYS)
+                try {
+                    executor.invokeAll(tasks.toList())
+                } finally {
+                    // Cache cleanup must not start while a cancelled code generator can still write to it.
+                    executor.shutdownNow()
+                    var interrupted = false
+                    while (!executor.isTerminated) {
+                        try {
+                            executor.awaitTermination(1, TimeUnit.DAYS)
+                        } catch (_: InterruptedException) {
+                            interrupted = true
+                        }
+                    }
+                    // invokeAll can cancel queued jobs before useContext gets a chance to dispose them.
+                    generationStates.forEach { it.dispose() }
+                    if (interrupted) Thread.currentThread().interrupt()
+                }
                 thrownFromThread.get()?.let { throw it }
             }
         }
