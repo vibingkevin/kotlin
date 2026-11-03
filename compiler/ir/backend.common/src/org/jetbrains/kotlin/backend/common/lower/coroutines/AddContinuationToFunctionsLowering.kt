@@ -105,9 +105,12 @@ fun IrSimpleFunction.getOrCreateFunctionWithContinuationStub(
     context: CommonBackendContext,
     lowerReturnType: (IrType) -> IrType = { defaultLoweredSuspendFunctionReturnType(it, context.irBuiltIns) },
 ): IrSimpleFunction {
-    return this.functionWithContinuations ?: createSuspendFunctionStub(context, lowerReturnType).also {
-        functionWithContinuations = it
-        it.suspendFunction = this
+    // Vtable construction calls this on shared suspend IR from several backend threads.
+    return synchronized(this) {
+        this.functionWithContinuations ?: createSuspendFunctionStub(context, lowerReturnType).also {
+            it.suspendFunction = this
+            functionWithContinuations = it
+        }
     }
 }
 
