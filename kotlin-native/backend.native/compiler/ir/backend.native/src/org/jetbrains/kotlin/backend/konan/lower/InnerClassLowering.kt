@@ -38,7 +38,9 @@ private var IrClass.outerThisField: IrField? by irAttribute(copyByDefault = fals
 internal class NativeInnerClassesSupport(private val irFactory: IrFactory) : InnerClassesSupport {
     override fun getOuterThisField(innerClass: IrClass): IrField {
         require(innerClass.isInner) { "Expected an inner class: ${innerClass.render()}" }
-        return innerClass::outerThisField.getOrSetIfNull {
+        // Class layout is built from several backend threads and asks for this field on shared dependency IR.
+        return synchronized(innerClass) {
+            innerClass::outerThisField.getOrSetIfNull {
             val outerClass = innerClass.parentClassOrNull ?: error("No containing class for inner class ${innerClass.render()}")
 
             irFactory.buildField {
@@ -53,6 +55,7 @@ internal class NativeInnerClassesSupport(private val irFactory: IrFactory) : Inn
                 isStatic = false
             }.also {
                 it.parent = innerClass
+            }
             }
         }
     }
