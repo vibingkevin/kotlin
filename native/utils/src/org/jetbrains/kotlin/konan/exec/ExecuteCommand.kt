@@ -125,10 +125,24 @@ open class Command(
             // it may have limited capacity.
 
             val process = builder.start()
-            val code = process.waitFor()
-            if (handleError) handleExitCode(code, outputFile.readLines())
+            try {
+                val code = process.waitFor()
+                if (handleError) handleExitCode(code, outputFile.readLines())
 
-            return Result(code, outputFile.readLines())
+                return Result(code, outputFile.readLines())
+            } finally {
+                // A cancelled compiler must not leave a tool writing to outputs it is about to delete.
+                process.destroyForcibly()
+                var interrupted = false
+                while (process.isAlive) {
+                    try {
+                        process.waitFor()
+                    } catch (_: InterruptedException) {
+                        interrupted = true
+                    }
+                }
+                if (interrupted) Thread.currentThread().interrupt()
+            }
         } finally {
             outputFile.delete()
         }
