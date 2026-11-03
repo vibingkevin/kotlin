@@ -5,7 +5,6 @@
 
 package org.jetbrains.kotlin.backend.konan
 
-import llvm.LLVMTypeRef
 import org.jetbrains.kotlin.K1Deprecation
 import org.jetbrains.kotlin.backend.common.InlineClassesUtils
 import org.jetbrains.kotlin.backend.common.ir.KlibSharedVariablesManager
@@ -140,8 +139,6 @@ internal class NativeBackendContext(
 
     val stdlibModule
         get() = this.irBuiltIns.anyClass.owner.moduleFragment
-
-    val declaredLocalArrays: MutableMap<String, LLVMTypeRef> = HashMap()
 
     val targetAbiInfo = config.target.abiInfo
 

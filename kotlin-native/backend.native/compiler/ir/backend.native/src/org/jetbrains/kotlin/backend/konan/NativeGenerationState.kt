@@ -104,6 +104,9 @@ internal class NativeGenerationState(
 
     val virtualFunctionTrampolines = mutableMapOf<IrSimpleFunction, LlvmFunction>()
 
+    // LLVM types belong to this generation's context. A shared map would publish one thread's type into another module.
+    val declaredLocalArrays = mutableMapOf<String, LLVMTypeRef>()
+
     val bindClassToObjCNameClassAdapters = mutableMapOf<String, ConstPointer>()
     val bindClassToObjCNameInterfaceAdapters = mutableMapOf<String, ConstPointer>()
 

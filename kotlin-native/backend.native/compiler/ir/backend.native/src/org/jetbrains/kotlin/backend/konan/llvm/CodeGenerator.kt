@@ -473,7 +473,7 @@ internal class StackLocalsManagerImpl(
     private fun localArrayType(irClass: IrClass, count: Int) = with(functionGenerationContext) {
         val name = "local#${irClass.name}${count}#internal"
         // Create new type or get already created.
-        context.declaredLocalArrays.getOrPut(name) {
+        generationState.declaredLocalArrays.getOrPut(name) {
             val fieldTypes = listOf(kArrayHeader, LLVMArrayType(arrayToElementType[irClass.symbol]!!, count))
             val classType = LLVMStructCreateNamed(LLVMGetModuleContext(llvm.module), name)!!
             LLVMStructSetBody(classType, fieldTypes.toCValues(), fieldTypes.size, 1)
