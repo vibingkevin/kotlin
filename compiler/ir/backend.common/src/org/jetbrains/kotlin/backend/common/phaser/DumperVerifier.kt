@@ -146,7 +146,7 @@ fun <Data, Context : ErrorReportingContext> getIrDumper(): Action<Data, Context>
                 File(dumpDirectory +
                              ((data as? IrModuleFragment)?.let { "/" + it.name.asString().removeSurrounding("<", ">") } ?: ""))
             if (!directoryFile.isDirectory)
-                if (!directoryFile.mkdirs())
+                if (!directoryFile.mkdirs() && !directoryFile.isDirectory)
                     error("Can't create directory for IR dumps at $dumpDirectory")
 
             // Make dump files in a directory sorted by ID
