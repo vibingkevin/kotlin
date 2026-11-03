@@ -7,6 +7,7 @@ package org.jetbrains.kotlin.backend.konan.llvm
 
 import llvm.*
 import org.jetbrains.kotlin.backend.konan.NativeBackendContext
+import java.util.concurrent.ConcurrentHashMap
 import org.jetbrains.kotlin.konan.target.Architecture
 import org.jetbrains.kotlin.konan.target.Family
 
@@ -77,7 +78,7 @@ sealed class LlvmParameterAttribute(private val llvmAttributeName: String) : Llv
     }
 
     companion object {
-        private val llvmAttributeKindIdCache = mutableMapOf<LlvmParameterAttribute, LLVMAttributeKindId>()
+        private val llvmAttributeKindIdCache = ConcurrentHashMap<LlvmParameterAttribute, LLVMAttributeKindId>()
     }
 
     object SignExt : LlvmParameterAttribute("signext")
@@ -91,7 +92,7 @@ sealed class LlvmFunctionAttribute(private val llvmAttributeName: String) : Llvm
     }
 
     companion object {
-        private val llvmAttributeKindIdCache = mutableMapOf<LlvmFunctionAttribute, LLVMAttributeKindId>()
+        private val llvmAttributeKindIdCache = ConcurrentHashMap<LlvmFunctionAttribute, LLVMAttributeKindId>()
     }
 
     object NoUnwind : LlvmFunctionAttribute("nounwind")

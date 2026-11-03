@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.util.classId
 import org.jetbrains.kotlin.konan.target.Architecture
 import org.jetbrains.kotlin.konan.target.KonanTarget
+import java.util.concurrent.ConcurrentHashMap
 
 // TODO: We have [org.jetbrains.kotlin.native.interop.gen.ObjCAbiInfo] which does similar thing.
 //  Consider unifying these classes.
@@ -27,7 +28,7 @@ sealed interface TargetAbiInfo {
 }
 
 class ExtendOnCallerSideTargetAbiInfo : TargetAbiInfo {
-    private val typeAttributesCache = mutableMapOf<IrType, List<LlvmParameterAttribute>>()
+    private val typeAttributesCache = ConcurrentHashMap<IrType, List<LlvmParameterAttribute>>()
 
     override fun defaultParameterAttributesForIrType(irType: IrType): List<LlvmParameterAttribute> {
         // TODO: We perform type unwrapping twice: one to get the underlying type, and then this one.
@@ -63,7 +64,7 @@ class ExtendOnCallerSideTargetAbiInfo : TargetAbiInfo {
 }
 
 sealed class ExtendOnCalleeSideTargetAbiInfo(private val shouldZeroExtBoolean: Boolean) : TargetAbiInfo {
-    private val typeAttributesCache = mutableMapOf<IrType, List<LlvmParameterAttribute>>()
+    private val typeAttributesCache = ConcurrentHashMap<IrType, List<LlvmParameterAttribute>>()
 
     override fun defaultParameterAttributesForIrType(irType: IrType): List<LlvmParameterAttribute> {
         return typeAttributesCache.getOrPut(irType) {

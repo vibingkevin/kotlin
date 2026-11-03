@@ -41,6 +41,7 @@ dependencies {
     testImplementation(testFixtures(project(":native:native.tests:klib-compatibility")))
     if (kotlinBuildProperties.isKotlinNativeEnabled.get()) {
         testImplementation(project(":native:cli-native"))
+        testImplementation(project(":kotlin-native:backend.native"))
     }
 }
 
