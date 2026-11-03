@@ -44,6 +44,25 @@ class CacheBatchTest : AbstractNativeSimpleTest() {
     @Test
     fun parallelCleanBatchSupportsIncrementalRebuilds() = doTest(backendThreads = 4)
 
+    @Test
+    fun parallelPerFileCachesDistinguishStringHashCollisions() {
+        assumeTrue(HostManager.host.family == Family.OSX || HostManager.host.family == Family.LINUX)
+        assumeFalse(testRunSettings.get<ForcedNoopTestRunner>().value)
+        // Aa.kt and BB.kt have the same String.hashCode().
+        val aa = buildDir.resolve("Aa.kt").apply { writeText("package p\nfun fromAa() = 1\n") }
+        val bb = buildDir.resolve("BB.kt").apply { writeText("package p\nfun fromBb() = 2\n") }
+        val mainSrc = buildDir.resolve("main.kt").apply { writeText("package p\nfun main() = println(fromAa() + fromBb())\n") }
+        val library = buildDir.resolve("lib.klib")
+        val executable = buildDir.resolve("main.kexe")
+        val cacheDir = buildDir.resolve("cache").apply { mkdirs() }
+        compileKlib(aa.path, bb.path, mainSrc.path, "-o", library.path)
+        compile(
+            "-g", "-Xenable-incremental-compilation", "-Xic-cache-dir=${cacheDir.path}",
+            "-Xbackend-threads=4", "-Xinclude=${library.path}", "-e", "p.main", "-o", executable.path,
+        )
+        verifyOutput(executable, "3")
+    }
+
     private fun doTest(backendThreads: Int) {
         assumeTrue(HostManager.host.family == Family.OSX || HostManager.host.family == Family.LINUX)
         assumeFalse(testRunSettings.get<ForcedNoopTestRunner>().value)

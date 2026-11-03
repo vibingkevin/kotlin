@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.library.KotlinLibrary
 import org.jetbrains.kotlin.library.components.irOrFail
 import org.jetbrains.kotlin.protobuf.ExtensionRegistryLite
 import java.nio.file.Path
+import java.security.MessageDigest
 import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.isDirectory
@@ -182,8 +183,20 @@ class CacheSupport(
             configuration.preLinkCaches
 
     companion object {
-        fun cacheFileId(fqName: String, filePath: String) =
-                "${if (fqName == "") "ROOT" else fqName}.${filePath.hashCode().toString(Character.MAX_RADIX)}"
+        fun cacheFileId(fqName: String, filePath: String): String {
+            // String.hashCode collides for distinct paths such as Aa.kt and BB.kt, so two files share one cache directory.
+            val digest = MessageDigest.getInstance("SHA-256").digest(filePath.toByteArray(Charsets.UTF_8))
+            val hash = buildString(32) {
+                for (index in 0 until 16) {
+                    val byte = digest[index].toInt()
+                    append(HEX[byte ushr 4 and 0xF])
+                    append(HEX[byte and 0xF])
+                }
+            }
+            return "${if (fqName == "") "ROOT" else fqName}.$hash"
+        }
+
+        private const val HEX = "0123456789abcdef"
     }
 
     fun checkConsistency() {

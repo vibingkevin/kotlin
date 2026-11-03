@@ -392,8 +392,18 @@ abstract class AbstractNativeIncrementalCompilationTest : AbstractNativeSimpleTe
         return libCacheDir.resolve(fileId)
     }
 
-    private fun cacheFileId(fqName: String, filePath: String) =
-        "${fqName.ifEmpty { "ROOT" }}.${filePath.hashCode().toString(Character.MAX_RADIX)}"
+    private fun cacheFileId(fqName: String, filePath: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(filePath.toByteArray(Charsets.UTF_8))
+        val hash = buildString(32) {
+            val hex = "0123456789abcdef"
+            for (index in 0 until 16) {
+                val byte = digest[index].toInt()
+                append(hex[byte ushr 4 and 0xF])
+                append(hex[byte and 0xF])
+            }
+        }
+        return "${fqName.ifEmpty { "ROOT" }}.$hash"
+    }
 
     private data class CacheKey(val moduleName: String, val relativePath: String)
     private data class CacheEntry(
